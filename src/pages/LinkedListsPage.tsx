@@ -159,6 +159,118 @@ const problems: Problem[] = [
     link: 'https://www.geeksforgeeks.org/problems/insert-a-node-in-doubly-linked-list/1',
     solutionLink: 'https://github.com/solutions/add-two-numbers',
     codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 22,
+    title: "Middle Element of A Linked List",
+    link: 'https://leetcode.com/problems/middle-of-the-linked-list/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 23,
+    title: "Reverse A Linked List",
+    link: 'https://leetcode.com/problems/reverse-linked-list/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 24,
+    title: "Detect A Loop In Linked List",
+    link: 'https://leetcode.com/problems/reverse-linked-list/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 25,
+    title: "Find The Starting Node of A Loop In Linked List",
+    link: 'https://leetcode.com/problems/reverse-linked-list/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 26,
+    title: "Find Length of Loop In Linked List",
+    link: 'https://www.geeksforgeeks.org/problems/find-length-of-loop/1',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 27,
+    title: "Check Palindrome Linked List",
+    link: 'https://leetcode.com/problems/palindrome-linked-list/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 28,
+    title: "Segrregate Odd And Even Nodes In Linked List",
+    link: 'https://leetcode.com/problems/odd-even-linked-list/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 29,
+    title: "Remove Nth Node From End In Linked List",
+    link: 'https://leetcode.com/problems/remove-nth-node-from-end-of-list/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 30,
+    title: "Delete The Middle Node In LL",
+    link: 'https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 31,
+    title: "Merge Two Sorted Lists",
+    link: 'https://leetcode.com/problems/merge-two-sorted-lists/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 32,
+    title: "Sort A Linked List",
+    link: 'https://leetcode.com/problems/sort-list/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 33,
+    title: "Merge K Sorted Lists",
+    link: 'https://leetcode.com/problems/merge-k-sorted-lists/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 34,
+    title: "Sort A LL of 0s, 1s and 2s",
+    link: 'https://leetcode.com/problems/merge-k-sorted-lists/description/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 35,
+    title: "Intersection of Two Linked Lists",
+    link: 'https://leetcode.com/problems/intersection-of-two-linked-lists/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 36,
+    title: "Add 1 to A Number Represented By LL",
+    link: 'https://leetcode.com/problems/intersection-of-two-linked-lists/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 37,
+    title: "Add 2 Numbers Represented By LL",
+    link: 'https://leetcode.com/problems/intersection-of-two-linked-lists/',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
   }
 ];
 
