@@ -15,36 +15,71 @@ interface Problem {
 const problems: Problem[] = [
   {
     id: 1,
-    title: "Best Time to Buy and Sell Stock",
-    link: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock/',
+    title: "Assign Cookies",
+    link: 'https://leetcode.com/problems/assign-cookies/',
     solutionLink: 'https://github.com/solutions/best-time-buy-sell-stock',
     codeLink: 'https://github.com/code/best-time-buy-sell-stock'
   },
   {
     id: 2,
-    title: "Jump Game",
-    link: 'https://leetcode.com/problems/jump-game/',
+    title: "Fractional Knapsack",
+    link: 'https://www.geeksforgeeks.org/problems/fractional-knapsack-1587115620/1',
     solutionLink: 'https://github.com/solutions/jump-game',
     codeLink: 'https://github.com/code/jump-game'
   },
   {
     id: 3,
-    title: "Gas Station",
-    link: 'https://leetcode.com/problems/gas-station/',
+    title: "Minimum Coins",
+    link: 'https://www.naukri.com/code360/problems/minimum-coins_982764',
     solutionLink: 'https://github.com/solutions/gas-station',
     codeLink: 'https://github.com/code/gas-station'
   },
   {
     id: 4,
-    title: "Meeting Rooms II",
-    link: 'https://leetcode.com/problems/meeting-rooms-ii/',
+    title: "Lamonade Change",
+    link: 'https://leetcode.com/problems/lemonade-change/description/',
     solutionLink: 'https://github.com/solutions/meeting-rooms-ii',
     codeLink: 'https://github.com/code/meeting-rooms-ii'
   },
   {
     id: 5,
-    title: "Partition Labels",
-    link: 'https://leetcode.com/problems/partition-labels/',
+    title: "Valid Paranthesis Checker",
+    link: 'https://leetcode.com/problems/valid-parenthesis-string/',
+    solutionLink: 'https://github.com/solutions/partition-labels',
+    codeLink: 'https://github.com/code/partition-labels'
+  },
+  {
+    id: 6,
+    title: "N Meetings In One Room",
+    link: 'https://leetcode.com/problems/valid-parenthesis-string/',
+    solutionLink: 'https://github.com/solutions/partition-labels',
+    codeLink: 'https://github.com/code/partition-labels'
+  },
+  {
+    id: 7,
+    title: "Jump Game I",
+    link: 'https://leetcode.com/problems/jump-game/description/',
+    solutionLink: 'https://github.com/solutions/partition-labels',
+    codeLink: 'https://github.com/code/partition-labels'
+  },
+  {
+    id: 8,
+    title: "Jump Game II",
+    link: 'https://leetcode.com/problems/jump-game-ii/description/',
+    solutionLink: 'https://github.com/solutions/partition-labels',
+    codeLink: 'https://github.com/code/partition-labels'
+  },
+  {
+    id: 9,
+    title: "Minimum Platforms",
+    link: 'https://www.geeksforgeeks.org/problems/minimum-platforms-1587115620/1',
+    solutionLink: 'https://github.com/solutions/partition-labels',
+    codeLink: 'https://github.com/code/partition-labels'
+  },
+  {
+    id: 10,
+    title: "Jump Game II",
+    link: 'https://leetcode.com/problems/jump-game/description/',
     solutionLink: 'https://github.com/solutions/partition-labels',
     codeLink: 'https://github.com/code/partition-labels'
   }

@@ -271,6 +271,27 @@ const problems: Problem[] = [
     link: 'https://leetcode.com/problems/intersection-of-two-linked-lists/',
     solutionLink: 'https://github.com/solutions/add-two-numbers',
     codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 38,
+    title: "Delete All Occurences Of A Key In A DLL",
+    link: 'https://www.geeksforgeeks.org/problems/delete-all-occurrences-of-a-given-key-in-a-doubly-linked-list/1',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 39,
+    title: "Find Pairs With A Given Sum In A DLL",
+    link: 'https://www.geeksforgeeks.org/problems/delete-all-occurrences-of-a-given-key-in-a-doubly-linked-list/1',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
+  },
+  {
+    id: 40,
+    title: "Remove Duplicates From A Sorted DLL",
+    link: 'https://www.geeksforgeeks.org/problems/remove-duplicates-from-a-sorted-doubly-linked-list/1',
+    solutionLink: 'https://github.com/solutions/add-two-numbers',
+    codeLink: 'https://github.com/code/add-two-numbers'
   }
 ];
 

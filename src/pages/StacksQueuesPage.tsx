@@ -15,39 +15,221 @@ interface Problem {
 const problems: Problem[] = [
   {
     id: 1,
-    title: "Valid Parentheses",
+    title: "Implement Stack Using Arrays",
     link: 'https://leetcode.com/problems/valid-parentheses/',
     solutionLink: 'https://github.com/solutions/valid-parentheses',
     codeLink: 'https://github.com/code/valid-parentheses'
   },
   {
     id: 2,
-    title: "Implement Queue using Stacks",
+    title: "Implement Queue using Arrays",
     link: 'https://leetcode.com/problems/implement-queue-using-stacks/',
     solutionLink: 'https://github.com/solutions/queue-using-stacks',
     codeLink: 'https://github.com/code/queue-using-stacks'
   },
   {
     id: 3,
-    title: "Min Stack",
+    title: "Implementt Stack Using Queue",
     link: 'https://leetcode.com/problems/min-stack/',
     solutionLink: 'https://github.com/solutions/min-stack',
     codeLink: 'https://github.com/code/min-stack'
   },
   {
     id: 4,
-    title: "Evaluate Reverse Polish Notation",
+    title: "Implement Queue Using Stack",
     link: 'https://leetcode.com/problems/evaluate-reverse-polish-notation/',
     solutionLink: 'https://github.com/solutions/reverse-polish-notation',
     codeLink: 'https://github.com/code/reverse-polish-notation'
   },
   {
     id: 5,
-    title: "Daily Temperatures",
+    title: "Implement Stack Uing LinkedList",
     link: 'https://leetcode.com/problems/daily-temperatures/',
     solutionLink: 'https://github.com/solutions/daily-temperatures',
     codeLink: 'https://github.com/code/daily-temperatures'
-  }
+  },
+  {
+    id: 6,
+    title: "Implement Queue Uing LinkedList",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 7,
+    title: "Check For Balanced Parenthesis",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 8,
+    title: "Implement Min Stack",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 9,
+    title: "Infix to Postfix Conversion using Stack",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 10,
+    title: "Prefix to Infix Conversion",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 11,
+    title: "Prefix to Postfix Conversion",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 12,
+    title: "Postfix to Prefix Conversion",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 13,
+    title: "Postfix to Infix",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 14,
+    title: "Convert Infix To Prefix Notation",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 15,
+    title: "Convert Infix To Prefix Notation",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 16,
+    title: "Next Greater Element",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 17,
+    title: "Next Greater Element II",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 18,
+    title: "Next Greater Element II",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 19,
+    title: "Next Smaller Element",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 20,
+    title: "Number of NGEs to the right",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 21,
+    title: "Trapping Rainwater",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 22,
+    title: "Sum of subarray minimum",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 23,
+    title: "Asteroid Collision",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 24,
+    title: "Sum of subarray ranges",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 25,
+    title: "Remove k Digits",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 26,
+    title: "Largest rectangle in a histogram",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 27,
+    title: "Sliding Window maximum",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 28,
+    title: "Stock span problem",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 29,
+    title: "The Celebrity Problem",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 30,
+    title: "LRU cache (IMPORTANT)",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
+  {
+    id: 31,
+    title: "LFU cache",
+    link: 'https://leetcode.com/problems/daily-temperatures/',
+    solutionLink: 'https://github.com/solutions/daily-temperatures',
+    codeLink: 'https://github.com/code/daily-temperatures'
+  },
 ];
 
 const StacksQueuesPage: React.FC = () => {

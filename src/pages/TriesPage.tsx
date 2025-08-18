@@ -16,14 +16,14 @@ const problems: Problem[] = [
   {
     id: 1,
     title: "Implement Trie (Prefix Tree)",
-    link: 'https://leetcode.com/problems/implement-trie-prefix-tree/',
+    link: 'https://leetcode.com/problems/implement-trie-prefix-tree/description/',
     solutionLink: 'https://github.com/solutions/implement-trie',
     codeLink: 'https://github.com/code/implement-trie'
   },
   {
     id: 2,
-    title: "Word Search II",
-    link: 'https://leetcode.com/problems/word-search-ii/',
+    title: "Implement Trie II",
+    link: 'https://www.naukri.com/code360/problems/implement-trie_1387095',
     solutionLink: 'https://github.com/solutions/word-search-ii',
     codeLink: 'https://github.com/code/word-search-ii'
   },
