@@ -3,13 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, ExternalLink, Code2, FileText, 
   CheckCircle2, AlertCircle, Lock, Filter,
-  LayoutList, Globe, Award
+  Globe
 } from 'lucide-react';
 import Footer from '../components/Footer';
 import AnimatedBackground from '../components/AnimatedBackground';
 
-// ✅ Correct Import
+// ✅ Imports
 import { topics } from '../data/topics'; 
+import { API_URL } from '../config';
 
 interface Problem {
   id: number;
@@ -31,7 +32,7 @@ const TopicPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // 🆕 Filter State
+  // Filter State
   const [filter, setFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
 
   // --- 1. Fetch Data ---
@@ -42,15 +43,16 @@ const TopicPage: React.FC = () => {
         const token = localStorage.getItem('token');
         setIsAuthenticated(!!token);
 
-        // Fetch Problems
-        const probRes = await fetch(`http://localhost:5000/api/problems/${slug}`);
+        // ✅ FIXED: Use API_URL
+        const probRes = await fetch(`${API_URL}/api/problems/${slug}`);
         if (!probRes.ok) throw new Error('Failed to fetch problems');
         const probData = await probRes.json();
         setProblems(Array.isArray(probData) ? probData : []);
 
         // Fetch User Progress
         if (token) {
-          const userRes = await fetch('http://localhost:5000/api/auth/me', {
+          // ✅ FIXED: Use API_URL
+          const userRes = await fetch(`${API_URL}/api/auth/me`, {
             headers: { 'x-auth-token': token }
           });
           if (userRes.ok) {
@@ -82,7 +84,8 @@ const TopicPage: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/problems/sync', {
+      // ✅ FIXED: Use API_URL
+      const res = await fetch(`${API_URL}/api/problems/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token || '' },
         body: JSON.stringify({ problemId: idStr }) 
@@ -97,7 +100,7 @@ const TopicPage: React.FC = () => {
     }
   };
 
-  // --- 🆕 Calculations & Helpers ---
+  // --- Calculations & Helpers ---
 
   // Calculate detailed stats
   const stats = useMemo(() => {
@@ -146,7 +149,7 @@ const TopicPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 🆕 DETAILED STATS GRID */}
+            {/* STATS GRID */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                <StatBadge label="Total" solved={stats.Total.solved} total={stats.Total.total} color="bg-blue-500" />
                <StatBadge label="Easy" solved={stats.Easy.solved} total={stats.Easy.total} color="bg-emerald-500" />
@@ -183,7 +186,7 @@ const TopicPage: React.FC = () => {
         {!loading && !error && (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
              
-             {/* 🆕 FILTER TABS */}
+             {/* FILTER TABS */}
              <div className="flex items-center gap-2 p-4 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
                 <Filter size={16} className="text-slate-400 mr-2" />
                 {(['All', 'Easy', 'Medium', 'Hard'] as const).map((f) => (
@@ -229,7 +232,7 @@ const TopicPage: React.FC = () => {
                         key={problem.id} 
                         className={`group transition-all duration-200 ${isSolved ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                       >
-                        {/* 🆕 Number Column */}
+                        {/* Number Column */}
                         <td className="px-6 py-4 text-sm text-slate-400 font-mono">
                           {index + 1}
                         </td>
@@ -276,7 +279,7 @@ const TopicPage: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* 🆕 Platform Column */}
+                        {/* Platform Column */}
                         <td className="px-6 py-4 hidden sm:table-cell">
                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${platform.color}`}>
                               <Globe size={10} className="mr-1"/> {platform.name}
