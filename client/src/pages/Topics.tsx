@@ -17,12 +17,12 @@ const TopicsPage: React.FC = () => {
   // ✅ NEW: State to store real counts from DB
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
   const [loadingCounts, setLoadingCounts] = useState(true);
-
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
   // ✅ NEW: Fetch all problems to calculate counts
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/problems/all');
+        const res = await fetch(`${API_URL}/problems/all`);
         if (res.ok) {
           const allProblems: ProblemData[] = await res.json();
           

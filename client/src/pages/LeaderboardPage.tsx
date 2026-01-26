@@ -12,12 +12,13 @@ const LeaderboardPage: React.FC = () => {
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // 1. Fetch Leaderboard Data
-        const res = await fetch('http://localhost:5000/api/auth/leaderboard');
+        const res = await fetch(`${API_URL}/auth/leaderboard`);
         const data = await res.json();
         if (res.ok) setUsers(data);
 

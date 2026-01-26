@@ -24,7 +24,7 @@ const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -32,13 +32,13 @@ const ProfilePage: React.FC = () => {
         if (!token) return;
 
         // 1. Fetch User Data
-        const userRes = await fetch('http://localhost:5000/api/auth/me', {
+        const userRes = await fetch(`${API_URL}/auth/me`, {
           headers: { 'x-auth-token': token }
         });
         const userData = await userRes.json();
 
         // 2. Fetch ALL Problems (to calculate totals)
-        const probRes = await fetch('http://localhost:5000/api/problems/all');
+        const probRes = await fetch(`${API_URL}/problems/all`);
         const probData = await probRes.json();
 
         if (userRes.ok) setUser(userData);

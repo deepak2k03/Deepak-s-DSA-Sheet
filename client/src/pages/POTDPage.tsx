@@ -20,12 +20,12 @@ const POTDPage: React.FC = () => {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
-
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
   // 1. Fetch POTD
   useEffect(() => {
     const fetchPOTD = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/problems/potd');
+        const res = await fetch(`${API_URL}/problems/potd`);
         const data = await res.json();
         setProblem(data);
       } catch (err) {
