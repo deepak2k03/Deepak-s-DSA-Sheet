@@ -18,7 +18,7 @@ const LeaderboardPage: React.FC = () => {
     const fetchData = async () => {
       try {
         // 1. Fetch Leaderboard Data
-        const res = await fetch(`${API_URL}/auth/leaderboard`);
+        const res = await fetch(`${API_URL}/api/auth/leaderboard`);
         const data = await res.json();
         if (res.ok) setUsers(data);
 

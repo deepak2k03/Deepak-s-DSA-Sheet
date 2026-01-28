@@ -25,7 +25,7 @@ const POTDPage: React.FC = () => {
   useEffect(() => {
     const fetchPOTD = async () => {
       try {
-        const res = await fetch(`${API_URL}/problems/potd`);
+        const res = await fetch(`${API_URL}/api/problems/potd`);
         const data = await res.json();
         setProblem(data);
       } catch (err) {

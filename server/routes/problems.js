@@ -18,8 +18,13 @@ const auth = (req, res, next) => {
   }
 };
 
-// @route   POST /api/problems/add
-// @desc    Add a new problem manually (e.g. via Postman)
+// ✅ GLOBAL CACHE FOR PROBLEMS
+// This stores the list of 500 problems in memory to avoid constant DB hits.
+let problemsCache = null;
+
+// ==============================================
+// ADD PROBLEM (Clears Cache)
+// ==============================================
 router.post('/add', async (req, res) => {
   const { id, title, link, difficulty, topic, solutionLink, codeLink } = req.body;
 
@@ -30,16 +35,16 @@ router.post('/add', async (req, res) => {
     }
 
     problem = new Problem({
-      id,
-      title,
-      link,
-      difficulty,
-      topic,
+      id, title, link, difficulty, topic,
       solutionLink: solutionLink || "",
       codeLink: codeLink || ""
     });
 
     await problem.save();
+    
+    // ✅ CRITICAL: Clear cache so the new problem shows up immediately
+    problemsCache = null;
+
     res.json({ msg: 'Problem added successfully', problem });
     
   } catch (err) {
@@ -48,47 +53,50 @@ router.post('/add', async (req, res) => {
   }
 });
 
-// @route   GET /api/problems/all
-// @desc    Get ALL problems (Used for Profile Stats)
-// ⚠️ IMPORTANT: This must be BEFORE the /:topic route!
+// ==============================================
+// GET ALL PROBLEMS (With Caching) - ✅ FIXED
+// ==============================================
 router.get('/all', async (req, res) => {
   try {
+    // 1. Return cached list if it exists (Instant Response)
+    if (problemsCache) {
+      return res.json(problemsCache);
+    }
+
+    // 2. Fetch from DB if cache is empty
     const problems = await Problem.find({});
+    
+    // 3. Save to cache
+    problemsCache = problems;
+    
     res.json(problems);
   } catch (err) {
     res.status(500).send('Server Error');
   }
 });
 
+// ==============================================
+// POTD ROUTE
+// ==============================================
 router.get('/potd', async (req, res) => {
   try {
-    // 1. Get today's date string (e.g., "2023-10-27")
     const today = new Date().toISOString().split('T')[0];
-
-    // 2. Check if we already have a POTD for today
     let potdEntry = await POTD.findOne({ date: today }).populate('problem');
 
-    // 3. If NOT found, create one
     if (!potdEntry) {
-      // Get count of all problems
       const count = await Problem.countDocuments();
       if (count === 0) return res.status(404).json({ msg: "No problems in DB" });
 
-      // Pick a random index
       const random = Math.floor(Math.random() * count);
       const randomProblem = await Problem.findOne().skip(random);
 
-      // Save it as today's POTD
       potdEntry = new POTD({
         date: today,
         problem: randomProblem._id
       });
       await potdEntry.save();
-      
-      // Populate the problem details before sending
       potdEntry = await potdEntry.populate('problem');
     }
-
     res.json(potdEntry.problem);
 
   } catch (err) {
@@ -97,52 +105,52 @@ router.get('/potd', async (req, res) => {
   }
 });
 
-// @route   GET /api/problems/:topic
-// @desc    Get problems for a specific topic (e.g. 'arrays')
+// ==============================================
+// GET PROBLEMS BY TOPIC
+// ==============================================
 router.get('/:topic', async (req, res) => {
   try {
-    const problems = await Problem.find({ topic: req.params.topic }).sort({ id: 1 });
+    const topicParam = req.params.topic;
+    
+    // Use regex for case-insensitive matching
+    const problems = await Problem.find({ 
+      topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } 
+    }).sort({ id: 1 });
+
     res.json(problems);
   } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   POST /api/problems/sync
-// @desc    Sync user progress (Atomic Update)
+// ==============================================
+// SYNC SOLVED STATUS
+// ==============================================
 router.post('/sync', auth, async (req, res) => {
   const { problemId } = req.body;
-  
   try {
-    // 1. Get the user to check current status
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
     const idStr = String(problemId);
-    
-    // 2. Determine if we are Adding or Removing
     const isSolved = user.solvedProblems.includes(idStr);
     let updatedUser;
 
     if (isSolved) {
-      // REMOVE: Use $pull to remove directly from DB
       updatedUser = await User.findByIdAndUpdate(
         req.userId,
         { $pull: { solvedProblems: idStr } },
-        { new: true } // Return the updated document
+        { new: true }
       );
     } else {
-      // ADD: Use $addToSet (prevents duplicates automatically)
       updatedUser = await User.findByIdAndUpdate(
         req.userId,
         { $addToSet: { solvedProblems: idStr } },
         { new: true }
       );
     }
-
-    // 3. Return the updated list
     res.json(updatedUser.solvedProblems);
-
   } catch (err) {
     console.error("Sync Error:", err.message);
     res.status(500).send('Server Error');

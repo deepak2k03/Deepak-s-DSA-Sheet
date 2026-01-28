@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// --- Middleware to Verify Token (Inline for simplicity) ---
+// --- Middleware to Verify Token ---
 const auth = (req, res, next) => {
   const token = req.header('x-auth-token');
   if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
@@ -82,7 +82,7 @@ router.post('/login', async (req, res) => {
 });
 
 // ==============================================
-// 3. GET CURRENT USER (The Missing Link!)
+// 3. GET CURRENT USER
 // @route   GET /api/auth/me
 // ==============================================
 router.get('/me', auth, async (req, res) => {
@@ -96,22 +96,43 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// ==============================================
+// 4. GET LEADERBOARD (WITH CACHING) - ✅ FIXED
+// @route   GET /api/auth/leaderboard
+// ==============================================
+
+// Global cache variables
+let leaderboardCache = [];
+let lastCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 Minutes
+
 router.get('/leaderboard', async (req, res) => {
   try {
-    // Fetch all users, but ONLY get username and solvedProblems
-    // We don't want to send passwords or emails to the public!
+    const now = Date.now();
+
+    // 1. Check if cache is valid (Exists AND is less than 5 mins old)
+    if (leaderboardCache.length > 0 && (now - lastCacheTime < CACHE_DURATION)) {
+      return res.json(leaderboardCache);
+    }
+
+    // 2. If expired, fetch from DB (Heavy operation)
+    console.log("Refreshing Leaderboard Cache...");
+    
     const users = await User.find().select('username solvedProblems');
 
-    // Transform data: Calculate solved count for each user
     const leaderboard = users.map(user => ({
       username: user.username,
-      solvedCount: user.solvedProblems.length
+      solvedCount: user.solvedProblems ? user.solvedProblems.length : 0
     }));
 
-    // Sort by Solved Count (Descending: Highest first)
+    // Sort Descending
     leaderboard.sort((a, b) => b.solvedCount - a.solvedCount);
 
-    res.json(leaderboard);
+    // 3. Update Cache (Keep Top 50)
+    leaderboardCache = leaderboard.slice(0, 50); 
+    lastCacheTime = now;
+
+    res.json(leaderboardCache);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

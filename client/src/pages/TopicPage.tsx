@@ -7,8 +7,6 @@ import {
 } from 'lucide-react';
 import Footer from '../components/Footer';
 import AnimatedBackground from '../components/AnimatedBackground';
-
-// ✅ Imports
 import { topics } from '../data/topics'; 
 import { API_URL } from '../config';
 
@@ -31,11 +29,8 @@ const TopicPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  // Filter State
   const [filter, setFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
 
-  // --- 1. Fetch Data ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -43,15 +38,13 @@ const TopicPage: React.FC = () => {
         const token = localStorage.getItem('token');
         setIsAuthenticated(!!token);
 
-        // ✅ FIXED: Use API_URL
+        // Fetch problems for this specific topic
         const probRes = await fetch(`${API_URL}/api/problems/${slug}`);
         if (!probRes.ok) throw new Error('Failed to fetch problems');
         const probData = await probRes.json();
         setProblems(Array.isArray(probData) ? probData : []);
 
-        // Fetch User Progress
         if (token) {
-          // ✅ FIXED: Use API_URL
           const userRes = await fetch(`${API_URL}/api/auth/me`, {
             headers: { 'x-auth-token': token }
           });
@@ -72,7 +65,6 @@ const TopicPage: React.FC = () => {
     if (slug) fetchData();
   }, [slug]);
 
-  // --- 2. Toggle Logic ---
   const toggleProblem = async (problemId: number) => {
     if (!isAuthenticated) return;
     const idStr = String(problemId);
@@ -84,7 +76,6 @@ const TopicPage: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      // ✅ FIXED: Use API_URL
       const res = await fetch(`${API_URL}/api/problems/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token || '' },
@@ -100,9 +91,6 @@ const TopicPage: React.FC = () => {
     }
   };
 
-  // --- Calculations & Helpers ---
-
-  // Calculate detailed stats
   const stats = useMemo(() => {
     const calc = (diff: string) => ({
       total: problems.filter(p => p.difficulty === diff).length,
@@ -119,7 +107,6 @@ const TopicPage: React.FC = () => {
     };
   }, [problems, solvedProblems]);
 
-  // Determine Platform from URL
   const getPlatform = (url: string) => {
     if (url.includes('leetcode.com')) return { name: 'LeetCode', color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400' };
     if (url.includes('geeksforgeeks.org')) return { name: 'GFG', color: 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400' };
@@ -127,14 +114,12 @@ const TopicPage: React.FC = () => {
     return { name: 'Link', color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400' };
   };
 
-  // Filter the list
   const filteredProblems = problems.filter(p => filter === 'All' || p.difficulty === filter);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
       <AnimatedBackground />
       
-      {/* --- HEADER --- */}
       <div className="sticky top-16 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center gap-4 mb-4">
@@ -149,7 +134,6 @@ const TopicPage: React.FC = () => {
               </div>
             </div>
 
-            {/* STATS GRID */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                <StatBadge label="Total" solved={stats.Total.solved} total={stats.Total.total} color="bg-blue-500" />
                <StatBadge label="Easy" solved={stats.Easy.solved} total={stats.Easy.total} color="bg-emerald-500" />
@@ -186,7 +170,6 @@ const TopicPage: React.FC = () => {
         {!loading && !error && (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
              
-             {/* FILTER TABS */}
              <div className="flex items-center gap-2 p-4 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
                 <Filter size={16} className="text-slate-400 mr-2" />
                 {(['All', 'Easy', 'Medium', 'Hard'] as const).map((f) => (
@@ -232,7 +215,6 @@ const TopicPage: React.FC = () => {
                         key={problem.id} 
                         className={`group transition-all duration-200 ${isSolved ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                       >
-                        {/* Number Column */}
                         <td className="px-6 py-4 text-sm text-slate-400 font-mono">
                           {index + 1}
                         </td>
@@ -267,7 +249,6 @@ const TopicPage: React.FC = () => {
                             {problem.title}
                           </a>
                           
-                          {/* Mobile Only Metadata */}
                           <div className="sm:hidden mt-2 flex gap-2">
                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${platform.color}`}>{platform.name}</span>
                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium 
@@ -279,7 +260,6 @@ const TopicPage: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* Platform Column */}
                         <td className="px-6 py-4 hidden sm:table-cell">
                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${platform.color}`}>
                               <Globe size={10} className="mr-1"/> {platform.name}
@@ -326,7 +306,6 @@ const TopicPage: React.FC = () => {
   );
 };
 
-// --- Helper Component for Stats ---
 const StatBadge = ({ label, solved, total, color }: { label: string, solved: number, total: number, color: string }) => (
   <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
     <div className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase mb-1">{label}</div>
