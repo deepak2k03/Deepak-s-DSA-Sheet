@@ -23,7 +23,7 @@ const auth = (req, res, next) => {
 // ==============================================
 let problemsCache = null;
 let lastCacheTime = 0;
-const CACHE_DURATION = 30 * 1000; // 30 Seconds (Fast updates!)
+const CACHE_DURATION = 30 * 1000; // 30 Seconds
 
 // ==============================================
 // ADD PROBLEM (Clears Cache)
@@ -69,7 +69,6 @@ router.get('/all', async (req, res) => {
     }
 
     // 2. Fetch from DB if cache is empty or expired
-    // console.log("Cache expired. Fetching fresh problems..."); // Optional debug log
     const problems = await Problem.find({});
     
     // 3. Save to cache and update timestamp
@@ -113,13 +112,18 @@ router.get('/potd', async (req, res) => {
 });
 
 // ==============================================
-// GET PROBLEMS BY TOPIC
+// GET PROBLEMS BY TOPIC (Smart Slug Handling)
 // ==============================================
 router.get('/:topic', async (req, res) => {
   try {
-    const topicParam = req.params.topic;
+    // 1. Get the parameter (e.g., "binary-search")
+    let topicParam = req.params.topic;
     
-    // Use regex for case-insensitive matching
+    // 2. ✅ SMART FIX: Replace dashes with spaces
+    // This converts "binary-search" -> "binary search" automatically
+    topicParam = topicParam.replace(/-/g, " ");
+
+    // 3. Search with Case-Insensitivity
     const problems = await Problem.find({ 
       topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } 
     }).sort({ id: 1 });
