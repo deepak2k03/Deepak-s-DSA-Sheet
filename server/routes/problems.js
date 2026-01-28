@@ -111,48 +111,15 @@ router.get('/potd', async (req, res) => {
   }
 });
 
-
 // ==============================================
-// TEMPORARY FIX ROUTE (Run once then delete)
-// ==============================================
-router.get('/fix-slugs', async (req, res) => {
-  try {
-    // Rename "binary search" -> "binary-search" in the database
-    const result = await Problem.updateMany(
-      { topic: "binary search" }, 
-      { $set: { topic: "binary-search" } }
-    );
-    
-    // Clear cache to ensure frontend sees changes
-    problemsCache = null;
-
-    res.json({ 
-      msg: "Database Updated!", 
-      matched: result.matchedCount, 
-      modified: result.modifiedCount 
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-
-
-
-// ==============================================
-// GET PROBLEMS BY TOPIC (Smart Slug Handling)
+// GET PROBLEMS BY TOPIC (Clean Version)
 // ==============================================
 router.get('/:topic', async (req, res) => {
   try {
-    // 1. Get the parameter (e.g., "binary-search")
-    let topicParam = req.params.topic;
-    
-    // 2. ✅ SMART FIX: Replace dashes with spaces
-    // This converts "binary-search" -> "binary search" automatically
-    topicParam = topicParam.replace(/-/g, " ");
+    const topicParam = req.params.topic;
 
-    // 3. Search with Case-Insensitivity
+    // ✅ Clean Logic: No replacements needed.
+    // If URL is /binary-search, we search DB for "binary-search".
     const problems = await Problem.find({ 
       topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } 
     }).sort({ id: 1 });
@@ -196,31 +163,5 @@ router.post('/sync', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
-
-// ==============================================
-// TEMPORARY FIX ROUTE (Run once then delete)
-// ==============================================
-router.get('/fix-slugs', async (req, res) => {
-  try {
-    // Rename "binary search" -> "binary-search" in the database
-    const result = await Problem.updateMany(
-      { topic: "binary search" }, 
-      { $set: { topic: "binary-search" } }
-    );
-    
-    // Clear cache to ensure frontend sees changes
-    problemsCache = null;
-
-    res.json({ 
-      msg: "Database Updated!", 
-      matched: result.matchedCount, 
-      modified: result.modifiedCount 
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 
 module.exports = router;
