@@ -112,14 +112,18 @@ router.get('/potd', async (req, res) => {
 });
 
 // ==============================================
-// GET PROBLEMS BY TOPIC (Clean Version)
+// GET PROBLEMS BY TOPIC (Smart Slug Handling)
 // ==============================================
 router.get('/:topic', async (req, res) => {
   try {
-    const topicParam = req.params.topic;
+    let topicParam = req.params.topic;
+    
+    // 1. ✅ Restore the "Hyphen-to-Space" logic
+    // This allows URL ".../linked-lists" to find DB topic "linked lists"
+    topicParam = topicParam.replace(/-/g, " ");
 
-    // ✅ Clean Logic: No replacements needed.
-    // If URL is /binary-search, we search DB for "binary-search".
+    // 2. Search (Case Insensitive)
+    // Note: If your DB is "linked lists" (plural), your URL must be ".../linked-lists"
     const problems = await Problem.find({ 
       topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } 
     }).sort({ id: 1 });
