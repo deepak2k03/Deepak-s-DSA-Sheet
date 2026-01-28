@@ -18,9 +18,12 @@ const auth = (req, res, next) => {
   }
 };
 
-// ✅ GLOBAL CACHE FOR PROBLEMS
-// This stores the list of 500 problems in memory to avoid constant DB hits.
+// ==============================================
+// ✅ GLOBAL CACHE SETTINGS (30 Seconds)
+// ==============================================
 let problemsCache = null;
+let lastCacheTime = 0;
+const CACHE_DURATION = 30 * 1000; // 30 Seconds (Fast updates!)
 
 // ==============================================
 // ADD PROBLEM (Clears Cache)
@@ -42,7 +45,7 @@ router.post('/add', async (req, res) => {
 
     await problem.save();
     
-    // ✅ CRITICAL: Clear cache so the new problem shows up immediately
+    // ✅ Clear cache so the new problem shows up immediately
     problemsCache = null;
 
     res.json({ msg: 'Problem added successfully', problem });
@@ -54,20 +57,24 @@ router.post('/add', async (req, res) => {
 });
 
 // ==============================================
-// GET ALL PROBLEMS (With Caching) - ✅ FIXED
+// GET ALL PROBLEMS (With Auto-Refresh Cache)
 // ==============================================
 router.get('/all', async (req, res) => {
   try {
-    // 1. Return cached list if it exists (Instant Response)
-    if (problemsCache) {
+    const now = Date.now();
+
+    // 1. Return cached list ONLY if it is fresh (less than 30s old)
+    if (problemsCache && (now - lastCacheTime < CACHE_DURATION)) {
       return res.json(problemsCache);
     }
 
-    // 2. Fetch from DB if cache is empty
+    // 2. Fetch from DB if cache is empty or expired
+    // console.log("Cache expired. Fetching fresh problems..."); // Optional debug log
     const problems = await Problem.find({});
     
-    // 3. Save to cache
+    // 3. Save to cache and update timestamp
     problemsCache = problems;
+    lastCacheTime = now;
     
     res.json(problems);
   } catch (err) {
