@@ -4,9 +4,8 @@ import { Search, Filter, ArrowRight, Loader2 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
 import { topics } from '../data/topics';
-import { API_URL } from '../config'; // ✅ Import API_URL from config to avoid double slash
+import { API_URL } from '../config';
 
-// Define the structure of problem data we need for counting
 interface ProblemData {
   topic: string;
 }
@@ -23,8 +22,6 @@ const TopicsPage: React.FC = () => {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        // ✅ FIXED: Removed extra /api/ manually. API_URL already handles the base.
-        // If API_URL is http://localhost:5000, this becomes http://localhost:5000/api/problems/all
         const res = await fetch(`${API_URL}/api/problems/all`);
         
         if (res.ok) {
@@ -35,8 +32,15 @@ const TopicsPage: React.FC = () => {
           
           if(Array.isArray(allProblems)) {
              allProblems.forEach(p => {
-               const key = p.topic ? p.topic.toLowerCase().trim() : 'unknown';
-               counts[key] = (counts[key] || 0) + 1;
+               if (p.topic) {
+                 // ✅ FIXED: Normalize the DB topic to match frontend slugs
+                 // 1. Convert to lowercase
+                 // 2. Replace all spaces with hyphens ('linked lists' -> 'linked-lists')
+                 // 3. Trim whitespace
+                 const normalizedTopic = p.topic.toLowerCase().trim().replace(/\s+/g, '-');
+                 
+                 counts[normalizedTopic] = (counts[normalizedTopic] || 0) + 1;
+               }
              });
           }
           
@@ -126,6 +130,7 @@ const TopicsPage: React.FC = () => {
         {/* TOPICS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredTopics.map((topic) => {
+             // Look up count using the slug (which has hyphens)
              const realCount = topicCounts[topic.slug] || 0;
 
              return (
