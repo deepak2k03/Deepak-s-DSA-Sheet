@@ -111,6 +111,35 @@ router.get('/potd', async (req, res) => {
   }
 });
 
+
+// ==============================================
+// TEMPORARY FIX ROUTE (Run once then delete)
+// ==============================================
+router.get('/fix-slugs', async (req, res) => {
+  try {
+    // Rename "binary search" -> "binary-search" in the database
+    const result = await Problem.updateMany(
+      { topic: "binary search" }, 
+      { $set: { topic: "binary-search" } }
+    );
+    
+    // Clear cache to ensure frontend sees changes
+    problemsCache = null;
+
+    res.json({ 
+      msg: "Database Updated!", 
+      matched: result.matchedCount, 
+      modified: result.modifiedCount 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+
 // ==============================================
 // GET PROBLEMS BY TOPIC (Smart Slug Handling)
 // ==============================================
