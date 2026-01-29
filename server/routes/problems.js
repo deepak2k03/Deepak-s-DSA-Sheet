@@ -112,20 +112,22 @@ router.get('/potd', async (req, res) => {
 });
 
 // ==============================================
-// GET PROBLEMS BY TOPIC (Smart Slug Handling)
+// GET PROBLEMS BY TOPIC (Hybrid Search)
 // ==============================================
 router.get('/:topic', async (req, res) => {
   try {
-    let topicParam = req.params.topic;
+    const topicParam = req.params.topic; // e.g., "binary-search" or "linked-lists"
     
-    // 1. ✅ Restore the "Hyphen-to-Space" logic
-    // This allows URL ".../linked-lists" to find DB topic "linked lists"
-    topicParam = topicParam.replace(/-/g, " ");
+    // Create the "Space" version
+    const topicSpace = topicParam.replace(/-/g, " "); // "binary search" or "linked lists"
 
-    // 2. Search (Case Insensitive)
-    // Note: If your DB is "linked lists" (plural), your URL must be ".../linked-lists"
-    const problems = await Problem.find({ 
-      topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } 
+    // ✅ Search for EITHER the Hyphen version OR the Space version
+    // This allows "binary-search" (DB) and "linked lists" (DB) to both work!
+    const problems = await Problem.find({
+      $or: [
+        { topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } }, // Matches "binary-search"
+        { topic: { $regex: new RegExp(`^${topicSpace}$`, 'i') } }  // Matches "binary search"
+      ]
     }).sort({ id: 1 });
 
     res.json(problems);
@@ -134,7 +136,6 @@ router.get('/:topic', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
 // ==============================================
 // SYNC SOLVED STATUS
 // ==============================================
