@@ -22,7 +22,11 @@ interface Problem {
 
 const TopicPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>(); 
-  const topicInfo = topics.find(t => t.slug === slug);
+  
+  // Find topic info (Handle both space and hyphen slugs in local data)
+  const topicInfo = topics.find(t => 
+    t.slug === slug || t.slug === slug?.replace(/-/g, ' ')
+  );
 
   const [problems, setProblems] = useState<Problem[]>([]);
   const [solvedProblems, setSolvedProblems] = useState<string[]>([]);
@@ -33,17 +37,36 @@ const TopicPage: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!slug) return;
+
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
         setIsAuthenticated(!!token);
 
-        // Fetch problems for this specific topic
-        const probRes = await fetch(`${API_URL}/api/problems/${slug}`);
-        if (!probRes.ok) throw new Error('Failed to fetch problems');
-        const probData = await probRes.json();
-        setProblems(Array.isArray(probData) ? probData : []);
+        // ✅ FIX: Force the API slug to be lowercase and hyphenated
+        // We know 'binary-search' works in the browser, so let's guarantee we send that.
+        const apiSlug = slug.toLowerCase().trim().replace(/\s+/g, '-');
+        
+        console.log(`🔍 Fetching: ${API_URL}/api/problems/${apiSlug}`); // Debug Log
 
+        // Fetch problems
+        const probRes = await fetch(`${API_URL}/api/problems/${apiSlug}`);
+        
+        if (!probRes.ok) {
+           // Fallback: If hyphenated fails, try the raw slug (just in case)
+           console.log("⚠️ Hyphen fetch failed, trying raw slug...");
+           const retryRes = await fetch(`${API_URL}/api/problems/${slug}`);
+           if(!retryRes.ok) throw new Error('Failed to fetch problems');
+           const retryData = await retryRes.json();
+           setProblems(Array.isArray(retryData) ? retryData : []);
+        } else {
+           const probData = await probRes.json();
+           console.log(`✅ Loaded ${probData.length} problems`); // Debug Log
+           setProblems(Array.isArray(probData) ? probData : []);
+        }
+
+        // Fetch user progress
         if (token) {
           const userRes = await fetch(`${API_URL}/api/auth/me`, {
             headers: { 'x-auth-token': token }
@@ -56,13 +79,13 @@ const TopicPage: React.FC = () => {
         }
       } catch (err) {
         console.error(err);
-        setError('Could not load data. Ensure backend is running.');
+        setError('Could not load data. Please refresh.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (slug) fetchData();
+    fetchData();
   }, [slug]);
 
   const toggleProblem = async (problemId: number) => {
@@ -129,7 +152,7 @@ const TopicPage: React.FC = () => {
               <div>
                 <h1 className="text-2xl font-bold capitalize text-slate-900 dark:text-white flex items-center gap-3">
                   {topicInfo && <span className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{topicInfo.icon}</span>}
-                  {topicInfo ? topicInfo.name : slug?.replace('-', ' ')}
+                  {topicInfo ? topicInfo.name : slug?.replace(/-/g, ' ')}
                 </h1>
               </div>
             </div>
@@ -169,7 +192,7 @@ const TopicPage: React.FC = () => {
 
         {!loading && !error && (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-             
+              
              <div className="flex items-center gap-2 p-4 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
                 <Filter size={16} className="text-slate-400 mr-2" />
                 {(['All', 'Easy', 'Medium', 'Hard'] as const).map((f) => (
@@ -202,7 +225,7 @@ const TopicPage: React.FC = () => {
                 {filteredProblems.length === 0 ? (
                    <tr>
                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                        No problems found for this filter.
+                       No problems found for this filter.
                      </td>
                    </tr>
                 ) : (
