@@ -2,20 +2,22 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, ArrowRight, Code2, AlertCircle } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
+import { apiUrl } from '../config';
+import { setAuthSession } from '../utils/auth';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -27,12 +29,8 @@ const LoginPage: React.FC = () => {
         throw new Error(data.msg || 'Login failed');
       }
 
-      // Success: Save token & Redirect
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Force reload/redirect to update Header state instantly
-      window.location.href = '/'; 
+      setAuthSession(data.token, data.user);
+      navigate('/');
 
     } catch (err: any) {
       setError(err.message);

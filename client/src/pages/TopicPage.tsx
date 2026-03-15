@@ -7,8 +7,11 @@ import {
 } from 'lucide-react';
 import Footer from '../components/Footer';
 import AnimatedBackground from '../components/AnimatedBackground';
-import { topics } from '../data/topics'; 
-import { API_URL } from '../config';
+import { defaultTopics, getTopicIcon, type TopicDefinition } from '../data/topics';
+import { apiUrl } from '../config';
+import { updateStoredUser } from '../utils/auth';
+import { getCanonicalTopicSlug } from '../utils/topics';
+import { fetchPublicTopics } from '../utils/topicApi';
 
 interface Problem {
   id: number;
@@ -22,18 +25,17 @@ interface Problem {
 
 const TopicPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>(); 
-  
-  // Find topic info (Handle both space and hyphen slugs in local data)
-  const topicInfo = topics.find(t => 
-    t.slug === slug || t.slug === slug?.replace(/-/g, ' ')
-  );
+  const normalizedSlug = getCanonicalTopicSlug(slug || '');
 
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [topicCatalog, setTopicCatalog] = useState<TopicDefinition[]>(defaultTopics);
   const [solvedProblems, setSolvedProblems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [filter, setFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
+
+  const topicInfo = topicCatalog.find((topic) => topic.slug === normalizedSlug);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,31 +46,26 @@ const TopicPage: React.FC = () => {
         const token = localStorage.getItem('token');
         setIsAuthenticated(!!token);
 
-        // ✅ FIX: Force the API slug to be lowercase and hyphenated
-        // We know 'binary-search' works in the browser, so let's guarantee we send that.
-        const apiSlug = slug.toLowerCase().trim().replace(/\s+/g, '-');
-        
-        console.log(`🔍 Fetching: ${API_URL}/api/problems/${apiSlug}`); // Debug Log
+        const apiSlug = normalizedSlug || getCanonicalTopicSlug(slug);
+        const [loadedTopics, probRes] = await Promise.all([
+          fetchPublicTopics().catch(() => defaultTopics),
+          fetch(apiUrl(`/api/problems/${apiSlug}`)),
+        ]);
 
-        // Fetch problems
-        const probRes = await fetch(`${API_URL}/api/problems/${apiSlug}`);
-        
+        setTopicCatalog(loadedTopics);
+
         if (!probRes.ok) {
-           // Fallback: If hyphenated fails, try the raw slug (just in case)
-           console.log("⚠️ Hyphen fetch failed, trying raw slug...");
-           const retryRes = await fetch(`${API_URL}/api/problems/${slug}`);
-           if(!retryRes.ok) throw new Error('Failed to fetch problems');
-           const retryData = await retryRes.json();
-           setProblems(Array.isArray(retryData) ? retryData : []);
+          const retryRes = await fetch(apiUrl(`/api/problems/${slug}`));
+          if (!retryRes.ok) throw new Error('Failed to fetch problems');
+          const retryData = await retryRes.json();
+          setProblems(Array.isArray(retryData) ? retryData : []);
         } else {
-           const probData = await probRes.json();
-           console.log(`✅ Loaded ${probData.length} problems`); // Debug Log
-           setProblems(Array.isArray(probData) ? probData : []);
+          const probData = await probRes.json();
+          setProblems(Array.isArray(probData) ? probData : []);
         }
 
-        // Fetch user progress
         if (token) {
-          const userRes = await fetch(`${API_URL}/api/auth/me`, {
+           const userRes = await fetch(apiUrl('/api/auth/me'), {
             headers: { 'x-auth-token': token }
           });
           if (userRes.ok) {
@@ -86,7 +83,7 @@ const TopicPage: React.FC = () => {
     };
 
     fetchData();
-  }, [slug]);
+  }, [normalizedSlug, slug]);
 
   const toggleProblem = async (problemId: number) => {
     if (!isAuthenticated) return;
@@ -99,7 +96,7 @@ const TopicPage: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/problems/sync`, {
+      const res = await fetch(apiUrl('/api/problems/sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token || '' },
         body: JSON.stringify({ problemId: idStr }) 
@@ -107,7 +104,14 @@ const TopicPage: React.FC = () => {
 
       if (!res.ok) throw new Error('Sync failed');
       const updatedList = await res.json();
-      if (Array.isArray(updatedList)) setSolvedProblems(updatedList.map(String));
+      if (Array.isArray(updatedList)) {
+        const normalizedSolved = updatedList.map(String);
+        setSolvedProblems(normalizedSolved);
+        updateStoredUser((currentUser) => ({
+          ...currentUser,
+          solvedProblems: normalizedSolved,
+        }));
+      }
     } catch (err) {
       console.error("Sync failed", err);
       setSolvedProblems(originalState);
@@ -125,7 +129,7 @@ const TopicPage: React.FC = () => {
       Hard: calc('Hard'),
       Total: {
         total: problems.length,
-        solved: solvedProblems.length
+        solved: problems.filter((problem) => solvedProblems.includes(String(problem.id))).length
       }
     };
   }, [problems, solvedProblems]);
@@ -151,8 +155,8 @@ const TopicPage: React.FC = () => {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold capitalize text-slate-900 dark:text-white flex items-center gap-3">
-                  {topicInfo && <span className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{topicInfo.icon}</span>}
-                  {topicInfo ? topicInfo.name : slug?.replace(/-/g, ' ')}
+                  {topicInfo && <span className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{getTopicIcon(topicInfo.iconKey)}</span>}
+                  {topicInfo ? topicInfo.name : normalizedSlug.replace(/-/g, ' ')}
                 </h1>
               </div>
             </div>

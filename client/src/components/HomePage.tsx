@@ -7,7 +7,9 @@ import {
 } from 'lucide-react';
 import Footer from '../components/Footer';
 import AnimatedBackground from '../components/AnimatedBackground';
-import { topics } from '../data/topics'; // Import local topics data for counting
+import { defaultTopics } from '../data/topics';
+import { apiUrl } from '../config';
+import { fetchPublicTopics } from '../utils/topicApi';
 
 // --- PRO COMPONENTS ---
 
@@ -93,17 +95,16 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // 1. Fetch Problem Count
-        const probRes = await fetch('http://localhost:5000/api/problems/all');
+        const [probRes, userRes, topicsData] = await Promise.all([
+          fetch(apiUrl('/api/problems/all')),
+          fetch(apiUrl('/api/auth/leaderboard')),
+          fetchPublicTopics().catch(() => defaultTopics),
+        ]);
         const probData = await probRes.json();
         const probCount = Array.isArray(probData) ? probData.length : 0;
-
-        // 2. Fetch User Count & Total Solves
-        const userRes = await fetch('http://localhost:5000/api/auth/leaderboard');
         const userData = await userRes.json();
         const userCount = Array.isArray(userData) ? userData.length : 0;
         
-        // Calculate sum of all solved problems across all users
         const solvesCount = Array.isArray(userData) 
           ? userData.reduce((acc: number, user: any) => acc + user.solvedCount, 0)
           : 0;
@@ -111,14 +112,13 @@ const HomePage: React.FC = () => {
         setStats({
           totalProblems: probCount,
           activeUsers: userCount,
-          topicsCount: topics.length, // From local data
+          topicsCount: topicsData.length,
           totalSolves: solvesCount
         });
 
       } catch (err) {
         console.error("Error fetching homepage stats:", err);
-        // Fallback for visual stability if backend is down
-        setStats({ totalProblems: 450, activeUsers: 0, topicsCount: topics.length, totalSolves: 0 });
+        setStats({ totalProblems: 450, activeUsers: 0, topicsCount: defaultTopics.length, totalSolves: 0 });
       }
     };
 

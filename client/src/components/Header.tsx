@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Code2,
   Github,
+  Shield,
   LayoutGrid,
   BookMarked,
   Trophy,
@@ -14,16 +15,18 @@ import {
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { clsx } from "clsx";
-
-interface UserData {
-  username: string;
-  email: string;
-}
+import {
+  AUTH_STATE_EVENT,
+  clearAuthSession,
+  getStoredToken,
+  getStoredUser,
+} from "../utils/auth";
+import type { StoredUser } from "../utils/auth";
 
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<StoredUser | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 2. Create a Ref for the dropdown container
@@ -36,24 +39,17 @@ const Header: React.FC = () => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
 
-    // Auth Check
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
+      const token = getStoredToken();
+      const userData = getStoredUser();
       setIsAuthenticated(!!token);
-      if (userData) {
-        try {
-          setUser(JSON.parse(userData));
-        } catch (e) {
-          console.error("Failed to parse user data", e);
-        }
-      }
+      setUser(userData);
     };
+
     checkAuth();
     window.addEventListener("storage", checkAuth);
+    window.addEventListener(AUTH_STATE_EVENT, checkAuth);
 
-    // 3. CLICK OUTSIDE LISTENER
-    // If user clicks anywhere NOT inside the dropdownRef, close the menu
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -67,21 +63,17 @@ const Header: React.FC = () => {
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("storage", checkAuth);
-      document.removeEventListener("mousedown", handleClickOutside); // Cleanup
+      window.removeEventListener(AUTH_STATE_EVENT, checkAuth);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [location]);
 
   const handleLogout = () => {
-    // Clear everything
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    // Reset State
+    clearAuthSession();
     setIsAuthenticated(false);
     setUser(null);
     setIsMenuOpen(false);
 
-    // Redirect
     navigate("/login");
   };
 
@@ -193,6 +185,15 @@ const Header: React.FC = () => {
                       >
                         <UserIcon size={16} /> Profile
                       </Link>
+                      {user?.role === "admin" && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        >
+                          <Shield size={16} /> Admin Panel
+                        </Link>
+                      )}
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-left transition-colors"

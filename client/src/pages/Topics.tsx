@@ -3,60 +3,29 @@ import { Link } from 'react-router-dom';
 import { Search, Filter, ArrowRight, Loader2 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
-import { topics } from '../data/topics';
-import { API_URL } from '../config';
-
-interface ProblemData {
-  topic: string;
-}
+import { defaultTopics, getTopicIcon, type TopicDefinition } from '../data/topics';
+import { fetchPublicTopics } from '../utils/topicApi';
 
 const TopicsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
-  
-  // State to store real counts from DB
-  const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
-  const [loadingCounts, setLoadingCounts] = useState(true);
+  const [topics, setTopics] = useState<TopicDefinition[]>(defaultTopics);
+  const [loadingTopics, setLoadingTopics] = useState(true);
 
-  // Fetch all problems to calculate counts
   useEffect(() => {
-    const fetchCounts = async () => {
+    const loadTopics = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/problems/all`);
-        
-        if (res.ok) {
-          const allProblems: ProblemData[] = await res.json();
-          
-          // Count problems per topic
-          const counts: Record<string, number> = {};
-          
-          if(Array.isArray(allProblems)) {
-             allProblems.forEach(p => {
-               if (p.topic) {
-                 // ✅ FIXED: Normalize the DB topic to match frontend slugs
-                 // 1. Convert to lowercase
-                 // 2. Replace all spaces with hyphens ('linked lists' -> 'linked-lists')
-                 // 3. Trim whitespace
-                 const normalizedTopic = p.topic.toLowerCase().trim().replace(/\s+/g, '-');
-                 
-                 counts[normalizedTopic] = (counts[normalizedTopic] || 0) + 1;
-               }
-             });
-          }
-          
-          setTopicCounts(counts);
-        }
+        setTopics(await fetchPublicTopics());
       } catch (err) {
-        console.error("Failed to fetch problem counts", err);
+        console.error('Failed to fetch topics', err);
       } finally {
-        setLoadingCounts(false);
+        setLoadingTopics(false);
       }
     };
 
-    fetchCounts();
+    loadTopics();
   }, []);
 
-  // Filter Logic
   const filteredTopics = topics.filter(topic => {
     const matchesSearch = topic.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDifficulty = selectedDifficulty ? topic.difficulty === selectedDifficulty : true;
@@ -129,50 +98,45 @@ const TopicsPage: React.FC = () => {
 
         {/* TOPICS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredTopics.map((topic) => {
-             // Look up count using the slug (which has hyphens)
-             const realCount = topicCounts[topic.slug] || 0;
-
-             return (
-              <Link 
-                key={topic.slug} 
-                to={`/topic/${topic.slug}`}
-                className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                    {topic.icon}
-                  </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(topic.difficulty)}`}>
-                    {topic.difficulty}
-                  </span>
+          {filteredTopics.map((topic) => (
+            <Link 
+              key={topic.id || topic.slug} 
+              to={`/topic/${topic.slug}`}
+              className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
+                  {getTopicIcon(topic.iconKey)}
                 </div>
-                
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  {topic.name}
-                </h3>
-                
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-1">
-                  {topic.description}
-                </p>
-                
-                <div className="flex items-center justify-between text-sm font-medium pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500">
-                    {loadingCounts ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 size={12} className="animate-spin"/> Loading...
-                      </span>
-                    ) : (
-                      `${realCount} Problems`
-                    )}
-                  </span>
-                  <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300">
-                    Start <ArrowRight size={14} />
-                  </span>
-                </div>
-              </Link>
-             );
-          })}
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(topic.difficulty)}`}>
+                  {topic.difficulty}
+                </span>
+              </div>
+              
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                {topic.name}
+              </h3>
+              
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 flex-1">
+                {topic.description}
+              </p>
+              
+              <div className="flex items-center justify-between text-sm font-medium pt-4 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-slate-500">
+                  {loadingTopics ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 size={12} className="animate-spin"/> Loading...
+                    </span>
+                  ) : (
+                    `${topic.problemCount || 0} Problems`
+                  )}
+                </span>
+                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300">
+                  Start <ArrowRight size={14} />
+                </span>
+              </div>
+            </Link>
+          ))}
         </div>
 
         {filteredTopics.length === 0 && (

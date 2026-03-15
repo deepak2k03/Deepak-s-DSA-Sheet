@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, Calendar, ArrowRight, ExternalLink, 
+  Clock, Calendar, ExternalLink, 
   Code2, FileText, Loader2, Sparkles 
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
+import { apiUrl } from '../config';
 
 interface Problem {
   id: number;
@@ -20,12 +21,12 @@ const POTDPage: React.FC = () => {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
+
   // 1. Fetch POTD
   useEffect(() => {
     const fetchPOTD = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/problems/potd`);
+        const res = await fetch(apiUrl('/api/problems/potd'));
         const data = await res.json();
         setProblem(data);
       } catch (err) {

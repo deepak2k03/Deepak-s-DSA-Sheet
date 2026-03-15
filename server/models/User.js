@@ -4,8 +4,9 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  // ✅ CORRECT: Storing IDs as Strings prevents "1" vs 1 mismatches
-  solvedProblems: [{ type: String }], 
+  solvedProblems: [{ type: String }],
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

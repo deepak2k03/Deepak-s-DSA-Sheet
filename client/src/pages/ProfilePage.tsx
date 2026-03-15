@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  User, Mail, Trophy, Target, Zap, 
-  TrendingUp, Activity, PieChart, Calendar 
+  Mail, PieChart, Calendar 
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
+import { apiUrl } from '../config';
+import { fetchPublicTopics } from '../utils/topicApi';
+import { getCanonicalTopicSlug } from '../utils/topics';
+import { type TopicDefinition } from '../data/topics';
 
 interface Problem {
   id: number;
@@ -23,26 +26,27 @@ interface UserData {
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
+  const [topicCatalog, setTopicCatalog] = useState<TopicDefinition[]>([]);
   const [loading, setLoading] = useState(true);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        // 1. Fetch User Data
-        const userRes = await fetch(`${API_URL}/auth/me`, {
-          headers: { 'x-auth-token': token }
-        });
-        const userData = await userRes.json();
+        const [userRes, probRes, topics] = await Promise.all([
+          fetch(apiUrl('/api/auth/me'), { headers: { 'x-auth-token': token } }),
+          fetch(apiUrl('/api/problems/all')),
+          fetchPublicTopics(),
+        ]);
 
-        // 2. Fetch ALL Problems (to calculate totals)
-        const probRes = await fetch(`${API_URL}/problems/all`);
+        const userData = await userRes.json();
         const probData = await probRes.json();
 
         if (userRes.ok) setUser(userData);
         if (probRes.ok) setAllProblems(probData);
+        setTopicCatalog(topics);
 
       } catch (err) {
         console.error("Failed to load profile data", err);
@@ -78,13 +82,18 @@ const ProfilePage: React.FC = () => {
   const medSolved = allProblems.filter(p => p.difficulty === 'Medium' && user.solvedProblems.includes(String(p.id))).length;
   const hardSolved = allProblems.filter(p => p.difficulty === 'Hard' && user.solvedProblems.includes(String(p.id))).length;
 
-  // Topic Breakdown
-  const topics = Array.from(new Set(allProblems.map(p => p.topic)));
-  const topicStats = topics.map(topic => {
-    const topicProblems = allProblems.filter(p => p.topic === topic);
-    const solvedInTopic = topicProblems.filter(p => user.solvedProblems.includes(String(p.id))).length;
-    return { name: topic, total: topicProblems.length, solved: solvedInTopic };
-  }).sort((a, b) => b.solved - a.solved); // Sort by most solved
+  const getProgressWidth = (solved: number, total: number) => `${total > 0 ? (solved / total) * 100 : 0}%`;
+
+  // Topic Breakdown — use the server topic catalog so all topics appear with proper names
+  const topicStats = topicCatalog
+    .filter(t => t.isActive !== false)
+    .map(topic => {
+      const slug = getCanonicalTopicSlug(topic.slug || topic.name);
+      const topicProblems = allProblems.filter(p => getCanonicalTopicSlug(p.topic) === slug);
+      const solvedInTopic = topicProblems.filter(p => user.solvedProblems.includes(String(p.id))).length;
+      return { name: topic.name, total: topicProblems.length, solved: solvedInTopic };
+    })
+    .sort((a, b) => b.solved - a.solved);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
@@ -134,7 +143,7 @@ const ProfilePage: React.FC = () => {
               {easyTotal > 0 ? Math.round((easySolved / easyTotal) * 100) : 0}%
             </div>
             <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${(easySolved/easyTotal)*100}%` }}></div>
+              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: getProgressWidth(easySolved, easyTotal) }}></div>
             </div>
           </div>
 
@@ -148,7 +157,7 @@ const ProfilePage: React.FC = () => {
               {medTotal > 0 ? Math.round((medSolved / medTotal) * 100) : 0}%
             </div>
             <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${(medSolved/medTotal)*100}%` }}></div>
+              <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: getProgressWidth(medSolved, medTotal) }}></div>
             </div>
           </div>
 
@@ -162,7 +171,7 @@ const ProfilePage: React.FC = () => {
               {hardTotal > 0 ? Math.round((hardSolved / hardTotal) * 100) : 0}%
             </div>
             <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${(hardSolved/hardTotal)*100}%` }}></div>
+              <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: getProgressWidth(hardSolved, hardTotal) }}></div>
             </div>
           </div>
         </div>
@@ -187,7 +196,7 @@ const ProfilePage: React.FC = () => {
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
-                    style={{ width: `${(topic.solved / topic.total) * 100}%` }}
+                    style={{ width: getProgressWidth(topic.solved, topic.total) }}
                   />
                 </div>
               </div>

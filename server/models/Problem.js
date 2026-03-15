@@ -8,7 +8,7 @@ const problemSchema = new mongoose.Schema({
   topic: { type: String, default: 'arrays' }, // 'arrays', 'strings', etc.
   solutionLink: String,
   codeLink: String
-});
+}, { timestamps: true });
 
 
 module.exports = mongoose.model('Problem', problemSchema);

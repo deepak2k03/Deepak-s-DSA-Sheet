@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Medal, Crown, User, Search } from 'lucide-react';
+import { Trophy, Medal, Crown } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
+import { apiUrl } from '../config';
+import { getStoredUser } from '../utils/auth';
 
 interface LeaderboardUser {
   username: string;
@@ -12,22 +14,16 @@ const LeaderboardPage: React.FC = () => {
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Leaderboard Data
-        const res = await fetch(`${API_URL}/api/auth/leaderboard`);
+        const res = await fetch(apiUrl('/api/auth/leaderboard'));
         const data = await res.json();
         if (res.ok) setUsers(data);
 
-        // 2. Check who is currently logged in (to highlight them)
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsed = JSON.parse(storedUser);
-          setCurrentUser(parsed.username);
-        }
+        const storedUser = getStoredUser();
+        setCurrentUser(storedUser?.username || null);
       } catch (err) {
         console.error("Failed to fetch leaderboard", err);
       } finally {
@@ -37,13 +33,14 @@ const LeaderboardPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Helper to get rank icon
-  const getRankIcon = (index: number) => {
+  // Helper to get rank display
+  const getRankDisplay = (index: number) => {
+    const num = <span className="block text-[11px] font-bold text-slate-400 text-center leading-none mt-0.5">#{index + 1}</span>;
     switch (index) {
-      case 0: return <Crown className="text-yellow-500 fill-yellow-500" size={24} />;
-      case 1: return <Medal className="text-slate-400 fill-slate-400" size={24} />;
-      case 2: return <Medal className="text-amber-700 fill-amber-700" size={24} />;
-      default: return <span className="font-bold text-slate-500 w-6 text-center">{index + 1}</span>;
+      case 0: return <div className="flex flex-col items-center"><Crown className="text-yellow-500 fill-yellow-500" size={22} />{num}</div>;
+      case 1: return <div className="flex flex-col items-center"><Medal className="text-slate-400 fill-slate-400" size={22} />{num}</div>;
+      case 2: return <div className="flex flex-col items-center"><Medal className="text-amber-700 fill-amber-700" size={22} />{num}</div>;
+      default: return <span className="font-bold text-slate-500 w-6 text-center">#{index + 1}</span>;
     }
   };
 
@@ -72,7 +69,7 @@ const LeaderboardPage: React.FC = () => {
             Leaderboard
           </h1>
           <p className="text-slate-500 dark:text-slate-400">
-            Top performers in the DSA community. Keep solving to rise up!
+            Top 50 performers in the DSA community. Keep solving to rise up!
           </p>
         </div>
 
@@ -102,7 +99,7 @@ const LeaderboardPage: React.FC = () => {
               >
                 {/* Rank */}
                 <div className="w-16 flex justify-center">
-                  {getRankIcon(index)}
+                  {getRankDisplay(index)}
                 </div>
 
                 {/* User Info */}
@@ -117,7 +114,7 @@ const LeaderboardPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white">
-                      {user.username} 
+                      {user.username}
                       {user.username === currentUser && (
                         <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">You</span>
                       )}
@@ -133,6 +130,10 @@ const LeaderboardPage: React.FC = () => {
                 </div>
               </div>
             ))}
+
+            {users.length === 50 && (
+              <p className="text-center text-xs text-slate-400 pt-2">Showing top 50 ranked users</p>
+            )}
           </div>
         )}
       </main>

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Loader2, ArrowRight, Code2, AlertCircle } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
+import { apiUrl } from '../config';
+import { setAuthSession } from '../utils/auth';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +17,7 @@ const RegisterPage: React.FC = () => {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/signup`, {
+      const res = await fetch(apiUrl('/api/auth/signup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -28,9 +29,8 @@ const RegisterPage: React.FC = () => {
         throw new Error(data.msg || 'Signup failed');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      window.location.href = '/'; 
+      setAuthSession(data.token, data.user);
+      navigate('/');
 
     } catch (err: any) {
       setError(err.message);

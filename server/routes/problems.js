@@ -2,28 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Problem = require('../models/Problem');
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
 const POTD = require('../models/POTD');
-
-// Middleware to verify token
-const auth = (req, res, next) => {
-  const token = req.header('x-auth-token');
-  if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (err) {
-    res.status(401).json({ msg: 'Token is not valid' });
-  }
-};
-
-// ==============================================
-// ✅ GLOBAL CACHE SETTINGS (30 Seconds)
-// ==============================================
-let problemsCache = null;
-let lastCacheTime = 0;
-const CACHE_DURATION = 30 * 1000; // 30 Seconds
+const auth = require('../middleware/auth');
+const {
+  clearProblemsCache,
+  getCachedProblems,
+  setCachedProblems,
+} = require('../utils/problemCache');
+const { getCanonicalTopicSlug } = require('../utils/topics');
 
 // ==============================================
 // ADD PROBLEM (Clears Cache)
@@ -45,8 +31,7 @@ router.post('/add', async (req, res) => {
 
     await problem.save();
     
-    // ✅ Clear cache so the new problem shows up immediately
-    problemsCache = null;
+    clearProblemsCache();
 
     res.json({ msg: 'Problem added successfully', problem });
     
@@ -61,19 +46,15 @@ router.post('/add', async (req, res) => {
 // ==============================================
 router.get('/all', async (req, res) => {
   try {
-    const now = Date.now();
+    const cachedProblems = getCachedProblems();
 
-    // 1. Return cached list ONLY if it is fresh (less than 30s old)
-    if (problemsCache && (now - lastCacheTime < CACHE_DURATION)) {
-      return res.json(problemsCache);
+    if (cachedProblems) {
+      return res.json(cachedProblems);
     }
 
-    // 2. Fetch from DB if cache is empty or expired
-    const problems = await Problem.find({});
+    const problems = await Problem.find({}).sort({ id: 1 });
     
-    // 3. Save to cache and update timestamp
-    problemsCache = problems;
-    lastCacheTime = now;
+    setCachedProblems(problems);
     
     res.json(problems);
   } catch (err) {
@@ -116,19 +97,10 @@ router.get('/potd', async (req, res) => {
 // ==============================================
 router.get('/:topic', async (req, res) => {
   try {
-    const topicParam = req.params.topic; // e.g., "binary-search" or "linked-lists"
-    
-    // Create the "Space" version
-    const topicSpace = topicParam.replace(/-/g, " "); // "binary search" or "linked lists"
-
-    // ✅ Search for EITHER the Hyphen version OR the Space version
-    // This allows "binary-search" (DB) and "linked lists" (DB) to both work!
-    const problems = await Problem.find({
-      $or: [
-        { topic: { $regex: new RegExp(`^${topicParam}$`, 'i') } }, // Matches "binary-search"
-        { topic: { $regex: new RegExp(`^${topicSpace}$`, 'i') } }  // Matches "binary search"
-      ]
-    }).sort({ id: 1 });
+    const canonicalTopicSlug = getCanonicalTopicSlug(req.params.topic);
+    const problems = (await Problem.find({}).sort({ id: 1 })).filter(
+      (problem) => getCanonicalTopicSlug(problem.topic) === canonicalTopicSlug,
+    );
 
     res.json(problems);
   } catch (err) {
@@ -144,6 +116,7 @@ router.post('/sync', auth, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user.isActive) return res.status(403).json({ msg: 'Account access denied' });
 
     const idStr = String(problemId);
     const isSolved = user.solvedProblems.includes(idStr);
