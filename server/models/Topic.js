@@ -9,6 +9,8 @@ const topicSchema = new mongoose.Schema(
     iconKey: { type: String, default: 'book-open', trim: true },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

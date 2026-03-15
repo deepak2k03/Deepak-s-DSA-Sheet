@@ -25,7 +25,7 @@ import {
 } from '../data/topics';
 import { getStoredToken, getStoredUser, updateStoredUser } from '../utils/auth';
 
-type AdminTab = 'overview' | 'topics' | 'problems' | 'users' | 'potd';
+type AdminTab = 'overview' | 'topics' | 'problems' | 'users' | 'potd' | 'audit';
 
 interface AdminProblem {
   id: string;
@@ -36,6 +36,8 @@ interface AdminProblem {
   topic: string;
   solutionLink: string;
   codeLink: string;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
 }
 
 interface AdminUser {
@@ -43,9 +45,26 @@ interface AdminUser {
   username: string;
   email: string;
   solvedProblems: string[];
-  role: 'user' | 'admin';
+  role: 'user' | 'moderator' | 'content_manager' | 'admin';
   isActive: boolean;
   createdAt?: string;
+}
+
+interface PaginationData {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+interface AuditLogEntry {
+  _id: string;
+  actorEmail: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
 }
 
 interface OverviewData {
@@ -63,6 +82,11 @@ interface OverviewData {
     title: string;
     date: string;
   } | null;
+  trends?: {
+    newUsersByDay: Array<{ date: string; value: number }>;
+    solvesByDay: Array<{ date: string; value: number }>;
+    topTopics: Array<{ slug: string; name: string; solves: number }>;
+  };
 }
 
 interface TopicFormState {
@@ -111,6 +135,7 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
   { id: 'problems', label: 'Problems', icon: <Wrench size={16} /> },
   { id: 'users', label: 'Users', icon: <Users size={16} /> },
   { id: 'potd', label: 'POTD', icon: <Sparkles size={16} /> },
+  { id: 'audit', label: 'Audit', icon: <Shield size={16} /> },
 ];
 
 const AdminPage: React.FC = () => {
@@ -124,16 +149,24 @@ const AdminPage: React.FC = () => {
   const [topics, setTopics] = useState<TopicDefinition[]>(defaultTopics);
   const [problems, setProblems] = useState<AdminProblem[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [topicsPagination, setTopicsPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
+  const [problemsPagination, setProblemsPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
+  const [usersPagination, setUsersPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
+  const [auditPagination, setAuditPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
   const [selectedPotdProblemId, setSelectedPotdProblemId] = useState('');
-    const [topicSearch, setTopicSearch] = useState('');
-    const [problemSearch, setProblemSearch] = useState('');
-    const [problemDifficultyFilter, setProblemDifficultyFilter] = useState<'' | 'Easy' | 'Medium' | 'Hard'>('');
-    const [problemTopicFilter, setProblemTopicFilter] = useState('');
-    const [userSearch, setUserSearch] = useState('');
-    const [userRoleFilter, setUserRoleFilter] = useState<'' | 'admin' | 'user'>('');
-    const [userStatusFilter, setUserStatusFilter] = useState<'' | 'active' | 'disabled'>('');
+  const [topicSearch, setTopicSearch] = useState('');
+  const [topicStatusFilter, setTopicStatusFilter] = useState<'all' | 'active' | 'hidden' | 'deleted'>('all');
+  const [problemSearch, setProblemSearch] = useState('');
+  const [problemDifficultyFilter, setProblemDifficultyFilter] = useState<'' | 'Easy' | 'Medium' | 'Hard'>('');
+  const [problemTopicFilter, setProblemTopicFilter] = useState('');
+  const [problemStatusFilter, setProblemStatusFilter] = useState<'all' | 'live' | 'deleted'>('all');
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'' | 'admin' | 'user' | 'moderator' | 'content_manager'>('');
+  const [userStatusFilter, setUserStatusFilter] = useState<'' | 'active' | 'disabled'>('');
+  const [auditSearch, setAuditSearch] = useState('');
 
     const filteredTopics = useMemo(() => {
       const q = topicSearch.toLowerCase();
@@ -182,6 +215,16 @@ const AdminPage: React.FC = () => {
     setProblemForm(defaultProblemForm);
   };
 
+  const makeQuery = (entries: Record<string, string | number | undefined>) => {
+    const params = new URLSearchParams();
+    Object.entries(entries).forEach(([key, value]) => {
+      if (value !== undefined && String(value).trim() !== '') {
+        params.set(key, String(value));
+      }
+    });
+    return params.toString();
+  };
+
   const loadAdminData = async (showRefreshState = false) => {
     if (showRefreshState) {
       setRefreshing(true);
@@ -192,28 +235,64 @@ const AdminPage: React.FC = () => {
     setError('');
 
     try {
+      const topicsQuery = makeQuery({
+        page: topicsPagination.page,
+        limit: topicsPagination.limit,
+        query: topicSearch,
+        status: topicStatusFilter,
+      });
+      const problemsQuery = makeQuery({
+        page: problemsPagination.page,
+        limit: problemsPagination.limit,
+        query: problemSearch,
+        difficulty: problemDifficultyFilter,
+        topic: problemTopicFilter,
+        status: problemStatusFilter,
+      });
+      const usersQuery = makeQuery({
+        page: usersPagination.page,
+        limit: usersPagination.limit,
+        query: userSearch,
+        role: userRoleFilter,
+        status: userStatusFilter,
+      });
+      const auditQuery = makeQuery({
+        page: auditPagination.page,
+        limit: auditPagination.limit,
+        query: auditSearch,
+      });
+
       const [overviewRes, topicsRes, problemsRes, usersRes] = await Promise.all([
         fetch(apiUrl('/api/admin/overview'), { headers: authHeaders }),
-        fetch(apiUrl('/api/admin/topics'), { headers: authHeaders }),
-        fetch(apiUrl('/api/admin/problems'), { headers: authHeaders }),
-        fetch(apiUrl('/api/admin/users'), { headers: authHeaders }),
+        fetch(apiUrl(`/api/admin/topics?${topicsQuery}`), { headers: authHeaders }),
+        fetch(apiUrl(`/api/admin/problems?${problemsQuery}`), { headers: authHeaders }),
+        fetch(apiUrl(`/api/admin/users?${usersQuery}`), { headers: authHeaders }),
       ]);
 
-      if ([overviewRes, topicsRes, problemsRes, usersRes].some((response) => !response.ok)) {
+      const auditRes = await fetch(apiUrl(`/api/admin/audit-logs?${auditQuery}`), { headers: authHeaders });
+
+      if ([overviewRes, topicsRes, problemsRes, usersRes, auditRes].some((response) => !response.ok)) {
         throw new Error('Failed to load admin data');
       }
 
-      const [overviewData, topicsData, problemsData, usersData] = await Promise.all([
+      const [overviewData, topicsData, problemsData, usersData, auditData] = await Promise.all([
         overviewRes.json(),
         topicsRes.json(),
         problemsRes.json(),
         usersRes.json(),
+        auditRes.json(),
       ]);
 
       setOverview(overviewData);
-      setTopics(Array.isArray(topicsData) && topicsData.length > 0 ? topicsData : defaultTopics);
-      setProblems(Array.isArray(problemsData) ? problemsData : []);
-      setUsers(Array.isArray(usersData) ? usersData : []);
+      setTopics(Array.isArray(topicsData?.items) ? topicsData.items : []);
+      setProblems(Array.isArray(problemsData?.items) ? problemsData.items : []);
+      setUsers(Array.isArray(usersData?.items) ? usersData.items : []);
+      setAuditLogs(Array.isArray(auditData?.items) ? auditData.items : []);
+
+      if (topicsData?.pagination) setTopicsPagination(topicsData.pagination);
+      if (problemsData?.pagination) setProblemsPagination(problemsData.pagination);
+      if (usersData?.pagination) setUsersPagination(usersData.pagination);
+      if (auditData?.pagination) setAuditPagination(auditData.pagination);
 
       if (overviewData?.potd?.problemId) {
         setSelectedPotdProblemId(overviewData.potd.problemId);
@@ -228,7 +307,38 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     loadAdminData();
-  }, []);
+  }, [
+    topicSearch,
+    topicStatusFilter,
+    problemSearch,
+    problemDifficultyFilter,
+    problemTopicFilter,
+    problemStatusFilter,
+    userSearch,
+    userRoleFilter,
+    userStatusFilter,
+    auditSearch,
+    topicsPagination.page,
+    problemsPagination.page,
+    usersPagination.page,
+    auditPagination.page,
+  ]);
+
+  useEffect(() => {
+    setTopicsPagination((p) => ({ ...p, page: 1 }));
+  }, [topicSearch, topicStatusFilter]);
+
+  useEffect(() => {
+    setProblemsPagination((p) => ({ ...p, page: 1 }));
+  }, [problemSearch, problemDifficultyFilter, problemTopicFilter, problemStatusFilter]);
+
+  useEffect(() => {
+    setUsersPagination((p) => ({ ...p, page: 1 }));
+  }, [userSearch, userRoleFilter, userStatusFilter]);
+
+  useEffect(() => {
+    setAuditPagination((p) => ({ ...p, page: 1 }));
+  }, [auditSearch]);
 
   const withNotice = async (action: () => Promise<void>, successMessage: string) => {
     setSaving(true);
@@ -313,7 +423,18 @@ const AdminPage: React.FC = () => {
       if (editingTopicId === topicId) {
         resetTopicForm();
       }
-    }, 'Topic deleted');
+    }, 'Topic archived');
+  };
+
+  const restoreTopic = async (topicId: string) => {
+    await withNotice(async () => {
+      const response = await fetch(apiUrl(`/api/admin/topics/${topicId}/restore`), {
+        method: 'POST',
+        headers: authHeaders,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.msg || 'Failed to restore topic');
+    }, 'Topic restored');
   };
 
   const deleteProblem = async (problemId: string) => {
@@ -331,10 +452,25 @@ const AdminPage: React.FC = () => {
       if (editingProblemId === problemId) {
         resetProblemForm();
       }
-    }, 'Problem deleted');
+    }, 'Problem archived');
   };
 
-  const updateUserAccess = async (user: AdminUser, nextRole: 'user' | 'admin', nextActive: boolean) => {
+  const restoreProblem = async (problemId: string) => {
+    await withNotice(async () => {
+      const response = await fetch(apiUrl(`/api/admin/problems/${problemId}/restore`), {
+        method: 'POST',
+        headers: authHeaders,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.msg || 'Failed to restore problem');
+    }, 'Problem restored');
+  };
+
+  const updateUserAccess = async (
+    user: AdminUser,
+    nextRole: 'user' | 'moderator' | 'content_manager' | 'admin',
+    nextActive: boolean,
+  ) => {
     await withNotice(async () => {
       const response = await fetch(apiUrl(`/api/admin/users/${user.id}`), {
         method: 'PATCH',
@@ -469,6 +605,40 @@ const AdminPage: React.FC = () => {
                 <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">No problem is pinned for today yet.</p>
               )}
             </div>
+
+            {overview.trends && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:col-span-2 xl:col-span-3">
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">New Users (7d)</p>
+                    <div className="mt-3 flex items-end gap-1">
+                      {overview.trends.newUsersByDay.map((item) => (
+                        <div key={item.date} className="flex-1 rounded-t bg-blue-500/80" style={{ height: `${Math.max(item.value * 12, 6)}px` }} title={`${item.date}: ${item.value}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Solves (7d)</p>
+                    <div className="mt-3 flex items-end gap-1">
+                      {overview.trends.solvesByDay.map((item) => (
+                        <div key={item.date} className="flex-1 rounded-t bg-emerald-500/80" style={{ height: `${Math.max(item.value * 8, 6)}px` }} title={`${item.date}: ${item.value}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Top Solved Topics</p>
+                    <div className="mt-3 space-y-2 text-sm">
+                      {overview.trends.topTopics.length > 0 ? overview.trends.topTopics.map((topic) => (
+                        <div key={topic.slug} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
+                          <span className="text-slate-700 dark:text-slate-200">{topic.name}</span>
+                          <span className="font-semibold text-slate-900 dark:text-white">{topic.solves}</span>
+                        </div>
+                      )) : <p className="text-slate-500 dark:text-slate-400">No solve trend data yet.</p>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -503,6 +673,12 @@ const AdminPage: React.FC = () => {
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Topic Catalog <span className="ml-1 text-sm font-normal text-slate-400">({filteredTopics.length}/{topics.length})</span></h2>
                 <SearchBox value={topicSearch} onChange={setTopicSearch} placeholder="Search topics…" />
               </div>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <FilterChip label="All" active={topicStatusFilter === 'all'} onClick={() => setTopicStatusFilter('all')} />
+                <FilterChip label="Active" active={topicStatusFilter === 'active'} onClick={() => setTopicStatusFilter('active')} color="emerald" />
+                <FilterChip label="Hidden" active={topicStatusFilter === 'hidden'} onClick={() => setTopicStatusFilter('hidden')} color="amber" />
+                <FilterChip label="Deleted" active={topicStatusFilter === 'deleted'} onClick={() => setTopicStatusFilter('deleted')} color="rose" />
+              </div>
               <div className="space-y-3">
                 {filteredTopics.map((topic) => (
                   <div key={topic.id || topic.slug} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
@@ -512,7 +688,7 @@ const AdminPage: React.FC = () => {
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-slate-900 dark:text-white">{topic.name}</h3>
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-300">{topic.slug}</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${topic.isActive === false ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'}`}>{topic.isActive === false ? 'Hidden' : 'Live'}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${topic.isDeleted ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' : topic.isActive === false ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'}`}>{topic.isDeleted ? 'Deleted' : topic.isActive === false ? 'Hidden' : 'Live'}</span>
                         </div>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{topic.description}</p>
                         <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">{topic.problemCount || 0} problems • {topic.difficulty}</p>
@@ -520,11 +696,18 @@ const AdminPage: React.FC = () => {
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => { setEditingTopicId(topic.id || null); setTopicForm({ name: topic.name, slug: topic.slug, description: topic.description, difficulty: topic.difficulty, iconKey: topic.iconKey, order: String(topic.order || 0), isActive: topic.isActive !== false }); }} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Edit</button>
-                      {topic.id && <button type="button" onClick={() => deleteTopic(topic.id!)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
+                      {topic.id && !topic.isDeleted && <button type="button" onClick={() => deleteTopic(topic.id!)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
+                      {topic.id && topic.isDeleted && <button type="button" onClick={() => restoreTopic(topic.id!)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
                     </div>
                   </div>
                 ))}
               </div>
+              <PaginationBar
+                page={topicsPagination.page}
+                totalPages={topicsPagination.pages}
+                onPrev={() => setTopicsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+                onNext={() => setTopicsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+              />
             </div>
           </section>
         )}
@@ -566,6 +749,11 @@ const AdminPage: React.FC = () => {
                   <FilterChip label="Hard" active={problemDifficultyFilter === 'Hard'} onClick={() => setProblemDifficultyFilter('Hard')} color="rose" />
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <FilterChip label="All Status" active={problemStatusFilter === 'all'} onClick={() => setProblemStatusFilter('all')} />
+                  <FilterChip label="Live" active={problemStatusFilter === 'live'} onClick={() => setProblemStatusFilter('live')} color="emerald" />
+                  <FilterChip label="Deleted" active={problemStatusFilter === 'deleted'} onClick={() => setProblemStatusFilter('deleted')} color="rose" />
+                </div>
+                <div className="flex flex-wrap gap-2">
                   <FilterChip label="All Topics" active={problemTopicFilter === ''} onClick={() => setProblemTopicFilter('')} />
                   {topics.map(t => (
                     <FilterChip key={t.slug} label={t.name} active={problemTopicFilter === t.slug} onClick={() => setProblemTopicFilter(t.slug)} />
@@ -583,12 +771,19 @@ const AdminPage: React.FC = () => {
                       </div>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, solutionLink: problem.solutionLink || '', codeLink: problem.codeLink || '' }); }} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Edit</button>
-                        <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>
+                        {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
+                        {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
+              <PaginationBar
+                page={problemsPagination.page}
+                totalPages={problemsPagination.pages}
+                onPrev={() => setProblemsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+                onNext={() => setProblemsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+              />
             </div>
           </section>
         )}
@@ -603,6 +798,8 @@ const AdminPage: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                 <FilterChip label="All Roles" active={userRoleFilter === ''} onClick={() => setUserRoleFilter('')} />
                 <FilterChip label="Admin" active={userRoleFilter === 'admin'} onClick={() => setUserRoleFilter('admin')} color="blue" />
+                <FilterChip label="Moderator" active={userRoleFilter === 'moderator'} onClick={() => setUserRoleFilter('moderator')} color="amber" />
+                <FilterChip label="Content" active={userRoleFilter === 'content_manager'} onClick={() => setUserRoleFilter('content_manager')} color="emerald" />
                 <FilterChip label="User" active={userRoleFilter === 'user'} onClick={() => setUserRoleFilter('user')} />
                 <span className="mx-1 self-center border-l border-slate-200 dark:border-slate-700 h-4" />
                 <FilterChip label="All Status" active={userStatusFilter === ''} onClick={() => setUserStatusFilter('')} />
@@ -623,12 +820,52 @@ const AdminPage: React.FC = () => {
                     <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">Solved {user.solvedProblems?.length || 0} problems</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => updateUserAccess(user, user.role === 'admin' ? 'user' : 'admin', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">{user.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}</button>
+                    {user.role !== 'admin' && <button type="button" onClick={() => updateUserAccess(user, 'admin', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make Admin</button>}
+                    {user.role !== 'moderator' && <button type="button" onClick={() => updateUserAccess(user, 'moderator', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make Moderator</button>}
+                    {user.role !== 'content_manager' && <button type="button" onClick={() => updateUserAccess(user, 'content_manager', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make Content</button>}
+                    {user.role !== 'user' && <button type="button" onClick={() => updateUserAccess(user, 'user', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make User</button>}
                     <button type="button" onClick={() => updateUserAccess(user, user.role, !user.isActive)} className={`rounded-xl border px-3 py-2 text-sm font-semibold ${user.isActive ? 'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20'}`}>{user.isActive ? 'Disable Account' : 'Enable Account'}</button>
                   </div>
                 </div>
               ))}
             </div>
+            <PaginationBar
+              page={usersPagination.page}
+              totalPages={usersPagination.pages}
+              onPrev={() => setUsersPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+              onNext={() => setUsersPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+            />
+          </section>
+        )}
+
+        {activeTab === 'audit' && (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Audit Logs <span className="ml-1 text-sm font-normal text-slate-400">({auditPagination.total})</span></h2>
+              <SearchBox value={auditSearch} onChange={setAuditSearch} placeholder="Search by action, entity or actor…" />
+            </div>
+
+            <div className="space-y-3">
+              {auditLogs.map((log) => (
+                <div key={log._id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{log.action}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{log.entityType} • {log.entityId || 'N/A'} • {log.actorEmail || 'system'}</p>
+                    </div>
+                    <span className="text-xs text-slate-400">{new Date(log.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+              {auditLogs.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">No logs found for current filter.</p>}
+            </div>
+
+            <PaginationBar
+              page={auditPagination.page}
+              totalPages={auditPagination.pages}
+              onPrev={() => setAuditPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+              onNext={() => setAuditPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+            />
           </section>
         )}
 
@@ -757,5 +994,27 @@ const FilterChip = ({ label, active, onClick, color }: { label: string; active: 
     </button>
   );
 };
+
+const PaginationBar = ({
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) => (
+  <div className="mt-4 flex items-center justify-end gap-2">
+    <button type="button" onClick={onPrev} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200">
+      Prev
+    </button>
+    <span className="text-xs text-slate-500 dark:text-slate-400">Page {page} / {Math.max(totalPages, 1)}</span>
+    <button type="button" onClick={onNext} disabled={page >= Math.max(totalPages, 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200">
+      Next
+    </button>
+  </div>
+);
 
 export default AdminPage;

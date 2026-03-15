@@ -3,8 +3,9 @@ export interface StoredUser {
   username: string;
   email: string;
   solvedProblems?: string[];
-  role?: 'user' | 'admin';
+  role?: 'user' | 'moderator' | 'content_manager' | 'admin';
   isActive?: boolean;
+  emailVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -3,11 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const seedDefaultTopics = require('./utils/seedDefaultTopics');
+const { globalRateLimiter } = require('./utils/rateLimiter');
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+app.use(globalRateLimiter);
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/problems', require('./routes/problems'));

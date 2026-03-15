@@ -9,6 +9,7 @@ const {
   getCachedProblems,
   setCachedProblems,
 } = require('../utils/problemCache');
+const { clearLeaderboardCache } = require('../utils/leaderboardCache');
 const { getCanonicalTopicSlug } = require('../utils/topics');
 
 // ==============================================
@@ -18,7 +19,7 @@ router.post('/add', async (req, res) => {
   const { id, title, link, difficulty, topic, solutionLink, codeLink } = req.body;
 
   try {
-    let problem = await Problem.findOne({ id });
+    let problem = await Problem.findOne({ id, isDeleted: { $ne: true } });
     if (problem) {
       return res.status(400).json({ msg: `Problem with ID ${id} already exists` });
     }
@@ -26,7 +27,9 @@ router.post('/add', async (req, res) => {
     problem = new Problem({
       id, title, link, difficulty, topic,
       solutionLink: solutionLink || "",
-      codeLink: codeLink || ""
+      codeLink: codeLink || "",
+      isDeleted: false,
+      deletedAt: null,
     });
 
     await problem.save();
@@ -52,7 +55,7 @@ router.get('/all', async (req, res) => {
       return res.json(cachedProblems);
     }
 
-    const problems = await Problem.find({}).sort({ id: 1 });
+    const problems = await Problem.find({ isDeleted: { $ne: true } }).sort({ id: 1 });
     
     setCachedProblems(problems);
     
@@ -71,11 +74,11 @@ router.get('/potd', async (req, res) => {
     let potdEntry = await POTD.findOne({ date: today }).populate('problem');
 
     if (!potdEntry) {
-      const count = await Problem.countDocuments();
+      const count = await Problem.countDocuments({ isDeleted: { $ne: true } });
       if (count === 0) return res.status(404).json({ msg: "No problems in DB" });
 
       const random = Math.floor(Math.random() * count);
-      const randomProblem = await Problem.findOne().skip(random);
+      const randomProblem = await Problem.findOne({ isDeleted: { $ne: true } }).skip(random);
 
       potdEntry = new POTD({
         date: today,
@@ -98,7 +101,7 @@ router.get('/potd', async (req, res) => {
 router.get('/:topic', async (req, res) => {
   try {
     const canonicalTopicSlug = getCanonicalTopicSlug(req.params.topic);
-    const problems = (await Problem.find({}).sort({ id: 1 })).filter(
+    const problems = (await Problem.find({ isDeleted: { $ne: true } }).sort({ id: 1 })).filter(
       (problem) => getCanonicalTopicSlug(problem.topic) === canonicalTopicSlug,
     );
 
@@ -119,22 +122,34 @@ router.post('/sync', auth, async (req, res) => {
     if (!user.isActive) return res.status(403).json({ msg: 'Account access denied' });
 
     const idStr = String(problemId);
+    const problem = await Problem.findOne({ id: Number(idStr), isDeleted: { $ne: true } }).select('id');
+    if (!problem) return res.status(404).json({ msg: 'Problem not found' });
+
     const isSolved = user.solvedProblems.includes(idStr);
     let updatedUser;
 
     if (isSolved) {
       updatedUser = await User.findByIdAndUpdate(
         req.userId,
-        { $pull: { solvedProblems: idStr } },
+        {
+          $pull: {
+            solvedProblems: idStr,
+            solvedHistory: { problemId: idStr },
+          },
+        },
         { new: true }
       );
     } else {
       updatedUser = await User.findByIdAndUpdate(
         req.userId,
-        { $addToSet: { solvedProblems: idStr } },
+        {
+          $addToSet: { solvedProblems: idStr },
+          $push: { solvedHistory: { problemId: idStr, solvedAt: new Date() } },
+        },
         { new: true }
       );
     }
+    clearLeaderboardCache();
     res.json(updatedUser.solvedProblems);
   } catch (err) {
     console.error("Sync Error:", err.message);

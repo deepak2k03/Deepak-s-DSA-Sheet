@@ -10,6 +10,70 @@ const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  const requestPasswordReset = async () => {
+    setForgotLoading(true);
+    setForgotError('');
+    setForgotMessage('');
+
+    try {
+      const res = await fetch(apiUrl('/api/auth/request-password-reset'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() || formData.email.trim() }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.msg || 'Unable to request password reset');
+      }
+
+      // In dev, backend returns token for testing. Keep this convenience here.
+      if (data.token) {
+        setResetToken(data.token);
+      }
+      setForgotMessage(data.msg || 'Reset instructions generated.');
+    } catch (err: any) {
+      setForgotError(err.message || 'Unable to request password reset');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const submitPasswordReset = async () => {
+    setForgotLoading(true);
+    setForgotError('');
+    setForgotMessage('');
+
+    try {
+      const email = forgotEmail.trim() || formData.email.trim();
+      const res = await fetch(apiUrl('/api/auth/reset-password'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token: resetToken.trim(), newPassword }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.msg || 'Unable to reset password');
+      }
+
+      setForgotMessage(data.msg || 'Password reset successful. Please sign in.');
+      setShowForgot(false);
+      setFormData((current) => ({ ...current, password: '' }));
+    } catch (err: any) {
+      setForgotError(err.message || 'Unable to reset password');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,15 +110,15 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-5xl h-[600px] grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 m-4 z-10">
         
         {/* LEFT: FORM SECTION */}
-        <div className="p-8 md:p-12 flex flex-col justify-center relative">
-          <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg group">
+          <div className="p-8 md:p-12 flex flex-col justify-start overflow-y-auto">
+           <Link to="/" className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg group mb-8">
              <div className="p-1.5 rounded-lg bg-blue-600 text-white group-hover:scale-105 transition-transform">
                 <Code2 size={20} />
              </div>
              DSA Sheet
           </Link>
 
-          <div className="mt-8">
+           <div>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome back</h2>
             <p className="text-slate-500 dark:text-slate-400 mb-8">
               Continue your journey to algorithmic mastery.
@@ -86,7 +150,20 @@ const LoginPage: React.FC = () => {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-                   <a href="#" className="text-xs text-blue-600 hover:text-blue-500 font-medium">Forgot?</a>
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowForgot((current) => !current);
+                       setForgotError('');
+                       setForgotMessage('');
+                       if (!forgotEmail) {
+                         setForgotEmail(formData.email);
+                       }
+                     }}
+                     className="text-xs text-blue-600 hover:text-blue-500 font-medium"
+                   >
+                     Forgot?
+                   </button>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -100,6 +177,64 @@ const LoginPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {showForgot && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Reset Password</p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Enter your email and request a reset token, then submit a new password.</p>
+
+                  {forgotError && (
+                    <p className="mt-3 text-xs text-rose-600 dark:text-rose-300">{forgotError}</p>
+                  )}
+                  {forgotMessage && (
+                    <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-300">{forgotMessage}</p>
+                  )}
+
+                  <div className="mt-3 space-y-3">
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="Email for reset"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={requestPasswordReset}
+                      disabled={forgotLoading || !(forgotEmail.trim() || formData.email.trim())}
+                      className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-slate-800"
+                    >
+                      {forgotLoading ? 'Requesting…' : 'Request Reset Token'}
+                    </button>
+
+                    <input
+                      type="text"
+                      value={resetToken}
+                      onChange={(e) => setResetToken(e.target.value)}
+                      placeholder="Reset token"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={submitPasswordReset}
+                      disabled={forgotLoading || !(resetToken.trim() && newPassword.trim() && (forgotEmail.trim() || formData.email.trim()))}
+                      className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      {forgotLoading ? 'Resetting…' : 'Reset Password'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <button 
                 type="submit" 

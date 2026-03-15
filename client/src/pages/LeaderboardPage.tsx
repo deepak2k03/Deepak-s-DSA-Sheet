@@ -8,6 +8,7 @@ import { getStoredUser } from '../utils/auth';
 interface LeaderboardUser {
   username: string;
   solvedCount: number;
+  rank?: number;
 }
 
 const LeaderboardPage: React.FC = () => {
@@ -34,13 +35,14 @@ const LeaderboardPage: React.FC = () => {
   }, []);
 
   // Helper to get rank display
-  const getRankDisplay = (index: number) => {
-    const num = <span className="block text-[11px] font-bold text-slate-400 text-center leading-none mt-0.5">#{index + 1}</span>;
+  const getRankDisplay = (index: number, rank?: number) => {
+    const resolvedRank = rank ?? index + 1;
+    const num = <span className="block text-[11px] font-bold text-slate-400 text-center leading-none mt-0.5">#{resolvedRank}</span>;
     switch (index) {
       case 0: return <div className="flex flex-col items-center"><Crown className="text-yellow-500 fill-yellow-500" size={22} />{num}</div>;
       case 1: return <div className="flex flex-col items-center"><Medal className="text-slate-400 fill-slate-400" size={22} />{num}</div>;
       case 2: return <div className="flex flex-col items-center"><Medal className="text-amber-700 fill-amber-700" size={22} />{num}</div>;
-      default: return <span className="font-bold text-slate-500 w-6 text-center">#{index + 1}</span>;
+      default: return <span className="font-bold text-slate-500 w-6 text-center">#{resolvedRank}</span>;
     }
   };
 
@@ -99,7 +101,7 @@ const LeaderboardPage: React.FC = () => {
               >
                 {/* Rank */}
                 <div className="w-16 flex justify-center">
-                  {getRankDisplay(index)}
+                  {getRankDisplay(index, user.rank)}
                 </div>
 
                 {/* User Info */}

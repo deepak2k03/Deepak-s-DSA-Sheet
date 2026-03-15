@@ -8,8 +8,8 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const [topics, problems] = await Promise.all([
-      Topic.find({ isActive: true }).sort({ order: 1, name: 1 }).lean(),
-      Problem.find({}).select('topic').lean(),
+      Topic.find({ isActive: true, isDeleted: { $ne: true } }).sort({ order: 1, name: 1 }).lean(),
+      Problem.find({ isDeleted: { $ne: true } }).select('topic').lean(),
     ]);
 
     const counts = problems.reduce((accumulator, problem) => {

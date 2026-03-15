@@ -32,6 +32,8 @@ export interface TopicDefinition {
   problemCount?: number;
   order?: number;
   isActive?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
 }
 
 const iconMap = {

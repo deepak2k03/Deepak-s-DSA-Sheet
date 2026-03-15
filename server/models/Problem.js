@@ -7,7 +7,9 @@ const problemSchema = new mongoose.Schema({
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
   topic: { type: String, default: 'arrays' }, // 'arrays', 'strings', etc.
   solutionLink: String,
-  codeLink: String
+  codeLink: String,
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 

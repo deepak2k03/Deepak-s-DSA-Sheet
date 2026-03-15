@@ -21,6 +21,7 @@ const sanitizeUser = (user) => ({
   solvedProblems: user.solvedProblems || [],
   role: user.role || 'user',
   isActive: user.isActive !== false,
+  emailVerified: Boolean(user.emailVerified),
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
