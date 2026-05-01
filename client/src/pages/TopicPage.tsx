@@ -302,8 +302,8 @@ const TopicPage: React.FC = () => {
                           </span>
                         </td>
                         
-                        <td className="px-6 py-4 text-right">
-                           <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <td className="px-6 py-4 text-right align-middle whitespace-nowrap">
+                          <div className="inline-flex items-center justify-end gap-2 whitespace-nowrap">
                              {problem.solutionLink && (
                                 <a href={problem.solutionLink} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Solution">
                                   <FileText size={16} />
