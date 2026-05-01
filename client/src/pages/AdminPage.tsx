@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   FolderTree,
@@ -167,6 +167,7 @@ const AdminPage: React.FC = () => {
   const [userRoleFilter, setUserRoleFilter] = useState<'' | 'admin' | 'user' | 'moderator' | 'content_manager'>('');
   const [userStatusFilter, setUserStatusFilter] = useState<'' | 'active' | 'disabled'>('');
   const [auditSearch, setAuditSearch] = useState('');
+  const loadRequestIdRef = useRef(0);
 
     const filteredTopics = useMemo(() => {
       const q = topicSearch.toLowerCase();
@@ -226,6 +227,9 @@ const AdminPage: React.FC = () => {
   };
 
   const loadAdminData = async (showRefreshState = false) => {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+
     if (showRefreshState) {
       setRefreshing(true);
     } else {
@@ -262,46 +266,78 @@ const AdminPage: React.FC = () => {
         query: auditSearch,
       });
 
-      const [overviewRes, topicsRes, problemsRes, usersRes] = await Promise.all([
-        fetch(apiUrl('/api/admin/overview'), { headers: authHeaders }),
-        fetch(apiUrl(`/api/admin/topics?${topicsQuery}`), { headers: authHeaders }),
-        fetch(apiUrl(`/api/admin/problems?${problemsQuery}`), { headers: authHeaders }),
-        fetch(apiUrl(`/api/admin/users?${usersQuery}`), { headers: authHeaders }),
+      const getJson = async (path: string, fallbackMessage: string) => {
+        const response = await fetch(apiUrl(path), { headers: authHeaders });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(payload?.msg || fallbackMessage);
+        }
+
+        return payload;
+      };
+
+      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult] = await Promise.allSettled([
+        getJson('/api/admin/overview', 'Failed to load overview'),
+        getJson(`/api/admin/topics?${topicsQuery}`, 'Failed to load topics'),
+        getJson(`/api/admin/problems?${problemsQuery}`, 'Failed to load problems'),
+        getJson(`/api/admin/users?${usersQuery}`, 'Failed to load users'),
+        getJson(`/api/admin/audit-logs?${auditQuery}`, 'Failed to load audit logs'),
       ]);
 
-      const auditRes = await fetch(apiUrl(`/api/admin/audit-logs?${auditQuery}`), { headers: authHeaders });
-
-      if ([overviewRes, topicsRes, problemsRes, usersRes, auditRes].some((response) => !response.ok)) {
-        throw new Error('Failed to load admin data');
+      if (loadRequestIdRef.current !== requestId) {
+        return;
       }
 
-      const [overviewData, topicsData, problemsData, usersData, auditData] = await Promise.all([
-        overviewRes.json(),
-        topicsRes.json(),
-        problemsRes.json(),
-        usersRes.json(),
-        auditRes.json(),
-      ]);
+      const errors: string[] = [];
 
-      setOverview(overviewData);
-      setTopics(Array.isArray(topicsData?.items) ? topicsData.items : []);
-      setProblems(Array.isArray(problemsData?.items) ? problemsData.items : []);
-      setUsers(Array.isArray(usersData?.items) ? usersData.items : []);
-      setAuditLogs(Array.isArray(auditData?.items) ? auditData.items : []);
-
-      if (topicsData?.pagination) setTopicsPagination(topicsData.pagination);
-      if (problemsData?.pagination) setProblemsPagination(problemsData.pagination);
-      if (usersData?.pagination) setUsersPagination(usersData.pagination);
-      if (auditData?.pagination) setAuditPagination(auditData.pagination);
-
-      if (overviewData?.potd?.problemId) {
-        setSelectedPotdProblemId(overviewData.potd.problemId);
+      if (overviewResult.status === 'fulfilled') {
+        setOverview(overviewResult.value);
+        if (overviewResult.value?.potd?.problemId) {
+          setSelectedPotdProblemId(overviewResult.value.potd.problemId);
+        }
+      } else {
+        errors.push(overviewResult.reason instanceof Error ? overviewResult.reason.message : 'Failed to load overview');
       }
+
+      if (topicsResult.status === 'fulfilled') {
+        setTopics(Array.isArray(topicsResult.value?.items) ? topicsResult.value.items : []);
+        if (topicsResult.value?.pagination) setTopicsPagination(topicsResult.value.pagination);
+      } else {
+        errors.push(topicsResult.reason instanceof Error ? topicsResult.reason.message : 'Failed to load topics');
+      }
+
+      if (problemsResult.status === 'fulfilled') {
+        setProblems(Array.isArray(problemsResult.value?.items) ? problemsResult.value.items : []);
+        if (problemsResult.value?.pagination) setProblemsPagination(problemsResult.value.pagination);
+      } else {
+        errors.push(problemsResult.reason instanceof Error ? problemsResult.reason.message : 'Failed to load problems');
+      }
+
+      if (usersResult.status === 'fulfilled') {
+        setUsers(Array.isArray(usersResult.value?.items) ? usersResult.value.items : []);
+        if (usersResult.value?.pagination) setUsersPagination(usersResult.value.pagination);
+      } else {
+        errors.push(usersResult.reason instanceof Error ? usersResult.reason.message : 'Failed to load users');
+      }
+
+      if (auditResult.status === 'fulfilled') {
+        setAuditLogs(Array.isArray(auditResult.value?.items) ? auditResult.value.items : []);
+        if (auditResult.value?.pagination) setAuditPagination(auditResult.value.pagination);
+      } else {
+        errors.push(auditResult.reason instanceof Error ? auditResult.reason.message : 'Failed to load audit logs');
+      }
+
+      setError(errors.join(' • '));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load admin data');
+      if (loadRequestIdRef.current === requestId) {
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load admin data');
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (loadRequestIdRef.current === requestId) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
