@@ -9,7 +9,7 @@ import { fetchPublicTopics } from '../utils/topicApi';
 const TopicsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
-  const [topics, setTopics] = useState<TopicDefinition[]>(defaultTopics);
+  const [topics, setTopics] = useState<TopicDefinition[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(true);
 
   useEffect(() => {
@@ -18,6 +18,8 @@ const TopicsPage: React.FC = () => {
         setTopics(await fetchPublicTopics());
       } catch (err) {
         console.error('Failed to fetch topics', err);
+        // Fallback to default topics on error
+        setTopics(defaultTopics);
       } finally {
         setLoadingTopics(false);
       }
