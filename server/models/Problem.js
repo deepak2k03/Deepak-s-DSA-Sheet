@@ -6,6 +6,7 @@ const problemSchema = new mongoose.Schema({
   link: { type: String, required: true },
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
   topic: { type: String, default: 'arrays' }, // 'arrays', 'strings', etc.
+  tutorialLink: String,
   solutionLink: String,
   codeLink: String,
   isDeleted: { type: Boolean, default: false },

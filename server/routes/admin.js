@@ -57,6 +57,7 @@ const serializeProblem = (problem) => ({
   link: problem.link,
   difficulty: problem.difficulty,
   topic: problem.topic,
+  tutorialLink: problem.tutorialLink || '',
   solutionLink: problem.solutionLink || '',
   codeLink: problem.codeLink || '',
   isDeleted: Boolean(problem.isDeleted),
@@ -412,7 +413,7 @@ router.get('/problems', async (req, res) => {
 });
 
 router.post('/problems', async (req, res) => {
-  const { title, link, difficulty, topic, solutionLink, codeLink, problemNumber } = req.body;
+  const { title, link, difficulty, topic, tutorialLink, solutionLink, codeLink, problemNumber } = req.body;
 
   try {
     if (!title || !link || !topic) {
@@ -444,6 +445,7 @@ router.post('/problems', async (req, res) => {
       link: link.trim(),
       difficulty: difficulty || 'Medium',
       topic: existingTopic.slug,
+      tutorialLink: (tutorialLink || '').trim(),
       solutionLink: (solutionLink || '').trim(),
       codeLink: (codeLink || '').trim(),
       isDeleted: false,
@@ -466,7 +468,7 @@ router.post('/problems', async (req, res) => {
 });
 
 router.put('/problems/:problemId', async (req, res) => {
-  const { title, link, difficulty, topic, solutionLink, codeLink, problemNumber } = req.body;
+  const { title, link, difficulty, topic, tutorialLink, solutionLink, codeLink, problemNumber } = req.body;
 
   try {
     const problem = await Problem.findById(req.params.problemId);
@@ -494,6 +496,7 @@ router.put('/problems/:problemId', async (req, res) => {
     problem.title = title !== undefined ? String(title).trim() : problem.title;
     problem.link = link !== undefined ? String(link).trim() : problem.link;
     problem.difficulty = difficulty || problem.difficulty;
+    problem.tutorialLink = tutorialLink !== undefined ? String(tutorialLink).trim() : problem.tutorialLink;
     problem.solutionLink = solutionLink !== undefined ? String(solutionLink).trim() : problem.solutionLink;
     problem.codeLink = codeLink !== undefined ? String(codeLink).trim() : problem.codeLink;
 

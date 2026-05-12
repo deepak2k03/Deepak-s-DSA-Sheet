@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Clock, Calendar, ExternalLink, 
-  Code2, FileText, Loader2, Sparkles 
+  Code2, FileText, Loader2, Sparkles, Youtube 
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
@@ -13,6 +13,7 @@ interface Problem {
   link: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   topic: string;
+  tutorialLink?: string;
   solutionLink?: string;
   codeLink?: string;
 }
@@ -73,6 +74,11 @@ const POTDPage: React.FC = () => {
       case 'Hard': return 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
       default: return 'bg-slate-100 text-slate-700';
     }
+  };
+
+  const getTutorialHref = (currentProblem: Problem) => {
+    if (currentProblem.tutorialLink) return currentProblem.tutorialLink;
+    return `https://www.google.com/search?q=${encodeURIComponent(`${currentProblem.title} tutorial`)}`;
   };
 
   return (
@@ -154,6 +160,9 @@ const POTDPage: React.FC = () => {
               <div className="h-px w-full bg-slate-100 dark:bg-slate-800 my-8"></div>
 
               <div className="flex gap-4">
+                  <a href={getTutorialHref(problem)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-slate-500 hover:text-amber-500 transition-colors">
+                    <Youtube size={18} /> View Tutorial
+                  </a>
                  {problem.solutionLink && (
                    <a href={problem.solutionLink} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-slate-500 hover:text-purple-500 transition-colors">
                       <FileText size={18} /> View Solution

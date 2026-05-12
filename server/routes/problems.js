@@ -16,7 +16,7 @@ const { getCanonicalTopicSlug } = require('../utils/topics');
 // ADD PROBLEM (Clears Cache)
 // ==============================================
 router.post('/add', async (req, res) => {
-  const { id, title, link, difficulty, topic, solutionLink, codeLink } = req.body;
+  const { id, title, link, difficulty, topic, tutorialLink, solutionLink, codeLink } = req.body;
 
   try {
     let problem = await Problem.findOne({ id, isDeleted: { $ne: true } });
@@ -26,6 +26,7 @@ router.post('/add', async (req, res) => {
 
     problem = new Problem({
       id, title, link, difficulty, topic,
+      tutorialLink: tutorialLink || "",
       solutionLink: solutionLink || "",
       codeLink: codeLink || "",
       isDeleted: false,

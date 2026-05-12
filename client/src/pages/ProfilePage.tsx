@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Mail, PieChart, Calendar 
 } from 'lucide-react';
@@ -20,7 +20,19 @@ interface UserData {
   username: string;
   email: string;
   solvedProblems: string[];
+  solvedHistory?: Array<{ problemId: string; solvedAt: string }>;
   createdAt: string;
+}
+
+interface HeatmapDay {
+  date: Date;
+  key: string;
+  count: number;
+}
+
+interface MonthData {
+  label: string;
+  days: HeatmapDay[];
 }
 
 const ProfilePage: React.FC = () => {
@@ -57,6 +69,74 @@ const ProfilePage: React.FC = () => {
     fetchData();
   }, []);
 
+  const heatmapData = useMemo(() => {
+    if (!user) {
+      return null;
+    }
+
+    const toDateKey = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const solvedHistory = Array.isArray(user.solvedHistory) ? user.solvedHistory : [];
+    const countsByDay = new Map<string, number>();
+    solvedHistory.forEach((entry) => {
+      if (!entry?.solvedAt) return;
+      const solvedDate = new Date(entry.solvedAt);
+      const dayKey = toDateKey(solvedDate);
+      countsByDay.set(dayKey, (countsByDay.get(dayKey) || 0) + 1);
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Compute the start month as the first day of the month 11 months ago
+    // so the heatmap covers the last 12 calendar months ending with the
+    // current month (e.g., Jun 2025 .. May 2026 when today is May 2026).
+    const startMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+
+    const months: MonthData[] = [];
+
+    for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
+      const monthDate = new Date(startMonth.getFullYear(), startMonth.getMonth() + monthOffset, 1);
+      const year = monthDate.getFullYear();
+      const month = monthDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(year, month, 1);
+      // Convert getDay (0=Sun, 1=Mon...) to grid position (0=Mon, 1=Tue..., 6=Sun)
+      const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+      const monthLabel = firstDay.toLocaleDateString('en-US', { month: 'short' });
+      const monthDays: HeatmapDay[] = [];
+
+      // Add invisible padding for days before the 1st
+      for (let i = 0; i < startingDayOfWeek; i++) {
+        monthDays.push({ date: new Date(), key: '', count: 0 });
+      }
+
+      // Add all actual days of the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const key = toDateKey(date);
+        monthDays.push({ date: new Date(date), key, count: countsByDay.get(key) || 0 });
+      }
+
+      // Add invisible padding to complete the last week
+      const totalCells = startingDayOfWeek + daysInMonth;
+      const paddingNeeded = (7 - (totalCells % 7)) % 7;
+      for (let i = 0; i < paddingNeeded; i++) {
+        monthDays.push({ date: new Date(), key: '', count: 0 });
+      }
+
+      months.push({ label: monthLabel, days: monthDays });
+    }
+
+    return { months, hasRecordedActivity: solvedHistory.length > 0 };
+  }, [user]);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500">
       Loading profile...
@@ -83,6 +163,14 @@ const ProfilePage: React.FC = () => {
   const hardSolved = allProblems.filter(p => p.difficulty === 'Hard' && user.solvedProblems.includes(String(p.id))).length;
 
   const getProgressWidth = (solved: number, total: number) => `${total > 0 ? (solved / total) * 100 : 0}%`;
+
+  const getHeatmapLevel = (count: number) => {
+    if (count <= 0) return 'bg-slate-200 dark:bg-slate-800';
+    if (count === 1) return 'bg-emerald-400 dark:bg-emerald-600';
+    if (count <= 3) return 'bg-emerald-500 dark:bg-emerald-500';
+    if (count <= 5) return 'bg-emerald-600 dark:bg-emerald-500';
+    return 'bg-emerald-700 dark:bg-emerald-400';
+  };
 
   // Topic Breakdown — use the server topic catalog so all topics appear with proper names
   const topicStats = topicCatalog
@@ -175,6 +263,84 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {heatmapData && (
+          <div className="mb-12 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style]:none [scrollbar-width]:none">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Calendar size={20} className="text-emerald-500" /> Contribution Heatmap
+              </h3>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Daily solve activity for the last 12 months
+              </div>
+            </div>
+
+            <div className="flex gap-4 min-w-max">
+              <div className="grid grid-flow-row grid-cols-1 gap-1 text-[10px] text-slate-400" style={{ gridAutoRows: '16px', paddingTop: '22px' }}>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+                <span>Sun</span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-4">
+                  {heatmapData.months.map((month) => {
+                    const weeksInMonth = Math.ceil(month.days.length / 7);
+                    const width = weeksInMonth * 16 + (weeksInMonth - 1) * 4;
+                    return (
+                      <div
+                        key={`${month.label}-label`}
+                        className="text-[10px] font-medium text-slate-500 dark:text-slate-400 text-center"
+                        style={{ width: `${width}px` }}
+                      >
+                        {month.label}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-4">
+                  {heatmapData.months.map((month) => (
+                    <div key={`month-grid-${month.label}`}>
+                      <div
+                        className="grid grid-flow-col grid-rows-7 gap-1"
+                        style={{ gridAutoColumns: '16px' }}
+                      >
+                        {month.days.map((day) => (
+                          <div
+                            key={day.key || `padding-${Math.random()}`}
+                            title={day.key ? `${day.key}: ${day.count} solve${day.count === 1 ? '' : 's'}` : ''}
+                            className={`h-4 w-4 rounded-sm ${!day.key ? 'invisible' : getHeatmapLevel(day.count)}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+              <span>Less</span>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 4, 6].map((level) => (
+                  <span key={level} className={`h-3.5 w-3.5 rounded-sm ${getHeatmapLevel(level)}`} />
+                ))}
+              </div>
+              <span>More</span>
+            </div>
+
+            {!heatmapData.hasRecordedActivity && (
+              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                Heatmap tracking starts from your recorded solve history. Marking problems from now on will fill this grid.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* TOPIC BREAKDOWN */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">

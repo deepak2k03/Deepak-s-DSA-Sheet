@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, ExternalLink, Code2, FileText, 
   CheckCircle2, AlertCircle, Lock, Filter,
-  Globe
+  Globe, Youtube
 } from 'lucide-react';
 import Footer from '../components/Footer';
 import AnimatedBackground from '../components/AnimatedBackground';
@@ -17,6 +17,7 @@ interface Problem {
   id: number;
   title: string;
   link: string;
+  tutorialLink?: string;
   solutionLink?: string;
   codeLink?: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
@@ -139,6 +140,11 @@ const TopicPage: React.FC = () => {
     if (url.includes('geeksforgeeks.org')) return { name: 'GFG', color: 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400' };
     if (url.includes('codingninjas.com')) return { name: 'Ninjas', color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400' };
     return { name: 'Link', color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400' };
+  };
+
+  const getTutorialHref = (problem: Problem) => {
+    if (problem.tutorialLink) return problem.tutorialLink;
+    return `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`;
   };
 
   const filteredProblems = problems.filter(p => filter === 'All' || p.difficulty === filter);
@@ -304,6 +310,9 @@ const TopicPage: React.FC = () => {
                         
                         <td className="px-6 py-4 text-right align-middle whitespace-nowrap">
                           <div className="inline-flex items-center justify-end gap-2 whitespace-nowrap">
+                             <a href={getTutorialHref(problem)} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors" title="Tutorial">
+                               <Youtube size={16} />
+                             </a>
                              {problem.solutionLink && (
                                 <a href={problem.solutionLink} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" title="Solution">
                                   <FileText size={16} />

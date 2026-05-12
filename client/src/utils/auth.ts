@@ -3,6 +3,7 @@ export interface StoredUser {
   username: string;
   email: string;
   solvedProblems?: string[];
+  solvedHistory?: Array<{ problemId: string; solvedAt: string }>;
   role?: 'user' | 'moderator' | 'content_manager' | 'admin';
   isActive?: boolean;
   emailVerified?: boolean;
