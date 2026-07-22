@@ -100,11 +100,22 @@ const ProfilePage: React.FC = () => {
 
     const months: MonthData[] = [];
 
+    // Days in each month (index 0 = January, accounting for leap years)
+    const getDaysInMonth = (year: number, month: number): number => {
+      const daysInMonthTable = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      if (month === 1) {
+        // Check for leap year
+        const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+        return isLeapYear ? 29 : 28;
+      }
+      return daysInMonthTable[month];
+    };
+
     for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
       const monthDate = new Date(startMonth.getFullYear(), startMonth.getMonth() + monthOffset, 1);
       const year = monthDate.getFullYear();
       const month = monthDate.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInMonth = getDaysInMonth(year, month);
       const firstDay = new Date(year, month, 1);
       // Convert getDay (0=Sun, 1=Mon...) to grid position (0=Mon, 1=Tue..., 6=Sun)
       const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
