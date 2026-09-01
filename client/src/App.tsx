@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import HomePage from "./components/HomePage"; // Ensure this points to your new Home
 import Header from "./components/Header";
@@ -11,12 +11,16 @@ import ProfilePage from "./pages/ProfilePage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import POTDPage from './pages/POTDPage';
 import AdminPage from './pages/AdminPage';
+import SupportCreatorPage from './pages/SupportCreatorPage';
 
 function App() {
+  const location = useLocation();
+
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans text-slate-900 dark:text-slate-100">
+      <div className="min-h-screen bg-[#f7f8f5] font-sans text-slate-900 transition-colors duration-300 dark:bg-[#0c1110] dark:text-slate-100">
         <Header />
+        <div key={location.pathname} className="page-transition">
         <Routes>
           {/* Main Landing Page */}
           <Route path="/" element={<HomePage />} />
@@ -27,8 +31,10 @@ function App() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/topic/:slug" element={<TopicPage />} />
           <Route path="/potd" element={<POTDPage />} />
+          <Route path="/support" element={<SupportCreatorPage />} />
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Routes>
+        </div>
       </div>
     </ThemeProvider>
   );

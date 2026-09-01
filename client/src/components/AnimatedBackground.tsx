@@ -2,18 +2,18 @@ import React from 'react';
 
 const AnimatedBackground: React.FC = () => {
   return (
-    <div className="fixed inset-0 -z-50 h-full w-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="fixed inset-0 -z-50 h-full w-full overflow-hidden bg-[#f7f8f5] dark:bg-[#0c1110] transition-colors duration-300">
       {/* 1. THE GRID LAYER 
          This creates a refined 'graph paper' look using CSS gradients.
          It's much more performant than rendering 100s of divs.
       */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div className="absolute inset-0 opacity-[.45] dark:opacity-[.12] bg-[linear-gradient(to_right,#0f413910_1px,transparent_1px),linear-gradient(to_bottom,#0f413910_1px,transparent_1px)] bg-[size:48px_48px]"></div>
 
       {/* 2. THE FOCUS VIGNETTE 
          This masks the grid so it fades out towards the bottom/edges, 
          drawing the eye to the center content.
       */}
-      <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-blue-400 opacity-20 blur-[100px] dark:bg-indigo-500"></div>
+      <div className="absolute left-[12%] top-[-12%] -z-10 m-auto h-[400px] w-[400px] rounded-full bg-teal-300 opacity-20 blur-[110px] dark:bg-teal-700"></div>
 
       {/* 3. AMBIENT BACKGROUND GLOW (The "Aurora")
          A subtle, slow-moving gradient blob to add depth.

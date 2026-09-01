@@ -1,336 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, BarChart3, BookOpen, Flame, Heart, Sparkles, TrendingUp, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { 
-  ArrowRight, Terminal, Cpu, Globe, Zap, 
-  Layers, Code2, Trophy, Activity, CheckCircle2,
-  Play, Command, Hash
-} from 'lucide-react';
-import Footer from '../components/Footer';
-import AnimatedBackground from '../components/AnimatedBackground';
-import { defaultTopics } from '../data/topics';
 import { apiUrl } from '../config';
+import { defaultTopics } from '../data/topics';
 import { fetchPublicTopics } from '../utils/topicApi';
-
-// --- PRO COMPONENTS ---
-
-// 1. The "Live" Code Editor
-const CodeEditorSimulation = () => {
-  const [code, setCode] = useState('');
-  const fullCode = `class Solution {
-  public:
-    void solve() {
-      // Mastering DSA
-      vector<int> path;
-      dfs(root, path);
-      return "Success";
-    }
-};`;
-
-  useEffect(() => {
-    let i = 0;
-    const interval = setInterval(() => {
-      setCode(fullCode.slice(0, i));
-      i++;
-      if (i > fullCode.length) {
-        // Pause at the end then reset
-        setTimeout(() => { i = 0; }, 2000); 
-      }
-    }, 50); // Typing speed
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="relative rounded-xl overflow-hidden bg-[#0F1117] border border-slate-800 shadow-2xl transform rotate-1 hover:rotate-0 transition-transform duration-500">
-      {/* Editor Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#1A1D26] border-b border-slate-800">
-        <div className="flex gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500/80" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-          <div className="w-3 h-3 rounded-full bg-green-500/80" />
-        </div>
-        <div className="text-xs font-mono text-slate-500 flex items-center gap-2">
-          <Code2 size={12} /> solution.cpp
-        </div>
-        <div className="w-10" /> 
-      </div>
-      
-      {/* Code Area */}
-      <div className="p-6 h-64 font-mono text-sm leading-relaxed overflow-hidden text-slate-300">
-        <pre className="whitespace-pre-wrap">
-          <span className="text-purple-400">class</span> <span className="text-yellow-200">Solution</span> {'{'}{'\n'}
-          <span className="text-purple-400">  public:</span>{'\n'}
-          <span className="text-purple-400">    void</span> <span className="text-blue-400">solve</span>() {'{'}{'\n'}
-          <span className="text-slate-500">      // Mastering DSA</span>{'\n'}
-              {code}
-              <span className="animate-pulse inline-block w-2 h-4 bg-blue-500 ml-1 align-middle"></span>
-          {'\n'}{'    }'}{'\n'}{'};'}
-        </pre>
-      </div>
-
-      {/* Floating Badge */}
-      <div className="absolute bottom-4 right-4 bg-green-500/20 border border-green-500/30 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse">
-        <CheckCircle2 size={12} /> Accepted
-      </div>
-    </div>
-  );
-};
-
-// 2. Moving Grid Background
-const MovingGrid = () => (
-  <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-  </div>
-);
+import AnimatedBackground from './AnimatedBackground';
+import Footer from './Footer';
 
 const HomePage: React.FC = () => {
-  // ✅ STATE FOR REAL-TIME STATS
-  const [stats, setStats] = useState({
-    totalProblems: 0,
-    activeUsers: 0,
-    topicsCount: 0,
-    totalSolves: 0
-  });
-
-  // ✅ FETCH REAL DATA
+  const [stats, setStats] = useState({ totalProblems: 0, activeUsers: 0, topicsCount: 0, totalSolves: 0 });
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [probRes, userRes, topicsData] = await Promise.all([
-          fetch(apiUrl('/api/problems/all')),
-          fetch(apiUrl('/api/auth/leaderboard')),
-          fetchPublicTopics().catch(() => defaultTopics),
-        ]);
-        const probData = await probRes.json();
-        const probCount = Array.isArray(probData) ? probData.length : 0;
-        const userData = await userRes.json();
-        const userCount = Array.isArray(userData) ? userData.length : 0;
-        
-        const solvesCount = Array.isArray(userData) 
-          ? userData.reduce((acc: number, user: any) => acc + user.solvedCount, 0)
-          : 0;
-
-        setStats({
-          totalProblems: probCount,
-          activeUsers: userCount,
-          topicsCount: topicsData.length,
-          totalSolves: solvesCount
-        });
-
-      } catch (err) {
-        console.error("Error fetching homepage stats:", err);
-        setStats({ totalProblems: 450, activeUsers: 0, topicsCount: defaultTopics.length, totalSolves: 0 });
-      }
-    };
-
-    fetchStats();
+    const load = async () => { try {
+      const [problems, users, topics] = await Promise.all([fetch(apiUrl('/api/problems/all')), fetch(apiUrl('/api/auth/leaderboard')), fetchPublicTopics().catch(() => defaultTopics)]);
+      const problemData = await problems.json(); const userData = await users.json();
+      setStats({ totalProblems: Array.isArray(problemData) ? problemData.length : 0, activeUsers: Array.isArray(userData) ? userData.length : 0, topicsCount: topics.length, totalSolves: Array.isArray(userData) ? userData.reduce((sum: number, user: { solvedCount?: number }) => sum + (user.solvedCount || 0), 0) : 0 });
+    } catch { setStats({ totalProblems: 450, activeUsers: 0, topicsCount: defaultTopics.length, totalSolves: 0 }); } };
+    load();
   }, []);
-
-  return (
-    <div className="relative min-h-screen font-sans bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-slate-100 selection:bg-indigo-500/30">
-      
-      {/* Background Layers */}
-      <MovingGrid />
-      <AnimatedBackground />
-
-      {/* --- HERO SECTION --- */}
-      <section className="relative pt-16 pb-40 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            
-            {/* Left Content */}
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wide mb-8 animate-fade-in">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                </span>
-                The v2.0 Platform is Live
-              </div>
-
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1] mb-6">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-gradient-x">
-                  DEEPAK'S  <br/>
-                </span>
-                DSA Sheet <br />
-              </h1>
-
-              <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                Stop grinding aimlessly. Access a curated roadmap of <strong>450+ patterns</strong>, track your streaks, and visualize your growth with world-class analytics.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Link 
-                  to="/topics" 
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-white dark:bg-white text-slate-900 font-bold text-lg hover:bg-slate-50 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <Play size={20} className="fill-current" /> Start Solving
-                </Link>
-                <Link 
-                  to="/leaderboard" 
-                  className="w-full sm:w-auto px-8 py-4 rounded-full bg-slate-200/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 backdrop-blur-md text-slate-900 dark:text-white font-semibold text-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
-                >
-                  <Trophy size={20} className="text-yellow-500" /> Leaderboard
-                </Link>
-              </div>
-
-              {/* Trust Badge */}
-              <div className="mt-10 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500 font-medium">
-                <div className="flex -space-x-2">
-                   {[1,2,3,4].map(i => (
-                     <div key={i} className={`w-8 h-8 rounded-full border-2 border-white dark:border-[#020617] bg-slate-200 dark:bg-slate-800 z-${10-i}`} />
-                   ))}
-                </div>
-                <div>Joined by {stats.activeUsers}+ developers</div>
-              </div>
+  return <div className="page-shell overflow-hidden"><AnimatedBackground />
+    <main>
+      <section className="page-wrap relative grid min-h-[560px] items-center gap-14 py-10 lg:grid-cols-[1.05fr_.95fr] lg:py-14">
+        <div className="animate-enter relative z-10">
+          <p className="eyebrow mb-7"><span className="h-2 w-2 rounded-full bg-teal-500" /> A better way to practice</p>
+          <h1 className="max-w-3xl text-5xl font-extrabold leading-[1.04] tracking-[-.055em] text-[#102b27] sm:text-6xl lg:text-7xl dark:text-white">Practice with direction. <span className="text-teal-700 dark:text-teal-300">Improve with intent.</span></h1>
+          <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600 dark:text-slate-400">A thoughtfully curated DSA roadmap that helps you recognize patterns, build momentum, and see every bit of progress.</p>
+          <div className="mt-9 flex flex-wrap items-center gap-3"><Link to="/topics" className="button-primary">Explore the roadmap <ArrowRight size={17} /></Link><Link to="/potd" className="button-secondary"><Flame size={17} className="text-orange-500" /> Today's challenge</Link><Link to="/support" className="button-secondary text-[#123b36] hover:border-teal-600/30 hover:shadow-lg hover:shadow-teal-950/5 dark:text-teal-200"><Heart size={16} className="fill-rose-100 text-rose-500" /> Support the creator</Link></div>
+        </div>
+        <div className="animate-enter relative" style={{ animationDelay: '120ms' }}>
+          <div className="surface relative overflow-hidden rounded-[28px] p-5 shadow-2xl shadow-teal-950/10 sm:p-7">
+            <div className="flex items-start justify-between"><div><p className="eyebrow"><TrendingUp size={14}/> Learning momentum</p><h2 className="mt-3 text-xl font-extrabold tracking-tight">Your growth has a direction.</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Every solved pattern builds on the last.</p></div><span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-extrabold text-teal-800 dark:bg-teal-400/10 dark:text-teal-300">+24% this month</span></div>
+            <div className="relative mt-8 rounded-2xl bg-[#102b27] px-5 pb-5 pt-7 text-white sm:px-7">
+              <div className="absolute inset-x-5 top-7 bottom-12 opacity-20 sm:inset-x-7 [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:100%_25%,25%_100%]"/>
+              <div className="relative flex items-center justify-between"><p className="text-sm font-bold text-teal-100">Pattern confidence</p><p className="font-mono text-xs text-teal-200">JAN → JUN</p></div>
+              <svg viewBox="0 0 520 220" className="relative mt-3 h-48 w-full overflow-visible" role="img" aria-label="A steadily rising learning progress graph">
+                <defs><linearGradient id="learning-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#5eead4" stopOpacity=".38"/><stop offset="100%" stopColor="#5eead4" stopOpacity="0"/></linearGradient></defs>
+                <path d="M10 195 C55 190 62 168 101 174 S148 146 181 153 S223 128 258 133 S302 97 337 106 S374 74 409 78 S459 35 510 25 L510 210 L10 210 Z" fill="url(#learning-fill)"/>
+                <path d="M10 195 C55 190 62 168 101 174 S148 146 181 153 S223 128 258 133 S302 97 337 106 S374 74 409 78 S459 35 510 25" fill="none" stroke="#5eead4" strokeWidth="5" strokeLinecap="round"/>
+                {[[10,195],[101,174],[181,153],[258,133],[337,106],[409,78],[510,25]].map(([x,y], i) => <circle key={i} cx={x} cy={y} r={i === 6 ? 7 : 4} fill={i === 6 ? '#ccfbf1' : '#5eead4'} stroke="#102b27" strokeWidth="3"/>)}
+                <g transform="translate(420,0)"><rect width="91" height="32" rx="16" fill="#ccfbf1"/><text x="45" y="21" textAnchor="middle" fill="#123b36" fontSize="12" fontWeight="700">Keep climbing</text></g>
+              </svg>
+              <div className="relative mt-1 grid grid-cols-4 text-[10px] font-bold uppercase tracking-[.14em] text-teal-100/60"><span>Start</span><span className="text-center">Patterns</span><span className="text-center">Speed</span><span className="text-right">Mastery</span></div>
             </div>
-
-            {/* Right Visual (The Code Window) */}
-            <div className="relative hidden lg:block perspective-1000">
-               {/* Background Glow */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
-               
-               {/* Floating Elements */}
-               <div className="absolute -top-10 -right-10 bg-[#1e293b] p-4 rounded-2xl border border-slate-700 shadow-xl z-20 animate-float-slow">
-                 <Terminal className="text-blue-400" size={32} />
-               </div>
-               <div className="absolute -bottom-10 -left-10 bg-[#1e293b] p-4 rounded-2xl border border-slate-700 shadow-xl z-20 animate-float-medium">
-                 <Cpu className="text-purple-400" size={32} />
-               </div>
-
-               <CodeEditorSimulation />
-            </div>
-
+            <div className="mt-5 grid grid-cols-3 divide-x divide-slate-200/80 rounded-2xl border border-slate-200/80 bg-[#fbfcfa] py-4 dark:divide-white/10 dark:border-white/10 dark:bg-white/[.025]">{[['01','Learn'],['02','Practice'],['03','Improve']].map(([number,label]) => <div key={number} className="px-3 text-center"><p className="font-mono text-xs text-teal-700 dark:text-teal-300">{number}</p><p className="mt-1 text-xs font-extrabold">{label}</p></div>)}</div>
           </div>
         </div>
       </section>
-
-      {/* --- STATS SECTION (Dynamic Bento Grid) --- */}
-      <section className="py-10 border-y border-slate-200 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {[
-                { label: 'Total Problems', value: stats.totalProblems, icon: <Hash className="text-blue-500"/> },
-                { label: 'Active Users', value: stats.activeUsers, icon: <Activity className="text-green-500"/> },
-                { label: 'Topics', value: stats.topicsCount, icon: <Layers className="text-purple-500"/> },
-                { label: 'Global Solves', value: stats.totalSolves, icon: <Zap className="text-yellow-500"/> },
-              ].map((stat, idx) => (
-                <div key={idx} className="flex flex-col items-center justify-center p-4 group cursor-default">
-                   <div className="mb-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl group-hover:scale-110 transition-transform duration-300">{stat.icon}</div>
-                   <div className="text-3xl font-bold text-slate-900 dark:text-white animate-fade-in">
-                      {stat.value}
-                   </div>
-                   <div className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{stat.label}</div>
-                </div>
-              ))}
-           </div>
-        </div>
-      </section>
-
-      {/* --- FEATURES SECTION --- */}
-      <section className="py-32 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-20">
-             <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
-               Everything you need <br />
-               <span className="text-slate-400">to ace the interview.</span>
-             </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard 
-              title="Curated Roadmap"
-              desc="No more random solving. Follow a structured path from Arrays to Advanced Graphs designed by industry experts."
-              icon={<Command size={32} className="text-white"/>}
-              gradient="from-blue-500 to-cyan-500"
-            />
-             <FeatureCard 
-              title="Progress Analytics"
-              desc="Visualise your consistency with heatmaps and charts. We track your streaks so you stay motivated."
-              icon={<Activity size={32} className="text-white"/>}
-              gradient="from-purple-500 to-pink-500"
-            />
-             <FeatureCard 
-              title="Global Leaderboard"
-              desc="Compete with thousands of developers worldwide. Earn badges and climb the ranks to prove your skills."
-              icon={<Globe size={32} className="text-white"/>}
-              gradient="from-orange-500 to-red-500"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* --- CTA SECTION --- */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-slate-900 -z-10"></div>
-        {/* Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15),transparent_70%)] pointer-events-none"></div>
-
-        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight">
-            Ready to change your career?
-          </h2>
-          <p className="text-xl text-indigo-200 mb-10 max-w-2xl mx-auto">
-            Join the community of developers who have cracked FAANG interviews using our platform.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-             <Link 
-              to="/topics" 
-              className="px-10 py-4 bg-white text-indigo-900 font-bold rounded-full hover:bg-indigo-50 transition-all shadow-lg hover:shadow-indigo-500/20 hover:scale-105"
-            >
-              Get Started for Free
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <Footer />
-
-      {/* --- CSS FOR ANIMATIONS --- */}
-      <style>{`
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes float-medium {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
-        }
-        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
-        .animate-float-medium { animation: float-medium 5s ease-in-out infinite; }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 15s ease infinite;
-        }
-        @keyframes gradient-x {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
-    </div>
-  );
+      <section className="border-y border-slate-200/80 bg-white/55 dark:border-white/10 dark:bg-white/[.025]"><div className="page-wrap grid grid-cols-2 divide-x divide-slate-200/80 dark:divide-white/10 md:grid-cols-4">{[[stats.totalProblems,'Curated problems'],[stats.topicsCount,'Learning tracks'],[stats.totalSolves,'Problems solved'],[stats.activeUsers,'Active learners']].map(([value,label]) => <div key={String(label)} className="px-5 py-8 text-center"><p className="font-mono text-3xl font-medium text-[#123b36] dark:text-teal-300">{value}</p><p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p></div>)}</div></section>
+      <section className="page-wrap py-24"><div className="flex max-w-2xl flex-col gap-4"><p className="eyebrow"><Sparkles size={14}/> Made for the long game</p><h2 className="text-4xl font-extrabold tracking-[-.04em] text-[#102b27] dark:text-white">Everything meaningful stays within reach.</h2><p className="text-slate-600 dark:text-slate-400">No busy dashboard. Just a clear system for learning patterns and maintaining momentum.</p></div><div className="mt-12 grid gap-5 md:grid-cols-3">{[[BookOpen,'Structured roadmap','Move through the concepts in an order that makes sense.'],[BarChart3,'Progress you can feel','See solved work, topic depth, and daily consistency at a glance.'],[Trophy,'Friendly competition','Find motivation on the leaderboard without losing focus.']].map(([Icon,title,copy]) => { const I = Icon as typeof BookOpen; return <article key={String(title)} className="surface rounded-2xl p-7 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-950/5"><span className="mb-7 grid h-11 w-11 place-items-center rounded-xl bg-[#dceee9] text-[#123b36] dark:bg-teal-400/10 dark:text-teal-300"><I size={21}/></span><h3 className="text-lg font-extrabold">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">{copy}</p></article>})}</div></section>
+    </main><Footer />
+  </div>;
 };
-
-// --- SUB-COMPONENTS ---
-
-const FeatureCard = ({ title, desc, icon, gradient }: { title: string, desc: string, icon: React.ReactNode, gradient: string }) => (
-  <div className="group relative p-8 rounded-3xl bg-slate-50 dark:bg-[#0F1117] border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300">
-    {/* Hover Glow */}
-    <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
-    
-    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300`}>
-      {icon}
-    </div>
-    
-    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
-    <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-      {desc}
-    </p>
-    
-    <div className="mt-6 flex items-center text-sm font-semibold text-slate-900 dark:text-white group-hover:translate-x-2 transition-transform">
-      Learn more <ArrowRight size={14} className="ml-1" />
-    </div>
-  </div>
-);
-
 export default HomePage;

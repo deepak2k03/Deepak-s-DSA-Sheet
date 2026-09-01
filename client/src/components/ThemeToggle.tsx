@@ -8,7 +8,7 @@ const ThemeToggle: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="group relative flex h-9 w-9 items-center justify-center rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+      className="group relative flex h-9 w-9 items-center justify-center rounded-lg bg-transparent hover:bg-slate-200/70 dark:hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/40"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       {/* Sun Icon (Visible in Light Mode) */}
@@ -24,7 +24,7 @@ const ThemeToggle: React.FC = () => {
       <Moon 
         className={`absolute h-5 w-5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
           ${isDark 
-            ? 'rotate-0 scale-100 opacity-100 text-blue-400' 
+            ? 'rotate-0 scale-100 opacity-100 text-teal-300' 
             : '-rotate-[90deg] scale-0 opacity-0 text-slate-500'
           }`}
       />

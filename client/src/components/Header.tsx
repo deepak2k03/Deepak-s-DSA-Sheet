@@ -82,19 +82,19 @@ const Header: React.FC = () => {
       className={clsx(
         "sticky top-0 z-50 w-full transition-all duration-300 border-b",
         scrolled
-          ? "bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-slate-200 dark:border-slate-800 shadow-sm"
-          : "bg-transparent border-transparent",
+          ? "bg-[#f7f8f5]/85 dark:bg-[#0c1110]/85 backdrop-blur-xl border-slate-200/80 dark:border-white/10"
+          : "bg-[#f7f8f5]/60 dark:bg-[#0c1110]/60 border-transparent",
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-[72px]">
           {/* LEFT: Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="p-1.5 rounded-xl bg-blue-600 dark:bg-blue-500 text-white shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all duration-300 group-hover:scale-105">
+            <div className="p-2 rounded-xl bg-[#123b36] dark:bg-teal-400 text-white dark:text-[#08241f] shadow-sm transition-all duration-300 group-hover:scale-105">
               <Code2 className="h-5 w-5" />
             </div>
             <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-              Deepak's <span className="text-blue-600 dark:text-blue-400">Sheet</span>
+              Deepak's <span className="text-teal-700 dark:text-teal-300">Sheet</span>
             </span>
           </Link>
 
@@ -141,14 +141,14 @@ const Header: React.FC = () => {
               href="https://github.com/deepak2k03/Deepak-s-DSA-Sheet"
               target="_blank"
               rel="noreferrer"
-              className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white transition-all"
+              className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white transition-all"
             >
               <Github size={20} />
             </a>
 
             <ThemeToggle />
 
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block"></div>
+            <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 hidden sm:block"></div>
 
             {isAuthenticated ? (
               // 4. ATTACH THE REF TO THIS WRAPPER
@@ -156,9 +156,9 @@ const Header: React.FC = () => {
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   // 5. REMOVED THE ONBLUR HERE (It was causing the bug)
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-200/70 dark:hover:bg-white/10 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs uppercase shadow-md shadow-blue-500/20">
+                  <div className="w-8 h-8 rounded-full bg-[#dceee9] dark:bg-teal-400 flex items-center justify-center text-[#123b36] dark:text-[#08241f] font-bold text-xs uppercase">
                     {user?.username ? user.username.charAt(0) : "U"}
                   </div>
                   <ChevronDown
@@ -207,7 +207,7 @@ const Header: React.FC = () => {
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium hover:opacity-90 transition-all shadow-lg shadow-blue-500/10"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#123b36] dark:bg-teal-400 text-white dark:text-[#08241f] text-sm font-bold hover:opacity-90 transition-all"
               >
                 <LogIn size={16} />
                 <span>Log in</span>
@@ -234,15 +234,15 @@ const NavLink = ({
   <Link
     to={to}
     className={clsx(
-      "flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
+      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
       active
-        ? "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
-        : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5",
+        ? "bg-[#dceee9] text-[#123b36] dark:bg-teal-400/15 dark:text-teal-200"
+        : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5",
     )}
   >
     <span
       className={clsx(
-        active ? "text-blue-600 dark:text-blue-400" : "opacity-70",
+        active ? "text-teal-700 dark:text-teal-300" : "opacity-70",
       )}
     >
       {icon}

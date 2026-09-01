@@ -1,157 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    line-height: 1.6;
-  } 
-  
-  html {
-    scroll-behavior: smooth;
-  }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif; line-height: 1.5; }
+  * { box-sizing: border-box; }
+  button, a, input { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid #0f766e; outline-offset: 3px; }
+  ::selection { background: #99f6e4; color: #134e4a; }
 }
-
 @layer components {
-  .animate-fadeIn {
-    animation: fadeIn 0.6s ease-out forwards;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.8s ease-out forwards;
-  }
-  
-  .animate-float {
-    animation: float 20s ease-in-out infinite;
-  }
-  
-  .animate-draw {
-    animation: draw 8s ease-in-out infinite;
-  }
-  
-  .bg-grid-pattern {
-    background-image: 
-      linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
-    background-size: 50px 50px;
-  }
+  .page-shell { @apply min-h-screen bg-[#f7f8f5] text-slate-900 dark:bg-[#0c1110] dark:text-slate-100; }
+  .page-wrap { @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10; }
+  .eyebrow { @apply inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300; }
+  .surface { @apply border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,.04)] dark:border-white/10 dark:bg-[#121917]; }
+  .surface-muted { @apply border border-slate-200/80 bg-[#fbfcfa] dark:border-white/10 dark:bg-[#101614]; }
+  .button-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-[#123b36] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] hover:shadow-lg hover:shadow-teal-950/15 active:scale-[.98] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300; }
+  .button-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[.98] dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10; }
+  .font-mono { font-family: 'DM Mono', ui-monospace, monospace; }
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #b8c4c0; border: 3px solid transparent; background-clip: content-box; border-radius: 99px; }
+.dark ::-webkit-scrollbar-thumb { background-color: #40514c; }
+@keyframes enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.animate-enter { animation: enter .55s cubic-bezier(.2,.8,.2,1) both; }
+
+.page-transition {
+  animation: page-enter .32s cubic-bezier(.2,.75,.25,1) both;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@media (prefers-reduced-motion: reduce) {
+  .page-transition { animation: none; }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px);
-  }
-  25% {
-    transform: translateY(-20px) translateX(10px);
-  }
-  50% {
-    transform: translateY(-10px) translateX(-10px);
-  }
-  75% {
-    transform: translateY(-30px) translateX(5px);
-  }
+/* Topic detail table: keep each metadata group centered beneath its label. */
+main table:has(colgroup) th:nth-child(4),
+main table:has(colgroup) th:nth-child(5),
+main table:has(colgroup) th:nth-child(6),
+main table:has(colgroup) td:nth-child(4),
+main table:has(colgroup) td:nth-child(5),
+main table:has(colgroup) td:nth-child(6) {
+  text-align: center;
 }
 
-@keyframes draw {
-  0% {
-    stroke-dasharray: 0 1000;
-    stroke-dashoffset: 0;
-  }
-  50% {
-    stroke-dasharray: 1000 1000;
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dasharray: 1000 1000;
-    stroke-dashoffset: -1000;
-  }
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.5);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.7);
-}
-
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.6);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.8);
-}
-
-/* Smooth transitions for all interactive elements */
-* {
-  transition-property: color, background-color, border-color, transform, opacity, box-shadow;
-  transition-duration: 200ms;
-  transition-timing-function: ease-in-out;
-}
-
-/* Theme transition */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Focus styles */
-*:focus {
-  outline: 2px solid rgba(59, 130, 246, 0.5);
-  outline-offset: 2px;
-}
-
-/* Selection styles */
-::selection {
-  background-color: rgba(59, 130, 246, 0.3);
-  color: inherit;
-}
-
-.dark ::selection {
-  background-color: rgba(59, 130, 246, 0.5);
+main table:has(colgroup) td:nth-child(6) > div {
+  justify-content: center;
 }

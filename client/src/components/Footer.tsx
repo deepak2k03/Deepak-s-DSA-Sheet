@@ -5,21 +5,21 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-20 border-t border-slate-200/50 dark:border-slate-800/50 bg-white/40 dark:bg-slate-950/30 backdrop-blur-xl">
+    <footer className="relative mt-20 border-t border-slate-200/80 dark:border-white/10 bg-white/55 dark:bg-[#0c1110]/70 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8">
         
         {/* LEFT SECTION: Brand & Tagline */}
         <div className="flex flex-col items-center md:items-start mb-8 md:mb-0">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-lg bg-blue-600/10 dark:bg-blue-500/10">
-              <Code2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div className="p-1.5 rounded-lg bg-teal-100 dark:bg-teal-400/10">
+              <Code2 className="h-5 w-5 text-teal-700 dark:text-teal-300" />
             </div>
             <span className="text-lg font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
               DSA Sheet
             </span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs text-center md:text-left">
-            Crafted for engineers chasing excellence. Master algorithms with clarity and style.
+            A focused, structured practice space for engineers building real problem-solving confidence.
           </p>
         </div>
 

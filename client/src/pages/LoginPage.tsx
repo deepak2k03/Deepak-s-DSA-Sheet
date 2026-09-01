@@ -104,15 +104,15 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300">
+    <div className="page-shell flex min-h-screen items-center justify-center">
       <AnimatedBackground />
       
-      <div className="w-full max-w-5xl h-[600px] grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 m-4 z-10">
+      <div className="surface z-10 m-4 grid h-[600px] w-full max-w-5xl grid-cols-1 overflow-hidden rounded-[28px] shadow-2xl shadow-teal-950/10 md:grid-cols-2">
         
         {/* LEFT: FORM SECTION */}
           <div className="p-8 md:p-12 flex flex-col justify-start overflow-y-auto">
            <Link to="/" className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg group mb-8">
-             <div className="p-1.5 rounded-lg bg-blue-600 text-white group-hover:scale-105 transition-transform">
+             <div className="rounded-lg bg-[#123b36] p-1.5 text-white transition-transform group-hover:scale-105 dark:bg-teal-400 dark:text-[#08241f]">
                 <Code2 size={20} />
              </div>
              DSA Sheet
@@ -139,7 +139,7 @@ const LoginPage: React.FC = () => {
                   <input 
                     type="email"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-[#fbfcfa] py-2.5 pl-10 pr-4 transition focus:outline-none focus:ring-2 focus:ring-teal-500/40 dark:border-white/10 dark:bg-white/[.04] dark:text-white"
                     placeholder="name@example.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -160,7 +160,7 @@ const LoginPage: React.FC = () => {
                          setForgotEmail(formData.email);
                        }
                      }}
-                     className="text-xs text-blue-600 hover:text-blue-500 font-medium"
+                    className="text-xs font-bold text-teal-700 hover:text-teal-600 dark:text-teal-300"
                    >
                      Forgot?
                    </button>
@@ -170,7 +170,7 @@ const LoginPage: React.FC = () => {
                   <input 
                     type="password"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-[#fbfcfa] py-2.5 pl-10 pr-4 transition focus:outline-none focus:ring-2 focus:ring-teal-500/40 dark:border-white/10 dark:bg-white/[.04] dark:text-white"
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -239,7 +239,7 @@ const LoginPage: React.FC = () => {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="button-primary w-full disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <Loader2 className="animate-spin" /> : <>Sign In <ArrowRight size={18} /></>}
               </button>
@@ -247,7 +247,7 @@ const LoginPage: React.FC = () => {
 
             <p className="mt-8 text-center text-sm text-slate-500">
               Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 hover:text-blue-500 font-semibold transition-colors">
+              <Link to="/register" className="font-bold text-teal-700 transition-colors hover:text-teal-600 dark:text-teal-300">
                 Create one
               </Link>
             </p>
@@ -255,17 +255,17 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* RIGHT: FEATURE SECTION (Hidden on mobile) */}
-        <div className="hidden md:flex flex-col justify-between bg-slate-50 dark:bg-slate-800/50 p-12 relative overflow-hidden">
+        <div className="relative hidden flex-col justify-between overflow-hidden bg-[#123b36] p-12 text-white md:flex">
           <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-white/[0.04] bg-[bottom_1px_center] [mask-image:linear-gradient(to_bottom,transparent,black)]"></div>
           
           <div className="relative z-10">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Track your progress</h3>
-            <p className="text-slate-500 dark:text-slate-400">
+            <h3 className="mb-2 text-2xl font-bold text-white">Track your progress</h3>
+            <p className="text-teal-100">
               "The only way to learn a new programming language is by writing programs in it."
             </p>
           </div>
 
-          <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl p-4 shadow-xl border border-slate-100 dark:border-slate-800 transform rotate-2 hover:rotate-0 transition-transform duration-500">
+          <div className="relative z-10 rounded-2xl border border-white/10 bg-white/[.06] p-5 shadow-xl transition-transform duration-500 hover:rotate-0 rotate-2">
              <div className="flex items-center gap-3 mb-3">
                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400">
                  <Code2 size={20} />
