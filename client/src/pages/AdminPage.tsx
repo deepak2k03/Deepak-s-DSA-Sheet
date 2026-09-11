@@ -344,8 +344,15 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const isInitialLoad = useRef(true);
+
   useEffect(() => {
-    loadAdminData();
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      loadAdminData();
+    } else {
+      loadAdminData(true);
+    }
   }, [
     topicSearch,
     topicStatusFilter,

@@ -18,7 +18,13 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-[#f7f8f5] font-sans text-slate-900 transition-colors duration-300 dark:bg-[#0c1110] dark:text-slate-100">
+      <div
+        className="min-h-screen font-sans"
+        style={{
+          backgroundColor: 'var(--bg-base)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <Header />
         <div key={location.pathname} className="page-transition">
         <Routes>
