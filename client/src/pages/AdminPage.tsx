@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
   FolderTree,
   LayoutDashboard,
   Loader2,
@@ -162,6 +164,7 @@ const AdminPage: React.FC = () => {
   const [selectedPotdProblemId, setSelectedPotdProblemId] = useState('');
   const [topicSearch, setTopicSearch] = useState('');
   const [topicStatusFilter, setTopicStatusFilter] = useState<'all' | 'active' | 'hidden' | 'deleted'>('all');
+  const [isReorderingTopics, setIsReorderingTopics] = useState(false);
   const [problemSearch, setProblemSearch] = useState('');
   const [problemDifficultyFilter, setProblemDifficultyFilter] = useState<'' | 'Easy' | 'Medium' | 'Hard'>('');
   const [problemTopicFilter, setProblemTopicFilter] = useState('');
@@ -483,6 +486,36 @@ const AdminPage: React.FC = () => {
     }, 'Topic restored');
   };
 
+  const moveTopic = (topicId: string, direction: 'up' | 'down') => {
+    setTopics((current) => {
+      const index = current.findIndex((t) => t.id === topicId || t.slug === topicId);
+      if (index < 0) return current;
+      if (direction === 'up' && index === 0) return current;
+      if (direction === 'down' && index === current.length - 1) return current;
+
+      const newTopics = [...current];
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
+      [newTopics[index], newTopics[swapIndex]] = [newTopics[swapIndex], newTopics[index]];
+
+      return newTopics.map((t, i) => ({ ...t, order: i }));
+    });
+    setIsReorderingTopics(true);
+  };
+
+  const saveTopicOrder = async () => {
+    await withNotice(async () => {
+      const updates = topics.map((t, i) => ({ id: t.id, order: i }));
+      const response = await fetch(apiUrl('/api/admin/topics/reorder'), {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ updates }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.msg || 'Failed to save order');
+      setIsReorderingTopics(false);
+    }, 'Topic order saved');
+  };
+
   const deleteProblem = async (problemId: string) => {
     await withNotice(async () => {
       const response = await fetch(apiUrl(`/api/admin/problems/${problemId}`), {
@@ -742,6 +775,8 @@ const AdminPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <button type="button" onClick={() => moveTopic(topic.id!, 'up')} disabled={topicSearch !== '' || topicStatusFilter !== 'all'} title={topicSearch || topicStatusFilter !== 'all' ? 'Clear filters to reorder' : 'Move Up'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowUp size={16} /></button>
+                      <button type="button" onClick={() => moveTopic(topic.id!, 'down')} disabled={topicSearch !== '' || topicStatusFilter !== 'all'} title={topicSearch || topicStatusFilter !== 'all' ? 'Clear filters to reorder' : 'Move Down'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowDown size={16} /></button>
                       <button type="button" onClick={() => { setEditingTopicId(topic.id || null); setTopicForm({ name: topic.name, slug: topic.slug, description: topic.description, difficulty: topic.difficulty, iconKey: topic.iconKey, order: String(topic.order || 0), isActive: topic.isActive !== false }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
                       {topic.id && !topic.isDeleted && <button type="button" onClick={() => deleteTopic(topic.id!)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
                       {topic.id && topic.isDeleted && <button type="button" onClick={() => restoreTopic(topic.id!)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
@@ -755,6 +790,13 @@ const AdminPage: React.FC = () => {
                 onPrev={() => setTopicsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
                 onNext={() => setTopicsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
               />
+              {isReorderingTopics && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-3 shadow-lg backdrop-blur-md">
+                  <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">You have unsaved topic order changes</span>
+                  <button type="button" onClick={saveTopicOrder} className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">Save Order</button>
+                  <button type="button" onClick={() => { setIsReorderingTopics(false); fetchData(); }} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
+                </div>
+              )}
             </div>
           </section>
         )}

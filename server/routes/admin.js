@@ -258,6 +258,39 @@ router.post('/topics', async (req, res) => {
   }
 });
 
+router.put('/topics/reorder', async (req, res) => {
+  const { updates } = req.body;
+
+  if (!Array.isArray(updates)) {
+    return res.status(400).json({ msg: 'Invalid payload expected array of {id, order}' });
+  }
+
+  try {
+    const bulkOps = updates.map((update) => ({
+      updateOne: {
+        filter: { _id: update.id },
+        update: { $set: { order: update.order } },
+      },
+    }));
+
+    if (bulkOps.length > 0) {
+      await Topic.bulkWrite(bulkOps);
+    }
+
+    await writeAuditLog(req, {
+      action: 'admin.topic.reorder',
+      entityType: 'topic',
+      entityId: 'multiple',
+      metadata: { count: updates.length },
+    });
+
+    return res.json({ msg: 'Topics reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering topics:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 router.put('/topics/:topicId', async (req, res) => {
   const { name, slug, description, difficulty, iconKey, order, isActive } = req.body;
 
