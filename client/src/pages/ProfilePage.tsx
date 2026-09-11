@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Mail, PieChart, Calendar 
+  Mail, PieChart, Calendar, Trophy
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
@@ -28,12 +28,14 @@ interface HeatmapDay {
   date: Date;
   key: string;
   count: number;
+  month: number;
 }
 
-interface MonthData {
-  label: string;
-  days: HeatmapDay[];
-}
+const difficultyStyle: Record<string, string> = { 
+  Easy: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-300 dark:border-emerald-400/15', 
+  Medium: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-400/10 dark:text-amber-300 dark:border-amber-400/15', 
+  Hard: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-400/10 dark:text-rose-300 dark:border-rose-400/15' 
+};
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<UserData | null>(null);
@@ -93,300 +95,354 @@ const ProfilePage: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Compute the start month as the first day of the month 11 months ago
-    // so the heatmap covers the last 12 calendar months ending with the
-    // current month (e.g., Jun 2025 .. May 2026 when today is May 2026).
-    const startMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
-
-    const months: MonthData[] = [];
-
-    // Days in each month (index 0 = January, accounting for leap years)
-    const getDaysInMonth = (year: number, month: number): number => {
-      const daysInMonthTable = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-      if (month === 1) {
-        // Check for leap year
-        const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-        return isLeapYear ? 29 : 28;
-      }
-      return daysInMonthTable[month];
-    };
-
-    for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
-      const monthDate = new Date(startMonth.getFullYear(), startMonth.getMonth() + monthOffset, 1);
-      const year = monthDate.getFullYear();
-      const month = monthDate.getMonth();
-      const daysInMonth = getDaysInMonth(year, month);
-      const firstDay = new Date(year, month, 1);
-      // Convert getDay (0=Sun, 1=Mon...) to grid position (0=Mon, 1=Tue..., 6=Sun)
-      const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
-
-      const monthLabel = firstDay.toLocaleDateString('en-US', { month: 'short' });
-      const monthDays: HeatmapDay[] = [];
-
-      // Add invisible padding for days before the 1st
-      for (let i = 0; i < startingDayOfWeek; i++) {
-        monthDays.push({ date: new Date(), key: '', count: 0 });
-      }
-
-      // Add all actual days of the month
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        const key = toDateKey(date);
-        monthDays.push({ date: new Date(date), key, count: countsByDay.get(key) || 0 });
-      }
-
-      // Add invisible padding to complete the last week
-      const totalCells = startingDayOfWeek + daysInMonth;
-      const paddingNeeded = (7 - (totalCells % 7)) % 7;
-      for (let i = 0; i < paddingNeeded; i++) {
-        monthDays.push({ date: new Date(), key: '', count: 0 });
-      }
-
-      months.push({ label: monthLabel, days: monthDays });
+    // Calculate 52 weeks ago
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - (52 * 7) + 1);
+    // Adjust to previous Sunday
+    while (startDate.getDay() !== 0) {
+      startDate.setDate(startDate.getDate() - 1);
     }
 
-    return { months, hasRecordedActivity: solvedHistory.length > 0 };
+    const weeks: HeatmapDay[][] = [];
+    let currentWeek: HeatmapDay[] = [];
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= today) {
+      const key = toDateKey(currentDate);
+      currentWeek.push({
+        date: new Date(currentDate),
+        key,
+        count: countsByDay.get(key) || 0,
+        month: currentDate.getMonth(),
+      });
+
+      if (currentDate.getDay() === 6) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Push the last partial week
+    if (currentWeek.length > 0) {
+      // Pad to 7 days
+      while (currentWeek.length < 7) {
+        const nextDate = new Date(currentWeek[currentWeek.length - 1].date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        currentWeek.push({
+          date: nextDate,
+          key: toDateKey(nextDate),
+          count: 0,
+          month: nextDate.getMonth()
+        });
+      }
+      weeks.push(currentWeek);
+    }
+
+    // Month labels calculation
+    const monthLabels: { label: string; index: number }[] = [];
+    let lastMonth = -1;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    weeks.forEach((week, index) => {
+      // Check the first day of the week
+      const month = week[0].month;
+      if (month !== lastMonth) {
+        if (index > 0 || week[0].date.getDate() <= 14) {
+          monthLabels.push({ label: monthNames[month], index });
+        }
+        lastMonth = month;
+      }
+    });
+
+    // Streak logic
+    let currentStreak = 0;
+    let maxStreak = 0;
+    let streakDate = new Date(today);
+
+    while (true) {
+       const key = toDateKey(streakDate);
+       if ((countsByDay.get(key) || 0) > 0) {
+          currentStreak++;
+          streakDate.setDate(streakDate.getDate() - 1);
+       } else {
+           if (currentStreak === 0 && streakDate.getTime() === today.getTime()) {
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yKey = toDateKey(yesterday);
+                if ((countsByDay.get(yKey) || 0) > 0) {
+                    currentStreak++;
+                    streakDate = yesterday;
+                    streakDate.setDate(streakDate.getDate() - 1);
+                    continue;
+                }
+           }
+           break;
+       }
+    }
+
+    const sortedDates = Array.from(countsByDay.keys()).sort();
+    let tempStreak = 0;
+    let previousDate: Date | null = null;
+
+    for (const dateStr of sortedDates) {
+         const d = new Date(dateStr);
+         if (!previousDate) {
+             tempStreak = 1;
+         } else {
+             const diffTime = Math.abs(d.getTime() - previousDate.getTime());
+             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+             if (diffDays === 1) {
+                 tempStreak++;
+             } else {
+                 tempStreak = 1;
+             }
+         }
+         if (tempStreak > maxStreak) {
+             maxStreak = tempStreak;
+         }
+         previousDate = d;
+    }
+
+
+    return {
+      weeks,
+      monthLabels,
+      currentStreak,
+      maxStreak,
+      countsByDay
+    };
   }, [user]);
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500">
-      Loading profile...
-    </div>
-  );
-
-  if (!user) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500">
-      Please log in to view your profile.
-    </div>
-  );
-
-  // --- STATS CALCULATION ---
-  const totalSolved = user.solvedProblems.length;
-  const totalQuestions = allProblems.length;
-  
-  // Difficulty Counts
-  const easyTotal = allProblems.filter(p => p.difficulty === 'Easy').length;
-  const medTotal = allProblems.filter(p => p.difficulty === 'Medium').length;
-  const hardTotal = allProblems.filter(p => p.difficulty === 'Hard').length;
-
-  const easySolved = allProblems.filter(p => p.difficulty === 'Easy' && user.solvedProblems.includes(String(p.id))).length;
-  const medSolved = allProblems.filter(p => p.difficulty === 'Medium' && user.solvedProblems.includes(String(p.id))).length;
-  const hardSolved = allProblems.filter(p => p.difficulty === 'Hard' && user.solvedProblems.includes(String(p.id))).length;
-
-  const getProgressWidth = (solved: number, total: number) => `${total > 0 ? (solved / total) * 100 : 0}%`;
-
-  const getHeatmapLevel = (count: number) => {
-    if (count <= 0) return 'bg-slate-200 dark:bg-slate-800';
-    if (count === 1) return 'bg-emerald-400 dark:bg-emerald-600';
-    if (count <= 3) return 'bg-emerald-500 dark:bg-emerald-500';
-    if (count <= 5) return 'bg-emerald-600 dark:bg-emerald-500';
-    return 'bg-emerald-700 dark:bg-emerald-400';
+  const getColorClass = (count: number, isFuture: boolean) => {
+    if (isFuture) return 'bg-transparent';
+    if (count === 0) return 'bg-[var(--bg-surface-muted)] border border-[var(--border-subtle)]';
+    if (count <= 2) return 'bg-[var(--text-primary)] opacity-40 border border-[var(--bg-base)]';
+    if (count <= 4) return 'bg-[var(--text-primary)] opacity-70 border border-[var(--bg-base)]';
+    return 'bg-[var(--text-primary)] border border-[var(--bg-base)]';
   };
 
-  // Topic Breakdown — use the server topic catalog so all topics appear with proper names
-  const topicStats = topicCatalog
-    .filter(t => t.isActive !== false)
-    .map(topic => {
-      const slug = getCanonicalTopicSlug(topic.slug || topic.name);
-      const topicProblems = allProblems.filter(p => getCanonicalTopicSlug(p.topic) === slug);
-      const solvedInTopic = topicProblems.filter(p => user.solvedProblems.includes(String(p.id))).length;
-      return { name: topic.name, total: topicProblems.length, solved: solvedInTopic };
-    })
-    .sort((a, b) => b.solved - a.solved);
+  const topicProgress = useMemo(() => {
+    if (!user || allProblems.length === 0 || topicCatalog.length === 0) return [];
+    
+    return topicCatalog.map(topic => {
+      const canonicalTopicSlug = getCanonicalTopicSlug(topic.slug);
+      const topicProbs = allProblems.filter(p => {
+         const pSlug = getCanonicalTopicSlug(p.topic);
+         return pSlug === canonicalTopicSlug || p.topic.toLowerCase() === topic.name.toLowerCase();
+      });
+      
+      const solvedTopicProbs = topicProbs.filter(p => user.solvedProblems.includes(String(p.id)));
+      
+      return {
+        id: topic.id || topic.slug,
+        name: topic.name,
+        slug: topic.slug,
+        total: topicProbs.length,
+        solved: solvedTopicProbs.length,
+        percentage: topicProbs.length > 0 ? (solvedTopicProbs.length / topicProbs.length) * 100 : 0
+      };
+    }).sort((a, b) => b.percentage - a.percentage).filter(t => t.total > 0);
+  }, [user, allProblems, topicCatalog]);
+
+  const difficultyStats = useMemo(() => {
+    if (!user || allProblems.length === 0) return { Easy: { total: 0, solved: 0 }, Medium: { total: 0, solved: 0 }, Hard: { total: 0, solved: 0 } };
+    
+    const stats = {
+      Easy: { total: 0, solved: 0 },
+      Medium: { total: 0, solved: 0 },
+      Hard: { total: 0, solved: 0 }
+    };
+
+    allProblems.forEach(p => {
+       if (stats[p.difficulty]) {
+           stats[p.difficulty].total++;
+           if (user.solvedProblems.includes(String(p.id))) {
+               stats[p.difficulty].solved++;
+           }
+       }
+    });
+
+    return stats;
+  }, [user, allProblems]);
+
+  if (loading) {
+     return (
+       <div className="page-shell flex min-h-screen items-center justify-center">
+         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-primary)]"></div>
+       </div>
+     )
+  }
+
+  if (!user) {
+    return (
+       <div className="page-shell">
+         <AnimatedBackground />
+         <div className="page-wrap max-w-5xl mx-auto py-20 text-center">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Please sign in to view your profile.</h1>
+         </div>
+       </div>
+    );
+  }
+
+  const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
+    <div className="page-shell">
       <AnimatedBackground />
-
-      <main className="max-w-6xl mx-auto px-4 py-12">
+      <main className="page-wrap max-w-6xl mx-auto py-10 sm:py-14">
         
-        {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row items-center gap-6 mb-12 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-4xl text-white font-bold shadow-lg shadow-blue-500/30 z-10">
-            {user.username.charAt(0).toUpperCase()}
-          </div>
-          
-          <div className="text-center md:text-left z-10 flex-1">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
-              {user.username}
-            </h1>
-            <div className="flex items-center justify-center md:justify-start gap-4 text-slate-500 dark:text-slate-400 text-sm">
-              <span className="flex items-center gap-1"><Mail size={14}/> {user.email}</span>
-              <span className="flex items-center gap-1"><Calendar size={14}/> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-4 z-10">
-             <div className="text-center px-6 py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <div className="text-2xl font-bold text-slate-900 dark:text-white">{totalSolved}</div>
-                <div className="text-xs text-slate-500 uppercase font-semibold">Solved</div>
+        {/* Profile Header */}
+        <div className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-5">
+             <div className="h-16 w-16 rounded-full bg-[var(--text-primary)] text-[var(--text-inverted)] flex items-center justify-center text-2xl font-bold uppercase tracking-wider">
+               {user.username.charAt(0)}
              </div>
-             <div className="text-center px-6 py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <div className="text-2xl font-bold text-slate-900 dark:text-white">{totalQuestions}</div>
-                <div className="text-xs text-slate-500 uppercase font-semibold">Total</div>
-             </div>
-          </div>
-        </div>
-
-        {/* DIFFICULTY STATS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {/* EASY CARD */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-emerald-600 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 rounded-full text-xs font-bold">Easy</span>
-              <span className="text-slate-400 text-xs">{easySolved} / {easyTotal}</span>
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-              {easyTotal > 0 ? Math.round((easySolved / easyTotal) * 100) : 0}%
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: getProgressWidth(easySolved, easyTotal) }}></div>
-            </div>
-          </div>
-
-          {/* MEDIUM CARD */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-amber-600 bg-amber-100 dark:bg-amber-500/10 px-3 py-1 rounded-full text-xs font-bold">Medium</span>
-              <span className="text-slate-400 text-xs">{medSolved} / {medTotal}</span>
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-              {medTotal > 0 ? Math.round((medSolved / medTotal) * 100) : 0}%
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: getProgressWidth(medSolved, medTotal) }}></div>
-            </div>
-          </div>
-
-          {/* HARD CARD */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-rose-600 bg-rose-100 dark:bg-rose-500/10 px-3 py-1 rounded-full text-xs font-bold">Hard</span>
-              <span className="text-slate-400 text-xs">{hardSolved} / {hardTotal}</span>
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-              {hardTotal > 0 ? Math.round((hardSolved / hardTotal) * 100) : 0}%
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: getProgressWidth(hardSolved, hardTotal) }}></div>
-            </div>
-          </div>
-        </div>
-
-        {heatmapData && (
-          <div className="mb-12 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style]:none [scrollbar-width]:none">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Calendar size={20} className="text-emerald-500" /> Contribution Heatmap
-              </h3>
-              <div className="text-xs text-slate-500 dark:text-slate-400">
-                Daily solve activity for the last 12 months
-              </div>
-            </div>
-
-            <div className="flex gap-4 min-w-max">
-              <div className="grid grid-flow-row grid-cols-1 gap-1 text-[10px] text-slate-400" style={{ gridAutoRows: '16px', paddingTop: '22px' }}>
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-                <span>Sun</span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-4">
-                  {heatmapData.months.map((month) => {
-                    const weeksInMonth = Math.ceil(month.days.length / 7);
-                    const width = weeksInMonth * 16 + (weeksInMonth - 1) * 4;
-                    return (
-                      <div
-                        key={`${month.label}-label`}
-                        className="text-[10px] font-medium text-slate-500 dark:text-slate-400 text-center"
-                        style={{ width: `${width}px` }}
-                      >
-                        {month.label}
-                      </div>
-                    );
-                  })}
+             <div>
+                <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">{user.username}</h1>
+                <div className="mt-1 flex items-center gap-4 text-sm text-[var(--text-secondary)]">
+                   <span className="flex items-center gap-1"><Mail size={14}/> {user.email}</span>
+                   <span className="flex items-center gap-1"><Calendar size={14}/> Joined {joinDate}</span>
                 </div>
+             </div>
+          </div>
+        </div>
 
-                <div className="flex gap-4">
-                  {heatmapData.months.map((month) => (
-                    <div key={`month-grid-${month.label}`}>
-                      <div
-                        className="grid grid-flow-col grid-rows-7 gap-1"
-                        style={{ gridAutoColumns: '16px' }}
-                      >
-                        {month.days.map((day) => (
-                          <div
-                            key={day.key || `padding-${Math.random()}`}
-                            title={day.key ? `${day.key}: ${day.count} solve${day.count === 1 ? '' : 's'}` : ''}
-                            className={`h-4 w-4 rounded-sm ${!day.key ? 'invisible' : getHeatmapLevel(day.count)}`}
-                          />
-                        ))}
-                      </div>
+        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+          {/* Main Content Area */}
+          <div className="space-y-8 min-w-0">
+            
+            {/* Heatmap Section */}
+            {heatmapData && (
+              <section className="rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-sm)]">
+                 <div className="mb-6 flex items-end justify-between">
+                    <div>
+                       <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                         <Calendar size={18} className="text-[var(--text-muted)]"/> Activity
+                       </h2>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                    <div className="text-right text-sm">
+                       <p className="font-semibold text-[var(--text-primary)]">{user.solvedProblems.length} submissions in the last year</p>
+                    </div>
+                 </div>
 
-            <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
-              <span>Less</span>
-              <div className="flex items-center gap-1">
-                {[0, 1, 2, 4, 6].map((level) => (
-                  <span key={level} className={`h-3.5 w-3.5 rounded-sm ${getHeatmapLevel(level)}`} />
-                ))}
-              </div>
-              <span>More</span>
-            </div>
-
-            {!heatmapData.hasRecordedActivity && (
-              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                Heatmap tracking starts from your recorded solve history. Marking problems from now on will fill this grid.
-              </p>
+                 <div className="overflow-x-auto pb-4">
+                    <div className="min-w-max">
+                        <div className="relative flex h-5 mb-2 text-[10px] font-medium text-[var(--text-muted)]">
+                           {heatmapData.monthLabels.map(m => (
+                             <div 
+                               key={m.index} 
+                               className="absolute"
+                               style={{ left: `${m.index * 15}px` }}
+                             >
+                               {m.label}
+                             </div>
+                           ))}
+                        </div>
+                        <div className="flex gap-[3px]">
+                           {heatmapData.weeks.map((week, i) => (
+                             <div key={i} className="flex flex-col gap-[3px]">
+                                {week.map((day, j) => {
+                                  const isFuture = day.date > new Date();
+                                  return (
+                                    <div 
+                                      key={day.key} 
+                                      className={`w-3 h-3 rounded-[2px] ${getColorClass(day.count, isFuture)} ${!isFuture && 'transition-transform hover:scale-125 cursor-pointer'}`}
+                                      title={isFuture ? undefined : `${day.count} submissions on ${day.date.toDateString()}`}
+                                    />
+                                  );
+                                })}
+                             </div>
+                           ))}
+                        </div>
+                    </div>
+                 </div>
+                 
+                 <div className="mt-4 flex items-center justify-between border-t border-[var(--border-subtle)] pt-4 text-sm">
+                    <div className="flex gap-6">
+                       <div>
+                          <p className="text-[var(--text-muted)] text-xs">Current Streak</p>
+                          <p className="font-bold text-[var(--text-primary)]">{heatmapData.currentStreak} days</p>
+                       </div>
+                       <div>
+                          <p className="text-[var(--text-muted)] text-xs">Max Streak</p>
+                          <p className="font-bold text-[var(--text-primary)]">{heatmapData.maxStreak} days</p>
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--text-muted)]">
+                       Less
+                       <div className="flex gap-[3px]">
+                          {[0, 1, 3, 5].map(c => (
+                             <div key={c} className={`w-3 h-3 rounded-[2px] ${getColorClass(c, false)}`} />
+                          ))}
+                       </div>
+                       More
+                    </div>
+                 </div>
+              </section>
             )}
-          </div>
-        )}
 
-        {/* TOPIC BREAKDOWN */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <PieChart size={20} className="text-blue-500"/> Topic Breakdown
-            </h3>
-          </div>
-          
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {topicStats.map((topic) => (
-              <div key={topic.name} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-slate-700 dark:text-slate-200 capitalize">{topic.name}</span>
-                  <span className="text-sm text-slate-500">
-                    <span className="font-bold text-slate-900 dark:text-white">{topic.solved}</span> / {topic.total}
-                  </span>
+            {/* Topic Progress Section */}
+            <section className="rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-sm)]">
+                <h2 className="mb-6 text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                   <PieChart size={18} className="text-[var(--text-muted)]"/> Topic Progress
+                </h2>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                   {topicProgress.slice(0, 10).map(topic => (
+                      <div key={topic.id} className="rounded-xl border border-[var(--border-subtle)] p-4 bg-[var(--bg-base)]">
+                         <div className="flex justify-between items-end mb-2">
+                            <h3 className="font-semibold text-[var(--text-primary)] text-sm truncate pr-4">{topic.name}</h3>
+                            <span className="text-xs font-medium text-[var(--text-muted)] whitespace-nowrap">{topic.solved} / {topic.total}</span>
+                         </div>
+                         <div className="h-1.5 w-full rounded-full bg-[var(--bg-surface-muted)] overflow-hidden">
+                            <div 
+                              className="h-full rounded-full bg-[var(--text-primary)]" 
+                              style={{ width: `${topic.percentage}%` }}
+                            />
+                         </div>
+                      </div>
+                   ))}
                 </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
-                    style={{ width: getProgressWidth(topic.solved, topic.total) }}
-                  />
-                </div>
-              </div>
-            ))}
+            </section>
 
-            {topicStats.length === 0 && (
-              <div className="p-12 text-center text-slate-500">
-                No data available. Start solving problems to see your stats!
-              </div>
-            )}
+          </div>
+
+          {/* Sidebar Area */}
+          <div className="space-y-8">
+             
+             {/* Stats Summary */}
+             <section className="rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-sm)]">
+                <div className="flex flex-col items-center justify-center pb-6 border-b border-[var(--border-subtle)] mb-6 text-center">
+                   <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] mb-4">
+                     <Trophy size={20} />
+                   </div>
+                   <h2 className="text-4xl font-bold text-[var(--text-primary)]">{user.solvedProblems.length}</h2>
+                   <p className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-widest mt-1">Problems Solved</p>
+                </div>
+
+                <div className="space-y-4">
+                   {(['Easy', 'Medium', 'Hard'] as const).map(diff => (
+                      <div key={diff}>
+                         <div className="flex justify-between text-sm mb-1.5">
+                            <span className="font-medium text-[var(--text-secondary)]">{diff}</span>
+                            <span className="font-semibold text-[var(--text-primary)]">
+                               {difficultyStats[diff].solved} <span className="text-[var(--text-muted)] font-normal">/ {difficultyStats[diff].total}</span>
+                            </span>
+                         </div>
+                         <div className="h-1.5 w-full rounded-full bg-[var(--bg-surface-muted)] overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full ${diff === 'Easy' ? 'bg-emerald-500' : diff === 'Medium' ? 'bg-amber-500' : 'bg-rose-500'}`} 
+                              style={{ width: `${difficultyStats[diff].total > 0 ? (difficultyStats[diff].solved / difficultyStats[diff].total) * 100 : 0}%` }}
+                            />
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </section>
+
           </div>
         </div>
-
       </main>
       <Footer />
     </div>

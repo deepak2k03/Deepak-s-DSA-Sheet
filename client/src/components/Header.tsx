@@ -80,48 +80,22 @@ const Header: React.FC = () => {
   return (
     <header
       className={clsx(
-        'sticky top-0 z-50 w-full transition-all duration-500',
+        'sticky top-0 z-50 w-full transition-all duration-300',
         scrolled
-          ? 'backdrop-blur-xl backdrop-saturate-[1.8]'
-          : 'backdrop-blur-md backdrop-saturate-[1.2]',
+          ? 'bg-[var(--glass-bg)] backdrop-blur-md border-b border-[var(--border-subtle)] shadow-[var(--shadow-sm)]'
+          : 'bg-transparent border-b border-transparent shadow-none'
       )}
-      style={{
-        backgroundColor: scrolled
-          ? 'var(--glass-bg)'
-          : 'transparent',
-        borderBottom: scrolled
-          ? '1px solid var(--border-subtle)'
-          : '1px solid transparent',
-        boxShadow: scrolled ? 'var(--shadow-xs)' : 'none',
-      }}
     >
-      {/* Gradient bottom border accent (visible when scrolled) */}
-      {scrolled && (
-        <div
-          className="absolute bottom-0 left-0 right-0 h-px"
-          style={{
-            background: 'linear-gradient(90deg, transparent, var(--accent-surface), var(--accent), var(--accent-surface), transparent)',
-            opacity: 0.4,
-          }}
-        />
-      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[72px]">
           {/* LEFT: Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div
-              className="p-2 rounded-xl text-white shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-md dark:text-[#08241f]"
-              style={{
-                background: 'var(--accent, #123b36)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
+            <div className="p-1.5 rounded-md bg-[var(--accent)] text-[var(--text-inverted)] shadow-[var(--shadow-sm)] transition-transform duration-200 group-hover:scale-105">
               <Code2 className="h-5 w-5" />
             </div>
-            <span className="font-bold text-lg tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Deepak's{' '}
-              <span style={{ color: 'var(--accent)' }}>Sheet</span>
+            <span className="font-bold text-lg tracking-tight text-[var(--text-primary)]">
+              DSA Sheet
             </span>
           </Link>
 
@@ -147,16 +121,7 @@ const Header: React.FC = () => {
             />
             <NavLink
               to="/potd"
-              icon={
-                <Flame
-                  size={16}
-                  className={
-                    location.pathname === '/potd'
-                      ? 'text-orange-500'
-                      : 'text-slate-400 group-hover:text-orange-500'
-                  }
-                />
-              }
+              icon={<Flame size={16} />}
               text="Daily"
               active={location.pathname === '/potd'}
             />
@@ -336,36 +301,16 @@ const NavLink = ({
   <Link
     to={to}
     className={clsx(
-      'relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200',
+      'relative flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200',
+      active 
+        ? 'bg-[var(--accent-surface)] text-[var(--text-primary)]' 
+        : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
     )}
-    style={{
-      backgroundColor: active ? 'var(--accent-surface)' : 'transparent',
-      color: active ? 'var(--accent-text)' : 'var(--text-muted)',
-    }}
-    onMouseEnter={(e) => {
-      if (!active) {
-        e.currentTarget.style.backgroundColor = 'var(--accent-muted)';
-        e.currentTarget.style.color = 'var(--text-primary)';
-      }
-    }}
-    onMouseLeave={(e) => {
-      if (!active) {
-        e.currentTarget.style.backgroundColor = 'transparent';
-        e.currentTarget.style.color = 'var(--text-muted)';
-      }
-    }}
   >
-    <span style={{ color: active ? 'var(--accent)' : undefined, opacity: active ? 1 : 0.7 }}>
+    <span className={active ? 'text-[var(--accent)]' : ''}>
       {icon}
     </span>
     {text}
-    {/* Active indicator dot */}
-    {active && (
-      <span
-        className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 h-[3px] w-5 rounded-full"
-        style={{ backgroundColor: 'var(--accent)' }}
-      />
-    )}
   </Link>
 );
 

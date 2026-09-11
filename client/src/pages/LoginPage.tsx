@@ -22,7 +22,6 @@ const LoginPage: React.FC = () => {
     setForgotLoading(true);
     setForgotError('');
     setForgotMessage('');
-
     try {
       const res = await fetch(apiUrl('/api/auth/request-password-reset'), {
         method: 'POST',
@@ -30,15 +29,8 @@ const LoginPage: React.FC = () => {
         body: JSON.stringify({ email: forgotEmail.trim() || formData.email.trim() }),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.msg || 'Unable to request password reset');
-      }
-
-      // In dev, backend returns token for testing. Keep this convenience here.
-      if (data.token) {
-        setResetToken(data.token);
-      }
+      if (!res.ok) throw new Error(data.msg || 'Unable to request password reset');
+      if (data.token) setResetToken(data.token);
       setForgotMessage(data.msg || 'Reset instructions generated.');
     } catch (err: any) {
       setForgotError(err.message || 'Unable to request password reset');
@@ -51,7 +43,6 @@ const LoginPage: React.FC = () => {
     setForgotLoading(true);
     setForgotError('');
     setForgotMessage('');
-
     try {
       const email = forgotEmail.trim() || formData.email.trim();
       const res = await fetch(apiUrl('/api/auth/reset-password'), {
@@ -60,14 +51,10 @@ const LoginPage: React.FC = () => {
         body: JSON.stringify({ email, token: resetToken.trim(), newPassword }),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.msg || 'Unable to reset password');
-      }
-
+      if (!res.ok) throw new Error(data.msg || 'Unable to reset password');
       setForgotMessage(data.msg || 'Password reset successful. Please sign in.');
       setShowForgot(false);
-      setFormData((current) => ({ ...current, password: '' }));
+      setFormData(current => ({ ...current, password: '' }));
     } catch (err: any) {
       setForgotError(err.message || 'Unable to reset password');
     } finally {
@@ -79,23 +66,16 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.msg || 'Login failed');
-      }
-
+      if (!res.ok) throw new Error(data.msg || 'Login failed');
       setAuthSession(data.token, data.user);
       navigate('/');
-
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -104,185 +84,153 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="page-shell flex min-h-screen items-center justify-center">
+    <div className="page-shell flex min-h-screen items-center justify-center p-4">
       <AnimatedBackground />
-      
-      <div className="surface z-10 m-4 grid h-[600px] w-full max-w-5xl grid-cols-1 overflow-hidden rounded-[28px] shadow-2xl shadow-teal-950/10 md:grid-cols-2">
-        
-        {/* LEFT: FORM SECTION */}
-          <div className="p-8 md:p-12 flex flex-col justify-start overflow-y-auto">
-           <Link to="/" className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg group mb-8">
-             <div className="rounded-lg bg-[#123b36] p-1.5 text-white transition-transform group-hover:scale-105 dark:bg-teal-400 dark:text-[#08241f]">
-                <Code2 size={20} />
-             </div>
-             DSA Sheet
-          </Link>
-
-           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome back</h2>
-            <p className="text-slate-500 dark:text-slate-400 mb-8">
-              Continue your journey to algorithmic mastery.
-            </p>
-
-            {error && (
-              <div className="mb-6 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 text-sm flex items-center gap-2">
-                <AlertCircle size={16} />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="email"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-[#fbfcfa] py-2.5 pl-10 pr-4 transition focus:outline-none focus:ring-2 focus:ring-teal-500/40 dark:border-white/10 dark:bg-white/[.04] dark:text-white"
-                    placeholder="name@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-                   <button
-                     type="button"
-                     onClick={() => {
-                       setShowForgot((current) => !current);
-                       setForgotError('');
-                       setForgotMessage('');
-                       if (!forgotEmail) {
-                         setForgotEmail(formData.email);
-                       }
-                     }}
-                    className="text-xs font-bold text-teal-700 hover:text-teal-600 dark:text-teal-300"
-                   >
-                     Forgot?
-                   </button>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="password"
-                    required
-                    className="w-full rounded-xl border border-slate-200 bg-[#fbfcfa] py-2.5 pl-10 pr-4 transition focus:outline-none focus:ring-2 focus:ring-teal-500/40 dark:border-white/10 dark:bg-white/[.04] dark:text-white"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {showForgot && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Reset Password</p>
-                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Enter your email and request a reset token, then submit a new password.</p>
-
-                  {forgotError && (
-                    <p className="mt-3 text-xs text-rose-600 dark:text-rose-300">{forgotError}</p>
-                  )}
-                  {forgotMessage && (
-                    <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-300">{forgotMessage}</p>
-                  )}
-
-                  <div className="mt-3 space-y-3">
-                    <input
-                      type="email"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="Email for reset"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={requestPasswordReset}
-                      disabled={forgotLoading || !(forgotEmail.trim() || formData.email.trim())}
-                      className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-slate-800"
-                    >
-                      {forgotLoading ? 'Requesting…' : 'Request Reset Token'}
-                    </button>
-
-                    <input
-                      type="text"
-                      value={resetToken}
-                      onChange={(e) => setResetToken(e.target.value)}
-                      placeholder="Reset token"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={submitPasswordReset}
-                      disabled={forgotLoading || !(resetToken.trim() && newPassword.trim() && (forgotEmail.trim() || formData.email.trim()))}
-                      className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                    >
-                      {forgotLoading ? 'Resetting…' : 'Reset Password'}
-                    </button>
-                  </div>
+      <div className="z-10 w-full max-w-md">
+        <Link to="/" className="mb-8 flex items-center justify-center gap-2 text-lg font-bold text-[var(--text-primary)] transition-colors hover:text-[var(--text-secondary)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
+            <Code2 size={16} />
+          </div>
+          DSA Sheet
+        </Link>
+        <div className="rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-8 shadow-[var(--shadow-sm)]">
+          {!showForgot ? (
+            <>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] text-center">Welcome back</h2>
+              <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">Enter your details to sign in.</p>
+              {error && (
+                <div className="mt-6 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600 dark:border-rose-900/30 dark:bg-rose-950/30 dark:text-rose-400">
+                  <AlertCircle size={16} />
+                  {error}
                 </div>
               )}
-
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="button-primary w-full disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {loading ? <Loader2 className="animate-spin" /> : <>Sign In <ArrowRight size={18} /></>}
-              </button>
-            </form>
-
-            <p className="mt-8 text-center text-sm text-slate-500">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-bold text-teal-700 transition-colors hover:text-teal-600 dark:text-teal-300">
-                Create one
-              </Link>
-            </p>
-          </div>
+              {forgotMessage && (
+                <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-950/30 dark:text-emerald-400">
+                  {forgotMessage}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-[var(--text-secondary)]">Email address</label>
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-[var(--text-secondary)]">Password</label>
+                    <button type="button" onClick={() => { setShowForgot(true); setForgotMessage(''); setForgotError(''); setResetToken(''); }} className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                      Forgot password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <input
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={e => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+                <button type="submit" disabled={loading} className="button-primary mt-6 w-full justify-center py-2.5">
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <>Sign in <ArrowRight size={16} /></>}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] text-center">Reset Password</h2>
+              <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
+                {!resetToken ? "Enter your email to receive a reset link." : "Enter your new password below."}
+              </p>
+              {forgotError && (
+                <div className="mt-6 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600 dark:border-rose-900/30 dark:bg-rose-950/30 dark:text-rose-400">
+                  <AlertCircle size={16} />
+                  {forgotError}
+                </div>
+              )}
+              {forgotMessage && (
+                <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800 dark:border-emerald-900/30 dark:bg-emerald-950/30 dark:text-emerald-400">
+                  {forgotMessage}
+                </div>
+              )}
+              <div className="mt-8 space-y-5">
+                {!resetToken ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-[var(--text-secondary)]">Email address</label>
+                      <div className="relative">
+                        <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <input
+                          type="email"
+                          value={forgotEmail || formData.email}
+                          onChange={e => setForgotEmail(e.target.value)}
+                          className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none"
+                          placeholder="you@example.com"
+                        />
+                      </div>
+                    </div>
+                    <button onClick={requestPasswordReset} disabled={forgotLoading || (!forgotEmail && !formData.email)} className="button-primary w-full justify-center py-2.5">
+                      {forgotLoading ? <Loader2 size={18} className="animate-spin" /> : 'Send reset link'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-[var(--text-secondary)]">New Password</label>
+                      <div className="relative">
+                        <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none"
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-[var(--text-secondary)]">Reset Token (Dev Mode Only)</label>
+                        <input
+                          type="text"
+                          value={resetToken}
+                          readOnly
+                          className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] py-2.5 px-4 text-sm text-[var(--text-muted)] cursor-not-allowed"
+                        />
+                      </div>
+                    )}
+                    <button onClick={submitPasswordReset} disabled={forgotLoading || !newPassword} className="button-primary w-full justify-center py-2.5">
+                      {forgotLoading ? <Loader2 size={18} className="animate-spin" /> : 'Update password'}
+                    </button>
+                  </>
+                )}
+                <div className="text-center">
+                  <button type="button" onClick={() => setShowForgot(false)} className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                    Back to login
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-
-        {/* RIGHT: FEATURE SECTION (Hidden on mobile) */}
-        <div className="relative hidden flex-col justify-between overflow-hidden bg-[#123b36] p-12 text-white md:flex">
-          <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-white/[0.04] bg-[bottom_1px_center] [mask-image:linear-gradient(to_bottom,transparent,black)]"></div>
-          
-          <div className="relative z-10">
-            <h3 className="mb-2 text-2xl font-bold text-white">Track your progress</h3>
-            <p className="text-teal-100">
-              "The only way to learn a new programming language is by writing programs in it."
-            </p>
-          </div>
-
-          <div className="relative z-10 rounded-2xl border border-white/10 bg-white/[.06] p-5 shadow-xl transition-transform duration-500 hover:rotate-0 rotate-2">
-             <div className="flex items-center gap-3 mb-3">
-               <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400">
-                 <Code2 size={20} />
-               </div>
-               <div>
-                 <div className="h-2 w-24 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
-                 <div className="h-2 w-16 bg-slate-100 dark:bg-slate-800 rounded"></div>
-               </div>
-             </div>
-             <div className="space-y-2">
-               <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded"></div>
-               <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded"></div>
-               <div className="h-2 w-3/4 bg-slate-100 dark:bg-slate-800 rounded"></div>
-             </div>
-          </div>
-        </div>
-
+        <p className="mt-8 text-center text-sm text-[var(--text-secondary)]">
+          Don't have an account?{' '}
+          <Link to="/register" className="font-semibold text-[var(--text-primary)] hover:underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );

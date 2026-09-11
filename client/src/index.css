@@ -4,109 +4,108 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════
-   DESIGN TOKENS  — Light / Dark
-   All theme colors live here. Components reference vars.
+   DESIGN TOKENS  — Light / Dark (Linear/Vercel minimal vibe)
    ═══════════════════════════════════════════════════════ */
 :root {
   /* ── Backgrounds ── */
-  --bg-base:           #f3f6f0;
+  --bg-base:           #fafafa;
   --bg-surface:        #ffffff;
-  --bg-surface-hover:  #f6f9f3;
-  --bg-surface-muted:  #eef2ea;
+  --bg-surface-hover:  #f4f4f5;
+  --bg-surface-muted:  #f4f4f5;
   --bg-elevated:       #ffffff;
-  --bg-inset:          #e8ece4;
+  --bg-inset:          #f4f4f5;
 
   /* ── Borders ── */
-  --border-default:    rgba(15, 65, 57, 0.10);
-  --border-subtle:     rgba(15, 65, 57, 0.06);
-  --border-strong:     rgba(15, 65, 57, 0.18);
+  --border-default:    #e4e4e7;
+  --border-subtle:     #f4f4f5;
+  --border-strong:     #d4d4d8;
 
   /* ── Text ── */
-  --text-primary:      #0f1f1b;
-  --text-secondary:    #4a5b55;
-  --text-muted:        #7a8b85;
+  --text-primary:      #09090b;
+  --text-secondary:    #52525b;
+  --text-muted:        #a1a1aa;
   --text-inverted:     #ffffff;
 
   /* ── Accent ── */
-  --accent:            #0d6b5e;
-  --accent-hover:      #095a4f;
-  --accent-surface:    #dceee9;
-  --accent-surface-hover: #c9e5de;
-  --accent-text:       #0a4f44;
-  --accent-muted:      rgba(13, 107, 94, 0.08);
+  --accent:            #09090b;
+  --accent-hover:      #27272a;
+  --accent-surface:    #f4f4f5;
+  --accent-surface-hover: #e4e4e7;
+  --accent-text:       #09090b;
+  --accent-muted:      rgba(9, 9, 11, 0.05);
 
   /* ── Shadows & Glows ── */
-  --shadow-xs:         0 1px 2px rgba(10, 50, 40, 0.04);
-  --shadow-sm:         0 1px 3px rgba(10, 50, 40, 0.06), 0 1px 2px rgba(10, 50, 40, 0.04);
-  --shadow-md:         0 4px 12px rgba(10, 50, 40, 0.07), 0 1px 3px rgba(10, 50, 40, 0.05);
-  --shadow-lg:         0 8px 30px rgba(10, 50, 40, 0.08), 0 2px 8px rgba(10, 50, 40, 0.04);
-  --shadow-xl:         0 16px 50px rgba(10, 50, 40, 0.10), 0 4px 16px rgba(10, 50, 40, 0.05);
-  --shadow-glow:       0 0 20px rgba(13, 107, 94, 0.12);
-  --shadow-card-hover: 0 12px 40px rgba(10, 50, 40, 0.10), 0 4px 12px rgba(10, 50, 40, 0.06);
+  --shadow-xs:         0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm:         0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md:         0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg:         0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-xl:         0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --shadow-glow:       0 0 0 1px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
 
   /* ── Misc ── */
-  --ring-focus:        rgba(13, 107, 94, 0.35);
-  --overlay:           rgba(255, 255, 255, 0.55);
-  --glass-bg:          rgba(255, 255, 255, 0.72);
-  --glass-border:      rgba(255, 255, 255, 0.50);
-  --noise-opacity:     0.025;
-  --grid-opacity:      0.45;
-  --blob-opacity:      0.22;
-  --selection-bg:      #99f6e4;
-  --selection-text:    #134e4a;
-  --scrollbar-thumb:   #b4c2bc;
-  --scrollbar-hover:   #96a8a0;
+  --ring-focus:        rgba(9, 9, 11, 0.2);
+  --overlay:           rgba(255, 255, 255, 0.8);
+  --glass-bg:          rgba(255, 255, 255, 0.8);
+  --glass-border:      rgba(228, 228, 231, 0.5);
+  --noise-opacity:     0;
+  --grid-opacity:      0.2;
+  --blob-opacity:      0;
+  --selection-bg:      #e4e4e7;
+  --selection-text:    #09090b;
+  --scrollbar-thumb:   #d4d4d8;
+  --scrollbar-hover:   #a1a1aa;
 }
 
 .dark {
   /* ── Backgrounds ── */
-  --bg-base:           #080d0b;
-  --bg-surface:        #0f1614;
-  --bg-surface-hover:  #152220;
-  --bg-surface-muted:  #0c1210;
-  --bg-elevated:       #162221;
-  --bg-inset:          #0a100e;
+  --bg-base:           #000000;
+  --bg-surface:        #0a0a0a;
+  --bg-surface-hover:  #171717;
+  --bg-surface-muted:  #171717;
+  --bg-elevated:       #171717;
+  --bg-inset:          #171717;
 
   /* ── Borders ── */
-  --border-default:    rgba(255, 255, 255, 0.08);
-  --border-subtle:     rgba(255, 255, 255, 0.04);
-  --border-strong:     rgba(255, 255, 255, 0.14);
+  --border-default:    #262626;
+  --border-subtle:     #171717;
+  --border-strong:     #404040;
 
   /* ── Text ── */
-  --text-primary:      #e4edea;
-  --text-secondary:    #94a8a0;
-  --text-muted:        #5e726a;
-  --text-inverted:     #0a0f0d;
+  --text-primary:      #fafafa;
+  --text-secondary:    #a3a3a3;
+  --text-muted:        #737373;
+  --text-inverted:     #09090b;
 
   /* ── Accent ── */
-  --accent:            #5eead4;
-  --accent-hover:      #7ef0de;
-  --accent-surface:    rgba(94, 234, 212, 0.08);
-  --accent-surface-hover: rgba(94, 234, 212, 0.14);
-  --accent-text:       #a7f3d0;
-  --accent-muted:      rgba(94, 234, 212, 0.06);
+  --accent:            #fafafa;
+  --accent-hover:      #e5e5e5;
+  --accent-surface:    #171717;
+  --accent-surface-hover: #262626;
+  --accent-text:       #fafafa;
+  --accent-muted:      rgba(250, 250, 250, 0.1);
 
   /* ── Shadows & Glows ── */
-  --shadow-xs:         0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.20);
-  --shadow-md:         0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
-  --shadow-lg:         0 8px 30px rgba(0, 0, 0, 0.40), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-xl:         0 16px 50px rgba(0, 0, 0, 0.50), 0 4px 16px rgba(0, 0, 0, 0.30);
-  --shadow-glow:       0 0 30px rgba(94, 234, 212, 0.10), 0 0 60px rgba(94, 234, 212, 0.05);
-  --shadow-card-hover: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 20px rgba(94, 234, 212, 0.06);
+  --shadow-xs:         0 1px 2px rgba(0, 0, 0, 1);
+  --shadow-sm:         0 1px 3px rgba(0, 0, 0, 1);
+  --shadow-md:         0 4px 12px rgba(0, 0, 0, 1);
+  --shadow-lg:         0 10px 15px -3px rgba(0, 0, 0, 1);
+  --shadow-xl:         0 20px 25px -5px rgba(0, 0, 0, 1);
+  --shadow-glow:       0 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 1);
 
   /* ── Misc ── */
-  --ring-focus:        rgba(94, 234, 212, 0.30);
-  --overlay:           rgba(8, 13, 11, 0.70);
-  --glass-bg:          rgba(15, 22, 20, 0.70);
-  --glass-border:      rgba(255, 255, 255, 0.06);
-  --noise-opacity:     0.04;
-  --grid-opacity:      0.10;
-  --blob-opacity:      0.30;
-  --selection-bg:      #115e59;
-  --selection-text:    #ccfbf1;
-  --scrollbar-thumb:   #2a3b35;
-  --scrollbar-hover:   #3a4f47;
+  --ring-focus:        rgba(250, 250, 250, 0.2);
+  --overlay:           rgba(0, 0, 0, 0.8);
+  --glass-bg:          rgba(10, 10, 10, 0.8);
+  --glass-border:      rgba(38, 38, 38, 0.5);
+  --noise-opacity:     0;
+  --grid-opacity:      0.05;
+  --blob-opacity:      0;
+  --selection-bg:      #262626;
+  --selection-text:    #fafafa;
+  --scrollbar-thumb:   #404040;
+  --scrollbar-hover:   #737373;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -235,46 +234,34 @@
 
   /* ── Primary button ── */
   .button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold active:scale-[.98];
-    background-color: #123b36;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[.98];
+    background-color: var(--accent);
     color: var(--text-inverted);
     box-shadow: var(--shadow-sm);
   }
   .button-primary:hover {
-    background-color: #0b2d29;
-    box-shadow: var(--shadow-md), 0 0 20px rgba(13, 107, 94, 0.12);
+    background-color: var(--accent-hover);
+    box-shadow: var(--shadow-md);
   }
-  .dark .button-primary {
-    background: linear-gradient(135deg, #5eead4, #2dd4bf);
-    color: #08241f;
-    box-shadow: var(--shadow-sm), 0 0 16px rgba(94, 234, 212, 0.15);
-  }
-  .dark .button-primary:hover {
-    background: linear-gradient(135deg, #7ef0de, #5eead4);
-    box-shadow: var(--shadow-md), 0 0 30px rgba(94, 234, 212, 0.20);
+  .button-primary:disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   /* ── Secondary button ── */
   .button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold active:scale-[.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[.98];
     background-color: var(--bg-surface);
-    border: 1px solid var(--border-default);
-    color: var(--text-secondary);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-xs);
   }
   .button-secondary:hover {
-    border-color: var(--border-strong);
     background-color: var(--bg-surface-hover);
-    box-shadow: var(--shadow-sm);
   }
-  .dark .button-secondary {
-    background-color: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.10);
-    color: var(--text-primary);
-  }
-  .dark .button-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.16);
-    box-shadow: var(--shadow-sm);
+  .button-secondary:disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   /* ── Mono font ── */

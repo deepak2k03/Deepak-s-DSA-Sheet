@@ -576,11 +576,12 @@ const AdminPage: React.FC = () => {
         <section className="surface mb-8 rounded-3xl p-8 backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#dceee9] px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-teal-700 dark:bg-teal-400/10 dark:text-teal-300">
-                <Shield size={14} /> Control Center
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
+                <Shield size={14} className="text-[var(--text-primary)]" />
+                <span>Control Center</span>
               </div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Admin Panel</h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+              <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] sm:text-4xl">Admin Panel</h1>
+              <p className="mt-2 max-w-2xl text-lg text-[var(--text-secondary)]">
                 Manage topics, curate problems, control user access, and override the daily challenge from one place.
               </p>
             </div>
@@ -608,7 +609,7 @@ const AdminPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-[#123b36] text-white shadow-md dark:bg-teal-400 dark:text-[#08241f]' : 'surface text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5'}`}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-[var(--text-primary)] text-[var(--text-inverted)]' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-strong)] hover:bg-[var(--bg-surface-hover)]'}`}
             >
               {tab.icon}
               {tab.label}
