@@ -5,6 +5,7 @@ import { apiUrl } from '../config';
 import { defaultTopics } from '../data/topics';
 import { fetchPublicTopics } from '../utils/topicApi';
 import AnimatedBackground from './AnimatedBackground';
+import BinaryTreeAnimation from './BinaryTreeAnimation';
 import Footer from './Footer';
 
 const HomePage: React.FC = () => {
@@ -38,7 +39,7 @@ const HomePage: React.FC = () => {
       <AnimatedBackground />
       <main>
         {/* HERO SECTION */}
-        <section className="page-wrap relative grid min-h-[70vh] items-center gap-16 py-20 lg:grid-cols-[1fr_1fr] lg:py-28">
+        <section className="page-wrap relative grid min-h-[70vh] items-center gap-16 pt-8 pb-20 lg:grid-cols-[1fr_1fr] lg:pt-12 lg:pb-28">
           
           {/* Left Column (Content) */}
           <div className="relative z-10 flex flex-col items-start text-left">
@@ -91,60 +92,11 @@ const HomePage: React.FC = () => {
           <div className="relative w-full">
              <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 blur-3xl opacity-50 dark:opacity-30 rounded-[40px] z-0"></div>
              
-             <div className="relative z-10 w-full rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 shadow-2xl shadow-emerald-900/5 dark:shadow-none">
-                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-4 mb-4">
-                   <div className="flex items-center gap-3">
-                      <div className="flex gap-1.5">
-                         <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                         <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                         <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                      </div>
-                      <span className="text-xs font-mono text-[var(--text-muted)] flex items-center gap-2"><Code2 size={12}/> Two Pointers</span>
-                   </div>
-                   <div className="flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                     <CheckCircle2 size={10} /> Solved
-                   </div>
-                </div>
-                
-                <div className="space-y-4 font-mono text-sm">
-                   <div className="text-[var(--text-primary)]"><span className="text-purple-500 dark:text-purple-400">function</span> <span className="text-blue-600 dark:text-blue-400">maxArea</span>(height) {'{'}</div>
-                   <div className="pl-4 text-[var(--text-secondary)]">
-                      <span className="text-purple-500 dark:text-purple-400">let</span> left = <span className="text-orange-500 dark:text-orange-400">0</span>;<br/>
-                      <span className="text-purple-500 dark:text-purple-400">let</span> right = height.length - <span className="text-orange-500 dark:text-orange-400">1</span>;<br/>
-                      <span className="text-purple-500 dark:text-purple-400">let</span> max = <span className="text-orange-500 dark:text-orange-400">0</span>;
-                   </div>
-                   <div className="pl-4 text-[var(--text-secondary)]">
-                      <span className="text-purple-500 dark:text-purple-400">while</span> (left &lt; right) {'{'}
-                   </div>
-                   <div className="pl-8 text-[var(--text-secondary)]">
-                      <span className="text-purple-500 dark:text-purple-400">const</span> area = Math.<span className="text-blue-600 dark:text-blue-400">min</span>(height[left], height[right]) * (right - left);<br/>
-                      max = Math.<span className="text-blue-600 dark:text-blue-400">max</span>(max, area);
-                   </div>
-                   <div className="pl-8 text-emerald-600/70 dark:text-emerald-400/70 text-xs italic">
-                      // Move the smaller pointer inward
-                   </div>
-                   <div className="pl-8 text-[var(--text-secondary)]">
-                      <span className="text-purple-500 dark:text-purple-400">if</span> (height[left] &lt; height[right]) left++;<br/>
-                      <span className="text-purple-500 dark:text-purple-400">else</span> right--;
-                   </div>
-                   <div className="pl-4 text-[var(--text-primary)]">{'}'}</div>
-                   <div className="pl-4 text-[var(--text-primary)]"><span className="text-purple-500 dark:text-purple-400">return</span> max;</div>
-                   <div className="text-[var(--text-primary)]">{'}'}</div>
-                </div>
+             <div className="relative z-10 w-full overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-black shadow-2xl shadow-emerald-900/5 dark:shadow-none h-[400px]">
+                <BinaryTreeAnimation />
              </div>
              
-             {/* Floating elements */}
-             <div className="absolute -right-6 -bottom-6 z-20 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-4 shadow-xl">
-                <div className="flex items-center gap-3">
-                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
-                     <TrendingUp size={20} />
-                   </div>
-                   <div>
-                     <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Learning Momentum</p>
-                     <p className="text-sm font-bold text-[var(--text-primary)]">+24% this month</p>
-                   </div>
-                </div>
-             </div>
+
           </div>
           
         </section>

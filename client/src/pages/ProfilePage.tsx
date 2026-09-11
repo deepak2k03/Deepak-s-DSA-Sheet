@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Mail, PieChart, Calendar, Trophy
+  Mail, PieChart, Calendar, Trophy, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
@@ -42,6 +42,8 @@ const ProfilePage: React.FC = () => {
   const [allProblems, setAllProblems] = useState<Problem[]>([]);
   const [topicCatalog, setTopicCatalog] = useState<TopicDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [topicPage, setTopicPage] = useState(1);
+  const TOPICS_PER_PAGE = 10;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -242,7 +244,7 @@ const ProfilePage: React.FC = () => {
         solved: solvedTopicProbs.length,
         percentage: topicProbs.length > 0 ? (solvedTopicProbs.length / topicProbs.length) * 100 : 0
       };
-    }).sort((a, b) => b.percentage - a.percentage).filter(t => t.total > 0);
+    }).sort((a, b) => b.percentage - a.percentage);
   }, [user, allProblems, topicCatalog]);
 
   const difficultyStats = useMemo(() => {
@@ -402,7 +404,7 @@ const ProfilePage: React.FC = () => {
                 </h2>
                 
                 <div className="grid gap-4 sm:grid-cols-2">
-                   {topicProgress.slice(0, 10).map(topic => (
+                   {topicProgress.slice((topicPage - 1) * TOPICS_PER_PAGE, topicPage * TOPICS_PER_PAGE).map(topic => (
                       <div key={topic.id} className="rounded-xl border border-[var(--border-subtle)] p-4 bg-[var(--bg-base)]">
                          <div className="flex justify-between items-end mb-2">
                             <h3 className="font-semibold text-[var(--text-primary)] text-sm truncate pr-4">{topic.name}</h3>
@@ -417,6 +419,30 @@ const ProfilePage: React.FC = () => {
                       </div>
                    ))}
                 </div>
+                
+                {topicProgress.length > TOPICS_PER_PAGE && (
+                  <div className="mt-6 flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+                    <span className="text-xs font-medium text-[var(--text-muted)]">
+                      Showing {(topicPage - 1) * TOPICS_PER_PAGE + 1} to {Math.min(topicPage * TOPICS_PER_PAGE, topicProgress.length)} of {topicProgress.length}
+                    </span>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setTopicPage(p => Math.max(1, p - 1))}
+                        disabled={topicPage === 1}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button 
+                        onClick={() => setTopicPage(p => Math.min(Math.ceil(topicProgress.length / TOPICS_PER_PAGE), p + 1))}
+                        disabled={topicPage >= Math.ceil(topicProgress.length / TOPICS_PER_PAGE)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-[var(--bg-base)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
             </section>
 
           </div>
