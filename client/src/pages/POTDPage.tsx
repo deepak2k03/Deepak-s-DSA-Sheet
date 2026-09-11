@@ -4,7 +4,6 @@ import {
   Clock,
   Code2,
   ExternalLink,
-  FileText,
   Loader2,
   Sparkles,
   Youtube,
@@ -136,16 +135,6 @@ const POTDPage: React.FC = () => {
                   >
                     <Youtube size={17} /> Tutorial
                   </a>
-                  {problem.solutionLink && (
-                    <a
-                      href={problem.solutionLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-teal-700 dark:hover:text-teal-300"
-                    >
-                      <FileText size={17} /> Solution
-                    </a>
-                  )}
                   {problem.codeLink && (
                     <a
                       href={problem.codeLink}

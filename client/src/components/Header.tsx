@@ -156,49 +156,62 @@ const Header: React.FC = () => {
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   // 5. REMOVED THE ONBLUR HERE (It was causing the bug)
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-200/70 dark:hover:bg-white/10 transition-all"
+                  className={clsx(
+                    "flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border transition-all",
+                    isMenuOpen
+                      ? "border-teal-600/40 bg-[#dceee9]/50 dark:bg-white/10 dark:border-teal-400/30"
+                      : "border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5"
+                  )}
                 >
                   <div className="w-8 h-8 rounded-full bg-[#dceee9] dark:bg-teal-400 flex items-center justify-center text-[#123b36] dark:text-[#08241f] font-bold text-xs uppercase">
                     {user?.username ? user.username.charAt(0) : "U"}
                   </div>
                   <ChevronDown
                     size={14}
-                    className={`text-slate-500 transition-transform duration-200 ${isMenuOpen ? "rotate-180" : ""}`}
+                    className={`text-slate-500 dark:text-slate-400 transition-transform duration-200 ${isMenuOpen ? "rotate-180 text-[#123b36] dark:text-teal-300" : ""}`}
                   />
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                        @{user?.username || "User"}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
+                  <div className="surface absolute right-0 mt-2 w-60 origin-top-right rounded-2xl shadow-xl shadow-teal-950/5 dark:shadow-black/40 overflow-hidden animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
+                    <div className="px-4 py-3.5 border-b border-slate-100 dark:border-white/10 bg-[#fbfcfa]/80 dark:bg-white/[0.03]">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          @{user?.username || "User"}
+                        </p>
+                        {user?.role === "admin" && (
+                          <span className="shrink-0 rounded-full bg-[#dceee9] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-teal-800 dark:bg-teal-400/10 dark:text-teal-300">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                         {user?.email || "No email"}
                       </p>
                     </div>
-                    <div className="p-1">
+                    <div className="p-1.5 space-y-0.5">
                       <Link
                         to="/profile"
                         onClick={() => setIsMenuOpen(false)} // Close menu on click
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        className="group flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-[#dceee9]/60 hover:text-[#123b36] dark:hover:bg-teal-400/10 dark:hover:text-teal-200 rounded-xl transition-all"
                       >
-                        <UserIcon size={16} /> Profile
+                        <UserIcon size={16} className="text-slate-400 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors" /> Profile
                       </Link>
                       {user?.role === "admin" && (
                         <Link
                           to="/admin"
                           onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          className="group flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-[#dceee9]/60 hover:text-[#123b36] dark:hover:bg-teal-400/10 dark:hover:text-teal-200 rounded-xl transition-all"
                         >
-                          <Shield size={16} /> Admin Panel
+                          <Shield size={16} className="text-slate-400 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors" /> Admin Panel
                         </Link>
                       )}
+                      <div className="my-1 border-t border-slate-100 dark:border-white/10" />
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-left transition-colors"
+                        className="group w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl text-left transition-all"
                       >
-                        <LogOut size={16} /> Sign out
+                        <LogOut size={16} className="text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300 transition-colors" /> Sign out
                       </button>
                     </div>
                   </div>

@@ -36,7 +36,7 @@ interface AdminProblem {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   topic: string;
   tutorialLink: string;
-  solutionLink: string;
+  solutionLink?: string;
   codeLink: string;
   isDeleted?: boolean;
   deletedAt?: string | null;
@@ -108,7 +108,7 @@ interface ProblemFormState {
   topic: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   tutorialLink: string;
-  solutionLink: string;
+  solutionLink?: string;
   codeLink: string;
 }
 
@@ -129,7 +129,6 @@ const defaultProblemForm: ProblemFormState = {
   topic: '',
   difficulty: 'Medium' as const,
   tutorialLink: '',
-  solutionLink: '',
   codeLink: '',
 };
 
@@ -563,14 +562,14 @@ const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300">
+    <div className="page-shell font-sans transition-colors duration-300">
       <AnimatedBackground />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <section className="mb-8 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
+      <main className="relative z-10 page-wrap py-10">
+        <section className="surface mb-8 rounded-3xl p-8 backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#dceee9] px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-teal-700 dark:bg-teal-400/10 dark:text-teal-300">
                 <Shield size={14} /> Control Center
               </div>
               <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Admin Panel</h1>
@@ -582,7 +581,7 @@ const AdminPage: React.FC = () => {
             <button
               onClick={() => loadAdminData(true)}
               disabled={refreshing}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               Refresh data
@@ -602,7 +601,7 @@ const AdminPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-md dark:bg-white dark:text-slate-900' : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-[#123b36] text-white shadow-md dark:bg-teal-400 dark:text-[#08241f]' : 'surface text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5'}`}
             >
               {tab.icon}
               {tab.label}
@@ -620,13 +619,13 @@ const AdminPage: React.FC = () => {
               ['Topics', overview.stats.topics],
               ['Total Solves', overview.stats.totalSolved],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div key={label} className="surface rounded-3xl p-6">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
                 <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
               </div>
             ))}
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:col-span-2 xl:col-span-3">
+            <div className="surface rounded-3xl p-6 md:col-span-2 xl:col-span-3">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today&apos;s POTD</p>
               {overview.potd ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
@@ -636,7 +635,7 @@ const AdminPage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setActiveTab('potd')}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    className="rounded-xl bg-[#123b36] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300"
                   >
                     Change POTD
                   </button>
@@ -647,13 +646,13 @@ const AdminPage: React.FC = () => {
             </div>
 
             {overview.trends && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:col-span-2 xl:col-span-3">
+              <div className="surface rounded-3xl p-6 md:col-span-2 xl:col-span-3">
                 <div className="grid gap-6 md:grid-cols-3">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">New Users (7d)</p>
                     <div className="mt-3 flex items-end gap-1">
                       {overview.trends.newUsersByDay.map((item) => (
-                        <div key={item.date} className="flex-1 rounded-t bg-blue-500/80" style={{ height: `${Math.max(item.value * 12, 6)}px` }} title={`${item.date}: ${item.value}`} />
+                        <div key={item.date} className="flex-1 rounded-t bg-teal-500/80" style={{ height: `${Math.max(item.value * 12, 6)}px` }} title={`${item.date}: ${item.value}`} />
                       ))}
                     </div>
                   </div>
@@ -669,7 +668,7 @@ const AdminPage: React.FC = () => {
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Top Solved Topics</p>
                     <div className="mt-3 space-y-2 text-sm">
                       {overview.trends.topTopics.length > 0 ? overview.trends.topTopics.map((topic) => (
-                        <div key={topic.slug} className="flex items-center justify-between rounded-lg bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
+                        <div key={topic.slug} className="flex items-center justify-between rounded-lg bg-[#dceee9]/50 px-3 py-1.5 dark:bg-teal-400/5">
                           <span className="text-slate-700 dark:text-slate-200">{topic.name}</span>
                           <span className="font-semibold text-slate-900 dark:text-white">{topic.solves}</span>
                         </div>
@@ -684,7 +683,7 @@ const AdminPage: React.FC = () => {
 
         {activeTab === 'topics' && (
           <section className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-            <form onSubmit={saveTopic} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <form onSubmit={saveTopic} className="surface rounded-3xl p-6">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">{editingTopicId ? 'Edit Topic' : 'Add Topic'}</h2>
                 {editingTopicId && (
@@ -701,14 +700,14 @@ const AdminPage: React.FC = () => {
                 </div>
                 <Input label="Order" type="number" value={topicForm.order} onChange={(value) => setTopicForm((current) => ({ ...current, order: value }))} />
                 <ToggleRow label="Topic Visible" checked={topicForm.isActive} onChange={(checked) => setTopicForm((current) => ({ ...current, isActive: checked }))} />
-                <button disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-70 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                <button disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#123b36] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : editingTopicId ? <Save size={16} /> : <Plus size={16} />}
                   {editingTopicId ? 'Save Topic' : 'Create Topic'}
                 </button>
               </div>
             </form>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="surface rounded-3xl p-6">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Topic Catalog <span className="ml-1 text-sm font-normal text-slate-400">({filteredTopics.length}/{topics.length})</span></h2>
                 <SearchBox value={topicSearch} onChange={setTopicSearch} placeholder="Search topics…" />
@@ -721,13 +720,13 @@ const AdminPage: React.FC = () => {
               </div>
               <div className="space-y-3">
                 {filteredTopics.map((topic) => (
-                  <div key={topic.id || topic.slug} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+                  <div key={topic.id || topic.slug} className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="rounded-2xl bg-slate-100 p-3 text-slate-700 dark:bg-slate-800 dark:text-slate-200">{getTopicIcon(topic.iconKey, 18)}</div>
+                      <div className="rounded-2xl bg-[#dceee9] p-3 text-[#123b36] dark:bg-teal-400/10 dark:text-teal-300">{getTopicIcon(topic.iconKey, 18)}</div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-slate-900 dark:text-white">{topic.name}</h3>
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-300">{topic.slug}</span>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-300">{topic.slug}</span>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${topic.isDeleted ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200' : topic.isActive === false ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'}`}>{topic.isDeleted ? 'Deleted' : topic.isActive === false ? 'Hidden' : 'Live'}</span>
                         </div>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{topic.description}</p>
@@ -735,7 +734,7 @@ const AdminPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => { setEditingTopicId(topic.id || null); setTopicForm({ name: topic.name, slug: topic.slug, description: topic.description, difficulty: topic.difficulty, iconKey: topic.iconKey, order: String(topic.order || 0), isActive: topic.isActive !== false }); }} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Edit</button>
+                      <button type="button" onClick={() => { setEditingTopicId(topic.id || null); setTopicForm({ name: topic.name, slug: topic.slug, description: topic.description, difficulty: topic.difficulty, iconKey: topic.iconKey, order: String(topic.order || 0), isActive: topic.isActive !== false }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
                       {topic.id && !topic.isDeleted && <button type="button" onClick={() => deleteTopic(topic.id!)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
                       {topic.id && topic.isDeleted && <button type="button" onClick={() => restoreTopic(topic.id!)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
                     </div>
@@ -754,7 +753,7 @@ const AdminPage: React.FC = () => {
 
         {activeTab === 'problems' && (
           <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-            <form onSubmit={saveProblem} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <form onSubmit={saveProblem} className="surface rounded-3xl p-6">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">{editingProblemId ? 'Edit Problem' : 'Add Problem'}</h2>
                 {editingProblemId && <button type="button" onClick={resetProblemForm} className="text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white">Reset</button>}
@@ -768,16 +767,15 @@ const AdminPage: React.FC = () => {
                   <Select label="Difficulty" value={problemForm.difficulty} onChange={(value) => setProblemForm((current) => ({ ...current, difficulty: value as 'Easy' | 'Medium' | 'Hard' }))} options={[{ value: 'Easy', label: 'Easy' }, { value: 'Medium', label: 'Medium' }, { value: 'Hard', label: 'Hard' }]} />
                 </div>
                 <Input label="Video Tutorial Link" value={problemForm.tutorialLink} onChange={(value) => setProblemForm((current) => ({ ...current, tutorialLink: value }))} placeholder="YouTube or other video tutorial URL" />
-                <Input label="Solution Link" value={problemForm.solutionLink} onChange={(value) => setProblemForm((current) => ({ ...current, solutionLink: value }))} />
                 <Input label="Code Link" value={problemForm.codeLink} onChange={(value) => setProblemForm((current) => ({ ...current, codeLink: value }))} />
-                <button disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-70 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                <button disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#123b36] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : editingProblemId ? <Save size={16} /> : <Plus size={16} />}
                   {editingProblemId ? 'Save Problem' : 'Create Problem'}
                 </button>
               </div>
             </form>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="surface rounded-3xl p-6">
               <div className="mb-4 flex flex-col gap-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white">Problem Bank <span className="ml-1 text-sm font-normal text-slate-400">({filteredProblems.length}/{problems.length})</span></h2>
@@ -803,7 +801,7 @@ const AdminPage: React.FC = () => {
               </div>
               <div className="max-h-[600px] space-y-3 overflow-y-auto pr-1">
                 {filteredProblems.map((problem) => (
-                  <div key={problem.id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div key={problem.id} className="rounded-2xl border border-slate-200/80 p-4 dark:border-white/10">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">#{problem.problemNumber} • {problem.topic}</p>
@@ -816,7 +814,7 @@ const AdminPage: React.FC = () => {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', solutionLink: problem.solutionLink || '', codeLink: problem.codeLink || '' }); }} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Edit</button>
+                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', codeLink: problem.codeLink || '' }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
                         {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
                         {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
                       </div>
@@ -835,7 +833,7 @@ const AdminPage: React.FC = () => {
         )}
 
         {activeTab === 'users' && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <section className="surface rounded-3xl p-6">
             <div className="mb-5 flex flex-col gap-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Access <span className="ml-1 text-sm font-normal text-slate-400">({filteredUsers.length}/{users.length})</span></h2>
@@ -847,7 +845,7 @@ const AdminPage: React.FC = () => {
                 <FilterChip label="Moderator" active={userRoleFilter === 'moderator'} onClick={() => setUserRoleFilter('moderator')} color="amber" />
                 <FilterChip label="Content" active={userRoleFilter === 'content_manager'} onClick={() => setUserRoleFilter('content_manager')} color="emerald" />
                 <FilterChip label="User" active={userRoleFilter === 'user'} onClick={() => setUserRoleFilter('user')} />
-                <span className="mx-1 self-center border-l border-slate-200 dark:border-slate-700 h-4" />
+                <span className="mx-1 self-center border-l border-slate-200/80 dark:border-white/10 h-4" />
                 <FilterChip label="All Status" active={userStatusFilter === ''} onClick={() => setUserStatusFilter('')} />
                 <FilterChip label="Active" active={userStatusFilter === 'active'} onClick={() => setUserStatusFilter('active')} color="emerald" />
                 <FilterChip label="Disabled" active={userStatusFilter === 'disabled'} onClick={() => setUserStatusFilter('disabled')} color="rose" />
@@ -855,21 +853,21 @@ const AdminPage: React.FC = () => {
             </div>
             <div className="space-y-3">
               {filteredUsers.map((user) => (
-                <div key={user.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+                <div key={user.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-slate-900 dark:text-white">{user.username}</h3>
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${user.role === 'admin' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{user.role}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${user.role === 'admin' ? 'bg-[#dceee9] text-teal-800 dark:bg-teal-400/10 dark:text-teal-300' : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300'}`}>{user.role}</span>
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${user.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'}`}>{user.isActive ? 'Active' : 'Disabled'}</span>
                     </div>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
                     <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">Solved {user.solvedProblems?.length || 0} problems</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {user.role !== 'admin' && <button type="button" onClick={() => updateUserAccess(user, 'admin', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make Admin</button>}
-                    {user.role !== 'moderator' && <button type="button" onClick={() => updateUserAccess(user, 'moderator', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make Moderator</button>}
-                    {user.role !== 'content_manager' && <button type="button" onClick={() => updateUserAccess(user, 'content_manager', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make Content</button>}
-                    {user.role !== 'user' && <button type="button" onClick={() => updateUserAccess(user, 'user', user.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Make User</button>}
+                    {user.role !== 'admin' && <button type="button" onClick={() => updateUserAccess(user, 'admin', user.isActive)} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Make Admin</button>}
+                    {user.role !== 'moderator' && <button type="button" onClick={() => updateUserAccess(user, 'moderator', user.isActive)} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Make Moderator</button>}
+                    {user.role !== 'content_manager' && <button type="button" onClick={() => updateUserAccess(user, 'content_manager', user.isActive)} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Make Content</button>}
+                    {user.role !== 'user' && <button type="button" onClick={() => updateUserAccess(user, 'user', user.isActive)} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Make User</button>}
                     <button type="button" onClick={() => updateUserAccess(user, user.role, !user.isActive)} className={`rounded-xl border px-3 py-2 text-sm font-semibold ${user.isActive ? 'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20'}`}>{user.isActive ? 'Disable Account' : 'Enable Account'}</button>
                   </div>
                 </div>
@@ -885,7 +883,7 @@ const AdminPage: React.FC = () => {
         )}
 
         {activeTab === 'audit' && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <section className="surface rounded-3xl p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Audit Logs <span className="ml-1 text-sm font-normal text-slate-400">({auditPagination.total})</span></h2>
               <SearchBox value={auditSearch} onChange={setAuditSearch} placeholder="Search by action, entity or actor…" />
@@ -893,7 +891,7 @@ const AdminPage: React.FC = () => {
 
             <div className="space-y-3">
               {auditLogs.map((log) => (
-                <div key={log._id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                <div key={log._id} className="rounded-2xl border border-slate-200/80 p-4 dark:border-white/10">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{log.action}</p>
@@ -917,21 +915,21 @@ const AdminPage: React.FC = () => {
 
         {activeTab === 'potd' && (
           <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="surface rounded-3xl p-6">
               <h2 className="mb-5 text-xl font-bold text-slate-900 dark:text-white">Pin Today&apos;s Challenge</h2>
               <div className="space-y-4">
                 <Select label="Problem" value={selectedPotdProblemId} onChange={setSelectedPotdProblemId} options={problems.map((problem) => ({ value: problem.id, label: `#${problem.problemNumber} ${problem.title}` }))} required />
-                <button onClick={assignPotd} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-70 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
+                <button onClick={assignPotd} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#123b36] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                   Set Problem of the Day
                 </button>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="surface rounded-3xl p-6">
               <h2 className="mb-5 text-xl font-bold text-slate-900 dark:text-white">Current POTD</h2>
               {overview?.potd ? (
-                <div className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
+                <div className="rounded-2xl border border-slate-200/80 p-5 dark:border-white/10">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Today</p>
                   <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">#{overview.potd.problemNumber} {overview.potd.title}</h3>
                   <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Pinned on {new Date(overview.potd.date).toLocaleDateString()}</p>
@@ -958,7 +956,7 @@ const Input = ({ label, value, onChange, type = 'text', placeholder, required = 
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+      className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20"
     />
   </label>
 );
@@ -970,7 +968,7 @@ const TextArea = ({ label, value, onChange }: { label: string; value: string; on
       value={value}
       onChange={(event) => onChange(event.target.value)}
       rows={4}
-      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+      className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20"
     />
   </label>
 );
@@ -982,7 +980,7 @@ const Select = ({ label, value, onChange, options, required = false }: { label: 
       value={value}
       onChange={(event) => onChange(event.target.value)}
       required={required}
-      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+      className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20"
     >
       <option value="" disabled={required}>— Select —</option>
       {options.map((option) => (
@@ -993,9 +991,9 @@ const Select = ({ label, value, onChange, options, required = false }: { label: 
 );
 
 const ToggleRow = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void; }) => (
-  <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+  <label className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-3 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-[#101614] dark:text-slate-200">
     <span>{label}</span>
-    <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+    <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600 accent-teal-600 focus:ring-teal-600" />
   </label>
 );
 
@@ -1007,7 +1005,7 @@ const SearchBox = ({ value, onChange, placeholder }: { value: string; onChange: 
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder ?? 'Search…'}
-      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-8 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white sm:w-56"
+      className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] py-2 pl-8 pr-8 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20 sm:w-56"
     />
     {value && (
       <button type="button" onClick={() => onChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white">
@@ -1032,8 +1030,8 @@ const FilterChip = ({ label, active, onClick, color }: { label: string; active: 
       onClick={onClick}
       className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
         active
-          ? colored || 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+          ? colored || 'bg-[#123b36] text-white dark:bg-teal-400 dark:text-[#08241f]'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
       }`}
     >
       {label}
@@ -1053,11 +1051,11 @@ const PaginationBar = ({
   onNext: () => void;
 }) => (
   <div className="mt-4 flex items-center justify-end gap-2">
-    <button type="button" onClick={onPrev} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200">
+    <button type="button" onClick={onPrev} disabled={page <= 1} className="rounded-lg border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">
       Prev
     </button>
     <span className="text-xs text-slate-500 dark:text-slate-400">Page {page} / {Math.max(totalPages, 1)}</span>
-    <button type="button" onClick={onNext} disabled={page >= Math.max(totalPages, 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200">
+    <button type="button" onClick={onNext} disabled={page >= Math.max(totalPages, 1)} className="rounded-lg border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">
       Next
     </button>
   </div>
