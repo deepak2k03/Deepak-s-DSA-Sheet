@@ -327,33 +327,46 @@ const ProfilePage: React.FC = () => {
                  </div>
 
                  <div className="overflow-x-auto pb-4">
-                    <div className="min-w-max">
-                        <div className="relative flex h-5 mb-2 text-[10px] font-medium text-[var(--text-muted)]">
-                           {heatmapData.monthLabels.map(m => (
-                             <div 
-                               key={m.index} 
-                               className="absolute"
-                               style={{ left: `${m.index * 15}px` }}
-                             >
-                               {m.label}
-                             </div>
-                           ))}
+                    <div className="min-w-max flex gap-2">
+                        {/* Weekday Labels */}
+                        <div className="flex flex-col gap-[3px] text-[10px] font-medium text-[var(--text-muted)] mt-[28px]">
+                            <div className="h-3 flex items-center justify-end pr-1">Sun</div>
+                            <div className="h-3 flex items-center justify-end pr-1">Mon</div>
+                            <div className="h-3 flex items-center justify-end pr-1">Tue</div>
+                            <div className="h-3 flex items-center justify-end pr-1">Wed</div>
+                            <div className="h-3 flex items-center justify-end pr-1">Thu</div>
+                            <div className="h-3 flex items-center justify-end pr-1">Fri</div>
+                            <div className="h-3 flex items-center justify-end pr-1">Sat</div>
                         </div>
-                        <div className="flex gap-[3px]">
-                           {heatmapData.weeks.map((week, i) => (
-                             <div key={i} className="flex flex-col gap-[3px]">
-                                {week.map((day, j) => {
-                                  const isFuture = day.date > new Date();
-                                  return (
-                                    <div 
-                                      key={day.key} 
-                                      className={`w-3 h-3 rounded-[2px] ${getColorClass(day.count, isFuture)} ${!isFuture && 'transition-transform hover:scale-125 cursor-pointer'}`}
-                                      title={isFuture ? undefined : `${day.count} submissions on ${day.date.toDateString()}`}
-                                    />
-                                  );
-                                })}
-                             </div>
-                           ))}
+
+                        <div>
+                            <div className="relative flex h-5 mb-2 text-[10px] font-medium text-[var(--text-muted)]">
+                               {heatmapData.monthLabels.map(m => (
+                                 <div 
+                                   key={m.index} 
+                                   className="absolute"
+                                   style={{ left: `${m.index * 15}px` }}
+                                 >
+                                   {m.label}
+                                 </div>
+                               ))}
+                            </div>
+                            <div className="flex gap-[3px]">
+                               {heatmapData.weeks.map((week, i) => (
+                                 <div key={i} className="flex flex-col gap-[3px]">
+                                    {week.map((day, j) => {
+                                      const isFuture = day.date > new Date();
+                                      return (
+                                        <div 
+                                          key={day.key} 
+                                          className={`w-3 h-3 rounded-[2px] ${getColorClass(day.count, isFuture)} ${!isFuture && 'transition-transform hover:scale-125 cursor-pointer'}`}
+                                          title={isFuture ? undefined : `${day.count} submissions on ${day.date.toDateString()}`}
+                                        />
+                                      );
+                                    })}
+                                 </div>
+                               ))}
+                            </div>
                         </div>
                     </div>
                  </div>
