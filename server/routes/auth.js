@@ -11,6 +11,7 @@ const {
   clearLeaderboardCache,
 } = require('../utils/leaderboardCache');
 const { createPlainToken, hashToken } = require('../utils/tokenSecurity');
+const { sendPasswordResetEmail } = require('../utils/email');
 const { writeAuditLog } = require('../utils/audit');
 const { OAuth2Client } = require('google-auth-library');
 
@@ -263,42 +264,55 @@ router.post('/request-password-reset', authRateLimiter, async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.json({ msg: 'If an account exists, reset instructions were generated.' });
+    // Always return a generic message to prevent account enumeration
+    const genericResponse = { msg: 'If an account with that email exists, a password reset link has been sent.' };
+
+    if (!user) {
+      return res.json(genericResponse);
+    }
 
     const plain = createPlainToken();
     user.passwordResetToken = hashToken(plain);
-    user.passwordResetExpires = new Date(Date.now() + 1000 * 60 * 20);
+    user.passwordResetExpires = new Date(Date.now() + 1000 * 60 * 15); // 15 mins per instructions
     await user.save();
 
-    return res.json({
-      msg: 'Password reset token generated.',
-      token: process.env.NODE_ENV === 'production' ? undefined : plain,
-    });
+    await sendPasswordResetEmail(user.email, plain);
+
+    return res.json(genericResponse);
   } catch (error) {
+    console.error('Password reset request error:', error);
+    // Still return the generic response to prevent leaking info
     return res.status(500).json({ msg: 'Server Error' });
   }
 });
 
-router.post('/reset-password', authRateLimiter, async (req, res) => {
-  const { email, token, newPassword } = req.body;
+router.post('/reset-password/:token', authRateLimiter, async (req, res) => {
+  const { newPassword } = req.body;
+  const { token } = req.params;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Invalid reset request' });
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ msg: 'Password must be at least 8 characters long.' });
+    }
 
     const hashed = hashToken(token || '');
-    const validToken =
-      user.passwordResetToken &&
-      user.passwordResetToken === hashed &&
-      user.passwordResetExpires &&
-      new Date(user.passwordResetExpires).getTime() > Date.now();
+    
+    // Find user by hashed token, also ensuring it's not expired
+    const user = await User.findOne({
+      passwordResetToken: hashed,
+      passwordResetExpires: { $gt: Date.now() },
+    });
 
-    if (!validToken) {
-      return res.status(400).json({ msg: 'Reset token is invalid or expired' });
+    if (!user) {
+      return res.status(400).json({ msg: 'Reset token is invalid or has expired.' });
     }
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
+    
+    // If they were a Google-only account, they now have a local password.
+    // Ensure authProvider includes 'local' if you need it, though 'local' or 'google' is fine.
+    
     user.passwordResetToken = '';
     user.passwordResetExpires = null;
     user.tokenVersion = (user.tokenVersion || 0) + 1;
@@ -309,6 +323,7 @@ router.post('/reset-password', authRateLimiter, async (req, res) => {
 
     return res.json({ msg: 'Password reset successful. Please log in again.' });
   } catch (error) {
+    console.error('Password reset error:', error);
     return res.status(500).json({ msg: 'Server Error' });
   }
 });
