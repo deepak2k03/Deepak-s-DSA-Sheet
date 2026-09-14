@@ -276,7 +276,10 @@ router.post('/request-password-reset', authRateLimiter, async (req, res) => {
     user.passwordResetExpires = new Date(Date.now() + 1000 * 60 * 15); // 15 mins per instructions
     await user.save();
 
-    await sendPasswordResetEmail(user.email, plain);
+    // Send email in background to prevent API from hanging (especially if SMTP port is blocked)
+    sendPasswordResetEmail(user.email, plain).catch(err => {
+      console.error('Background email dispatch failed:', err);
+    });
 
     return res.json(genericResponse);
   } catch (error) {
