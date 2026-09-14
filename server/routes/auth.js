@@ -12,8 +12,10 @@ const {
 } = require('../utils/leaderboardCache');
 const { createPlainToken, hashToken } = require('../utils/tokenSecurity');
 const { writeAuditLog } = require('../utils/audit');
+const { OAuth2Client } = require('google-auth-library');
 
 const router = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const MAX_FAILED_LOGINS = 5;
 const LOCK_TIME_MS = 15 * 60 * 1000;
@@ -129,6 +131,81 @@ router.post('/login', authRateLimiter, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     return res.status(500).send('Server error');
+  }
+});
+
+router.post('/google', authRateLimiter, async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ msg: 'Token is required' });
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload) return res.status(400).json({ msg: 'Invalid Google token' });
+
+    const { sub: googleId, email, name, email_verified } = payload;
+
+    if (!email_verified && process.env.ENFORCE_EMAIL_VERIFICATION === 'true') {
+      return res.status(403).json({ msg: 'Google email is not verified' });
+    }
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user for Google login
+      const salt = await bcrypt.genSalt(10);
+      const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8), salt);
+      const role = getRoleForEmail(email);
+
+      user = new User({
+        username: name || email.split('@')[0],
+        email,
+        password: dummyPassword,
+        authProvider: 'google',
+        googleId,
+        role,
+        emailVerified: true,
+      });
+
+      await user.save();
+      clearLeaderboardCache();
+
+      await writeAuditLog(req, {
+        actorEmail: email,
+        action: 'auth.google_signup',
+        entityType: 'user',
+        entityId: String(user._id),
+      });
+    } else {
+      // Link Google account to existing user if not already linked
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+        user.emailVerified = true;
+        await user.save();
+      }
+
+      if (!user.isActive) {
+        return res.status(403).json({ msg: 'Your account has been disabled.' });
+      }
+    }
+
+    const sessionToken = signSessionToken(user);
+
+    await writeAuditLog(req, {
+      actorEmail: email,
+      action: 'auth.google_login',
+      entityType: 'user',
+      entityId: String(user._id),
+    });
+
+    return res.json({ token: sessionToken, user: sanitizeUser(user) });
+  } catch (err) {
+    console.error('Google Auth Error:', err.message);
+    return res.status(500).json({ msg: 'Google authentication failed' });
   }
 });
 
