@@ -402,6 +402,41 @@ router.post('/topics/:topicId/restore', async (req, res) => {
   }
 });
 
+router.put('/problems/reorder', async (req, res) => {
+  const { updates } = req.body;
+
+  if (!Array.isArray(updates)) {
+    return res.status(400).json({ msg: 'Invalid payload expected array of {id, order}' });
+  }
+
+  try {
+    const bulkOps = updates.map((update) => ({
+      updateOne: {
+        filter: { _id: update.id },
+        update: { $set: { order: update.order } },
+      },
+    }));
+
+    if (bulkOps.length > 0) {
+      await Problem.bulkWrite(bulkOps);
+    }
+
+    clearProblemsCache();
+
+    await writeAuditLog(req, {
+      action: 'admin.problem.reorder',
+      entityType: 'problem',
+      entityId: 'multiple',
+      metadata: { count: updates.length },
+    });
+
+    return res.json({ msg: 'Problems reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering problems:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 router.get('/problems', async (req, res) => {
   try {
     const { page, limit, skip } = parsePaging(req.query);
@@ -436,7 +471,7 @@ router.get('/problems', async (req, res) => {
 
     const [total, problems] = await Promise.all([
       Problem.countDocuments(filter),
-      Problem.find(filter).sort({ id: 1 }).skip(skip).limit(limit),
+      Problem.find(filter).sort({ order: 1, id: 1 }).skip(skip).limit(limit),
     ]);
 
     return res.json(paginate(problems.map(serializeProblem), total, page, limit));

@@ -56,7 +56,7 @@ router.get('/all', async (req, res) => {
       return res.json(cachedProblems);
     }
 
-    const problems = await Problem.find({ isDeleted: { $ne: true } }).sort({ id: 1 });
+    const problems = await Problem.find({ isDeleted: { $ne: true } }).sort({ order: 1, id: 1 });
     
     setCachedProblems(problems);
     
@@ -102,7 +102,7 @@ router.get('/potd', async (req, res) => {
 router.get('/:topic', async (req, res) => {
   try {
     const canonicalTopicSlug = getCanonicalTopicSlug(req.params.topic);
-    const problems = (await Problem.find({ isDeleted: { $ne: true } }).sort({ id: 1 })).filter(
+    const problems = (await Problem.find({ isDeleted: { $ne: true } }).sort({ order: 1, id: 1 })).filter(
       (problem) => getCanonicalTopicSlug(problem.topic) === canonicalTopicSlug,
     );
 

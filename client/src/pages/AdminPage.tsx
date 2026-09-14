@@ -165,6 +165,7 @@ const AdminPage: React.FC = () => {
   const [topicSearch, setTopicSearch] = useState('');
   const [topicStatusFilter, setTopicStatusFilter] = useState<'all' | 'active' | 'hidden' | 'deleted'>('all');
   const [isReorderingTopics, setIsReorderingTopics] = useState(false);
+  const [isReorderingProblems, setIsReorderingProblems] = useState(false);
   const [problemSearch, setProblemSearch] = useState('');
   const [problemDifficultyFilter, setProblemDifficultyFilter] = useState<'' | 'Easy' | 'Medium' | 'Hard'>('');
   const [problemTopicFilter, setProblemTopicFilter] = useState('');
@@ -516,6 +517,46 @@ const AdminPage: React.FC = () => {
     }, 'Topic order saved');
   };
 
+  const moveProblem = (problemId: string, direction: 'up' | 'down') => {
+    setProblems((current) => {
+      const index = current.findIndex((p) => p.id === problemId);
+      if (index < 0) return current;
+      
+      const currentProblem = current[index];
+      
+      // Find the adjacent problem in the same topic
+      const topicProblems = current.filter(p => p.topic === currentProblem.topic);
+      const topicIndex = topicProblems.findIndex(p => p.id === problemId);
+      
+      if (direction === 'up' && topicIndex === 0) return current;
+      if (direction === 'down' && topicIndex === topicProblems.length - 1) return current;
+      
+      const swapProblem = direction === 'up' ? topicProblems[topicIndex - 1] : topicProblems[topicIndex + 1];
+      const swapIndex = current.findIndex(p => p.id === swapProblem.id);
+      
+      const newProblems = [...current];
+      [newProblems[index], newProblems[swapIndex]] = [newProblems[swapIndex], newProblems[index]];
+
+      return newProblems;
+    });
+    setIsReorderingProblems(true);
+  };
+
+  const saveProblemOrder = async () => {
+    await withNotice(async () => {
+      // Create updates using the current index as order
+      const updates = problems.map((p, i) => ({ id: p.id, order: i }));
+      const response = await fetch(apiUrl('/api/admin/problems/reorder'), {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ updates }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.msg || 'Failed to save order');
+      setIsReorderingProblems(false);
+    }, 'Problem order saved');
+  };
+
   const deleteProblem = async (problemId: string) => {
     await withNotice(async () => {
       const response = await fetch(apiUrl(`/api/admin/problems/${problemId}`), {
@@ -864,6 +905,8 @@ const AdminPage: React.FC = () => {
                         )}
                       </div>
                       <div className="flex gap-2">
+                        <button type="button" onClick={() => moveProblem(problem.id, 'up')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Up'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowUp size={16} /></button>
+                        <button type="button" onClick={() => moveProblem(problem.id, 'down')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Down'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowDown size={16} /></button>
                         <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', codeLink: problem.codeLink || '' }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
                         {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
                         {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
@@ -878,6 +921,13 @@ const AdminPage: React.FC = () => {
                 onPrev={() => setProblemsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
                 onNext={() => setProblemsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
               />
+              {isReorderingProblems && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-3 shadow-lg backdrop-blur-md">
+                  <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">You have unsaved problem order changes</span>
+                  <button type="button" onClick={saveProblemOrder} className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">Save Order</button>
+                  <button type="button" onClick={() => { setIsReorderingProblems(false); fetchData(); }} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
+                </div>
+              )}
             </div>
           </section>
         )}
