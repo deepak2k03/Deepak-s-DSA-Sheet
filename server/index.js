@@ -11,6 +11,11 @@ app.use(express.json());
 app.use(cors());
 app.use(globalRateLimiter);
 
+// Lightweight health-check endpoint for UptimeRobot
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/problems', require('./routes/problems'));
 app.use('/api/topics', require('./routes/topics'));
