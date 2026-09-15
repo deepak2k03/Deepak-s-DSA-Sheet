@@ -91,8 +91,8 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between h-[72px]">
           {/* LEFT: Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="p-1.5 rounded-md bg-[var(--accent)] text-[var(--text-inverted)] shadow-[var(--shadow-sm)] transition-transform duration-200 group-hover:scale-105">
-              <Code2 className="h-5 w-5" />
+            <div className="flex h-8 w-8 items-center justify-center transition-transform duration-200 group-hover:scale-105">
+              <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
             </div>
             <span className="font-bold text-lg tracking-tight text-[var(--text-primary)]">
               DSA Sheet

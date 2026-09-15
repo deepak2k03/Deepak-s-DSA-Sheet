@@ -52,8 +52,8 @@ const ResetPasswordPage: React.FC = () => {
       <AnimatedBackground />
       <div className="z-10 w-full max-w-md">
         <Link to="/" className="mb-4 flex items-center justify-center gap-2 text-lg font-bold text-[var(--text-primary)] transition-colors hover:text-[var(--text-secondary)]">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)]">
-            <Code2 size={16} />
+          <div className="flex h-8 w-8 items-center justify-center">
+            <img src="/logo.png" alt="Logo" className="h-full w-full object-contain" />
           </div>
           DSA Sheet
         </Link>
