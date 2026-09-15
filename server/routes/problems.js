@@ -174,4 +174,101 @@ router.post('/sync', auth, async (req, res) => {
   }
 });
 
+// ==============================================
+// SYNC REVISION STATUS
+// ==============================================
+router.post('/sync-revision', auth, async (req, res) => {
+  const { problemId } = req.body;
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user.isActive) return res.status(403).json({ msg: 'Account access denied' });
+
+    const idStr = String(problemId);
+    const problem = await Problem.findOne({ id: Number(idStr), isDeleted: { $ne: true } }).select('id');
+    if (!problem) return res.status(404).json({ msg: 'Problem not found' });
+
+    const isMarked = user.revisionProblems?.includes(idStr);
+    let updatedUser;
+
+    if (isMarked) {
+      updatedUser = await User.findByIdAndUpdate(
+        req.userId,
+        { $pull: { revisionProblems: idStr } },
+        { new: true }
+      );
+    } else {
+      updatedUser = await User.findByIdAndUpdate(
+        req.userId,
+        { $addToSet: { revisionProblems: idStr } },
+        { new: true }
+      );
+    }
+    res.json(updatedUser.revisionProblems || []);
+  } catch (err) {
+    console.error("Sync Revision Error:", err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ==============================================
+// SYNC NOTE
+// ==============================================
+router.post('/sync-note', auth, async (req, res) => {
+  const { problemId, note } = req.body;
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user.isActive) return res.status(403).json({ msg: 'Account access denied' });
+
+    const idStr = String(problemId);
+    const problem = await Problem.findOne({ id: Number(idStr), isDeleted: { $ne: true } }).select('id');
+    if (!problem) return res.status(404).json({ msg: 'Problem not found' });
+
+    const noteIndex = user.problemNotes?.findIndex(n => n.problemId === idStr);
+    let updatedUser;
+
+    if (noteIndex !== undefined && noteIndex !== -1) {
+      if (!note || note.trim() === '') {
+        // Remove note if empty
+        updatedUser = await User.findByIdAndUpdate(
+          req.userId,
+          { $pull: { problemNotes: { problemId: idStr } } },
+          { new: true }
+        );
+      } else {
+        // Update existing note
+        updatedUser = await User.findOneAndUpdate(
+          { _id: req.userId, "problemNotes.problemId": idStr },
+          { 
+            $set: { 
+              "problemNotes.$.note": note,
+              "problemNotes.$.updatedAt": new Date()
+            } 
+          },
+          { new: true }
+        );
+      }
+    } else if (note && note.trim() !== '') {
+      // Add new note
+      updatedUser = await User.findByIdAndUpdate(
+        req.userId,
+        { 
+          $push: { 
+            problemNotes: { problemId: idStr, note: note, updatedAt: new Date() } 
+          } 
+        },
+        { new: true }
+      );
+    } else {
+      updatedUser = user;
+    }
+    
+    res.json(updatedUser.problemNotes || []);
+  } catch (err) {
+    console.error("Sync Note Error:", err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

@@ -20,6 +20,8 @@ const sanitizeUser = (user) => ({
   email: user.email,
   solvedProblems: user.solvedProblems || [],
   solvedHistory: user.solvedHistory || [],
+  revisionProblems: user.revisionProblems || [],
+  problemNotes: user.problemNotes || [],
   role: user.role || 'user',
   isActive: user.isActive !== false,
   emailVerified: Boolean(user.emailVerified),

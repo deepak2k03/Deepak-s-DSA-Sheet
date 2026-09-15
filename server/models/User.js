@@ -13,6 +13,14 @@ const userSchema = new mongoose.Schema({
       solvedAt: { type: Date, default: Date.now },
     },
   ],
+  revisionProblems: [{ type: String }],
+  problemNotes: [
+    {
+      problemId: { type: String, required: true },
+      note: { type: String, default: '' },
+      updatedAt: { type: Date, default: Date.now },
+    }
+  ],
   role: {
     type: String,
     enum: ['user', 'moderator', 'content_manager', 'admin'],
