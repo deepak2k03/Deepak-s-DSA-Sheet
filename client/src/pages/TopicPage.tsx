@@ -9,7 +9,7 @@ import { updateStoredUser } from '../utils/auth';
 import { fetchPublicTopics } from '../utils/topicApi';
 import { getCanonicalTopicSlug } from '../utils/topics';
 
-interface Problem { id: number; title: string; link: string; tutorialLink?: string; solutionLink?: string; codeLink?: string; difficulty: 'Easy' | 'Medium' | 'Hard'; topic: string; }
+interface Problem { id: number; title: string; link: string; tutorialLink?: string; solutionLink?: string; codeLink?: string; videoSolutionUrl?: string; difficulty: 'Easy' | 'Medium' | 'Hard'; topic: string; }
 
 const difficultyStyle: Record<string, string> = { 
   Easy: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30', 
@@ -257,7 +257,7 @@ const ProblemRow = ({ problem, index, complete, authenticated, onToggle }: { pro
       </td>
       <td className="px-5 py-4 text-right">
         <div className="inline-flex w-full justify-end gap-1">
-          <Resource href={problem.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`} label="Tutorial" Icon={Youtube} />
+          <Resource href={problem.videoSolutionUrl || problem.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`} label="Tutorial" Icon={Youtube} />
           <Resource href={`/problem/${problem.id}/solution`} label="Code" Icon={Code2} />
           <Resource href={problem.link} label="Solve" Icon={ExternalLink} />
         </div>

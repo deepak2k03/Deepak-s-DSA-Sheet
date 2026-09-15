@@ -21,6 +21,7 @@ interface Problem {
   tutorialLink?: string;
   solutionLink?: string;
   codeLink?: string;
+  videoSolutionUrl?: string;
 }
 
 const difficulty: Record<string, string> = {
@@ -59,7 +60,7 @@ const POTDPage: React.FC = () => {
   }, []);
 
   const tutorial = (item: Problem) =>
-    item.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${item.title} tutorial`)}`;
+    item.videoSolutionUrl || item.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${item.title} tutorial`)}`;
 
   return (
     <div className="page-shell">
