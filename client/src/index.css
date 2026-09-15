@@ -328,18 +328,4 @@
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   TABLE ALIGNMENT (Topic detail)
-   ═══════════════════════════════════════════════════════ */
-main table:has(colgroup) th:nth-child(4),
-main table:has(colgroup) th:nth-child(5),
-main table:has(colgroup) th:nth-child(6),
-main table:has(colgroup) td:nth-child(4),
-main table:has(colgroup) td:nth-child(5),
-main table:has(colgroup) td:nth-child(6) {
-  text-align: center;
-}
 
-main table:has(colgroup) td:nth-child(6) > div {
-  justify-content: center;
-}

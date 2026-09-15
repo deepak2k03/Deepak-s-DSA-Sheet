@@ -233,12 +233,12 @@ const TopicPage: React.FC = () => {
                 <colgroup>
                   <col className="w-[5%]" />
                   <col className="w-[5%]" />
-                  <col className="w-[38%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[12%]" />
+                  <col className="w-[40%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[14%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
                 </colgroup>
                 <thead className="bg-[var(--bg-surface-muted)] text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   <tr>
@@ -247,9 +247,9 @@ const TopicPage: React.FC = () => {
                     <th className="px-5 py-3 border-b border-[var(--border-subtle)]">Problem</th>
                     <th className="px-5 py-3 border-b border-[var(--border-subtle)] text-center">Notes</th>
                     <th className="px-5 py-3 border-b border-[var(--border-subtle)] text-center">Revise</th>
-                    <th className="px-5 py-3 border-b border-[var(--border-subtle)]">Platform</th>
-                    <th className="px-5 py-3 border-b border-[var(--border-subtle)]">Level</th>
-                    <th className="px-5 py-3 border-b border-[var(--border-subtle)] text-right">Resources</th>
+                    <th className="px-5 py-3 border-b border-[var(--border-subtle)] text-center">Platform</th>
+                    <th className="px-5 py-3 border-b border-[var(--border-subtle)] text-center">Level</th>
+                    <th className="px-5 py-3 border-b border-[var(--border-subtle)] text-center">Resources</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -354,22 +354,21 @@ const ProblemRow = ({ problem, index, complete, isRevision, hasNote, authenticat
           <Star size={18} className={isRevision ? 'text-yellow-500 fill-yellow-500' : ''} />
         </button>
       </td>
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 text-center">
         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${platform[1]}`}>
           <Globe size={11} />
           {platform[0]}
         </span>
       </td>
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 text-center">
         <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium ${difficultyStyle[problem.difficulty]}`}>
           {problem.difficulty}
         </span>
       </td>
-      <td className="px-5 py-4 text-right">
-        <div className="inline-flex w-full justify-end gap-1">
+      <td className="px-5 py-4 text-center">
+        <div className="inline-flex w-full justify-center gap-1">
           <Resource href={problem.videoSolutionUrl || problem.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`} label="Tutorial" Icon={Youtube} />
           <Resource href={`/problem/${problem.id}/solution`} label="Code" Icon={Code2} />
-          <Resource href={problem.link} label="Solve" Icon={ExternalLink} />
         </div>
       </td>
     </tr>
