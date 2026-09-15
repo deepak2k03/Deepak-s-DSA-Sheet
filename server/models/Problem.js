@@ -9,6 +9,18 @@ const problemSchema = new mongoose.Schema({
   tutorialLink: String,
   solutionLink: String,
   codeLink: String,
+  videoSolutionUrl: String,
+  approaches: [{
+    id: String,
+    title: String,
+    algorithm: String,
+    timeComplexity: String,
+    spaceComplexity: String,
+    codeSnippets: [{
+      language: String,
+      code: String
+    }]
+  }],
   order: { type: Number, default: 0 },
   isDeleted: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },

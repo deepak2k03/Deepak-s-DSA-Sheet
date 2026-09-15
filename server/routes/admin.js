@@ -60,10 +60,13 @@ const serializeProblem = (problem) => ({
   tutorialLink: problem.tutorialLink || '',
   solutionLink: problem.solutionLink || '',
   codeLink: problem.codeLink || '',
+  videoSolutionUrl: problem.videoSolutionUrl || '',
+  approaches: problem.approaches || [],
   isDeleted: Boolean(problem.isDeleted),
   deletedAt: problem.deletedAt || null,
   createdAt: problem.createdAt,
   updatedAt: problem.updatedAt,
+  order: problem.order || 0,
 });
 
 const countProblemsByTopic = (problems) =>
@@ -481,7 +484,7 @@ router.get('/problems', async (req, res) => {
 });
 
 router.post('/problems', async (req, res) => {
-  const { title, link, difficulty, topic, tutorialLink, solutionLink, codeLink, problemNumber } = req.body;
+  const { title, link, difficulty, topic, tutorialLink, solutionLink, codeLink, problemNumber, videoSolutionUrl, approaches } = req.body;
 
   try {
     if (!title || !link || !topic) {
@@ -516,6 +519,8 @@ router.post('/problems', async (req, res) => {
       tutorialLink: (tutorialLink || '').trim(),
       solutionLink: (solutionLink || '').trim(),
       codeLink: (codeLink || '').trim(),
+      videoSolutionUrl: (videoSolutionUrl || '').trim(),
+      approaches: Array.isArray(approaches) ? approaches : [],
       isDeleted: false,
       deletedAt: null,
     });
@@ -536,7 +541,7 @@ router.post('/problems', async (req, res) => {
 });
 
 router.put('/problems/:problemId', async (req, res) => {
-  const { title, link, difficulty, topic, tutorialLink, solutionLink, codeLink, problemNumber } = req.body;
+  const { title, link, difficulty, topic, tutorialLink, solutionLink, codeLink, problemNumber, videoSolutionUrl, approaches } = req.body;
 
   try {
     const problem = await Problem.findById(req.params.problemId);
@@ -567,6 +572,10 @@ router.put('/problems/:problemId', async (req, res) => {
     problem.tutorialLink = tutorialLink !== undefined ? String(tutorialLink).trim() : problem.tutorialLink;
     problem.solutionLink = solutionLink !== undefined ? String(solutionLink).trim() : problem.solutionLink;
     problem.codeLink = codeLink !== undefined ? String(codeLink).trim() : problem.codeLink;
+    problem.videoSolutionUrl = videoSolutionUrl !== undefined ? String(videoSolutionUrl).trim() : problem.videoSolutionUrl;
+    if (approaches !== undefined) {
+      problem.approaches = Array.isArray(approaches) ? approaches : problem.approaches;
+    }
 
     await problem.save();
     clearProblemsCache();

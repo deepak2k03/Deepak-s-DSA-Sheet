@@ -67,6 +67,22 @@ router.get('/all', async (req, res) => {
 });
 
 // ==============================================
+// GET SINGLE PROBLEM
+// ==============================================
+router.get('/single/:id', async (req, res) => {
+  try {
+    const problem = await Problem.findOne({ id: req.params.id, isDeleted: { $ne: true } });
+    if (!problem) {
+      return res.status(404).json({ msg: 'Problem not found' });
+    }
+    res.json(problem);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ==============================================
 // POTD ROUTE
 // ==============================================
 router.get('/potd', async (req, res) => {

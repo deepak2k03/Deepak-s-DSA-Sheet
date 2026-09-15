@@ -40,6 +40,15 @@ interface AdminProblem {
   tutorialLink: string;
   solutionLink?: string;
   codeLink: string;
+  videoSolutionUrl: string;
+  approaches: Array<{
+    id: string;
+    title: string;
+    algorithm: string;
+    timeComplexity: string;
+    spaceComplexity: string;
+    codeSnippets: Array<{ language: string; code: string }>;
+  }>;
   isDeleted?: boolean;
   deletedAt?: string | null;
 }
@@ -112,6 +121,15 @@ interface ProblemFormState {
   tutorialLink: string;
   solutionLink?: string;
   codeLink: string;
+  videoSolutionUrl: string;
+  approaches: Array<{
+    id: string;
+    title: string;
+    algorithm: string;
+    timeComplexity: string;
+    spaceComplexity: string;
+    codeSnippets: Array<{ language: string; code: string }>;
+  }>;
 }
 
 const defaultTopicForm: TopicFormState = {
@@ -132,6 +150,8 @@ const defaultProblemForm: ProblemFormState = {
   difficulty: 'Medium' as const,
   tutorialLink: '',
   codeLink: '',
+  videoSolutionUrl: '',
+  approaches: [],
 };
 
 const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
@@ -155,6 +175,7 @@ const AdminPage: React.FC = () => {
   const [problems, setProblems] = useState<AdminProblem[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [isSolutionModalOpen, setIsSolutionModalOpen] = useState(false);
   const [topicsPagination, setTopicsPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
   const [problemsPagination, setProblemsPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
   const [usersPagination, setUsersPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
@@ -455,6 +476,7 @@ const AdminPage: React.FC = () => {
       }
 
       resetProblemForm();
+      await loadAdminData(true);
     }, editingProblemId ? 'Problem updated' : 'Problem created');
   };
 
@@ -857,8 +879,18 @@ const AdminPage: React.FC = () => {
                   <Select label="Topic" value={problemForm.topic} onChange={(value) => setProblemForm((current) => ({ ...current, topic: value }))} options={topics.filter((topic) => topic.isActive !== false).map((topic) => ({ value: topic.slug, label: topic.name }))} required />
                   <Select label="Difficulty" value={problemForm.difficulty} onChange={(value) => setProblemForm((current) => ({ ...current, difficulty: value as 'Easy' | 'Medium' | 'Hard' }))} options={[{ value: 'Easy', label: 'Easy' }, { value: 'Medium', label: 'Medium' }, { value: 'Hard', label: 'Hard' }]} />
                 </div>
-                <Input label="Video Tutorial Link" value={problemForm.tutorialLink} onChange={(value) => setProblemForm((current) => ({ ...current, tutorialLink: value }))} placeholder="YouTube or other video tutorial URL" />
-                <Input label="Code Link" value={problemForm.codeLink} onChange={(value) => setProblemForm((current) => ({ ...current, codeLink: value }))} />
+                <Input label="Video Tutorial Link (General)" value={problemForm.tutorialLink} onChange={(value) => setProblemForm((current) => ({ ...current, tutorialLink: value }))} placeholder="YouTube or other video tutorial URL" />
+                <Input label="Code Link (External)" value={problemForm.codeLink} onChange={(value) => setProblemForm((current) => ({ ...current, codeLink: value }))} />
+                
+                <div className="mt-8 border-t border-slate-200/80 pt-6 dark:border-white/10">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Solution Manager</h3>
+                    <button type="button" onClick={() => setIsSolutionModalOpen(true)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10">
+                      Manage Solutions
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-500">Configure embedded videos and detailed approach logic in the Solution Manager modal.</p>
+                </div>
                 <button disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#123b36] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : editingProblemId ? <Save size={16} /> : <Plus size={16} />}
                   {editingProblemId ? 'Save Problem' : 'Create Problem'}
@@ -907,7 +939,7 @@ const AdminPage: React.FC = () => {
                       <div className="flex gap-2">
                         <button type="button" onClick={() => moveProblem(problem.id, 'up')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Up'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowUp size={16} /></button>
                         <button type="button" onClick={() => moveProblem(problem.id, 'down')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Down'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowDown size={16} /></button>
-                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', codeLink: problem.codeLink || '' }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
+                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', codeLink: problem.codeLink || '', videoSolutionUrl: problem.videoSolutionUrl || '', approaches: problem.approaches ? JSON.parse(JSON.stringify(problem.approaches)) : [] }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
                         {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
                         {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
                       </div>
@@ -1039,6 +1071,67 @@ const AdminPage: React.FC = () => {
               )}
             </div>
           </section>
+        )}
+        {isSolutionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl dark:bg-[#101614] dark:border dark:border-white/10">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Solution Manager</h2>
+                <button type="button" onClick={() => setIsSolutionModalOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <Input label="Embedded Video Solution URL" value={problemForm.videoSolutionUrl} onChange={(value) => setProblemForm((current) => ({ ...current, videoSolutionUrl: value }))} placeholder="e.g., https://www.youtube.com/embed/..." />
+                
+                <div className="mt-6 space-y-6">
+                  {problemForm.approaches.map((approach, index) => (
+                    <div key={index} className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h4 className="font-semibold text-slate-900 dark:text-white">Approach {index + 1}</h4>
+                        <button type="button" onClick={() => setProblemForm(curr => ({ ...curr, approaches: curr.approaches.filter((_, i) => i !== index) }))} className="text-sm font-medium text-rose-500 hover:text-rose-600">Remove</button>
+                      </div>
+                      <div className="space-y-4">
+                        <Input label="ID (e.g. brute-force, optimal)" value={approach.id} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].id = val; return { ...curr, approaches: arr }; })} />
+                        <Input label="Title (e.g. 1. Brute Force Approach)" value={approach.title} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].title = val; return { ...curr, approaches: arr }; })} />
+                        <TextArea label="Algorithm" value={approach.algorithm} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].algorithm = val; return { ...curr, approaches: arr }; })} />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Input label="Time Complexity" value={approach.timeComplexity} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].timeComplexity = val; return { ...curr, approaches: arr }; })} placeholder="O(N)" />
+                          <Input label="Space Complexity" value={approach.spaceComplexity} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].spaceComplexity = val; return { ...curr, approaches: arr }; })} placeholder="O(1)" />
+                        </div>
+                        
+                        <div className="mt-4 border-t border-slate-100 pt-4 dark:border-white/5">
+                          <h5 className="mb-3 font-medium text-slate-700 dark:text-slate-300">Code Snippets</h5>
+                          {approach.codeSnippets.map((snippet, sIndex) => (
+                            <div key={sIndex} className="mb-4 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+                              <div className="mb-2 flex items-center justify-between">
+                                <Select label="Language" value={snippet.language} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets[sIndex].language = val; return { ...curr, approaches: arr }; })} options={[{value: 'C++', label: 'C++'}, {value: 'Java', label: 'Java'}, {value: 'Python', label: 'Python'}, {value: 'JavaScript', label: 'JavaScript'}]} />
+                                <button type="button" onClick={() => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets = arr[index].codeSnippets.filter((_, i) => i !== sIndex); return { ...curr, approaches: arr }; })} className="mt-6 text-xs font-semibold text-rose-500">Remove Code</button>
+                              </div>
+                              <TextArea label="Code" value={snippet.code} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets[sIndex].code = val; return { ...curr, approaches: arr }; })} />
+                            </div>
+                          ))}
+                          <button type="button" onClick={() => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets.push({ language: 'C++', code: '' }); return { ...curr, approaches: arr }; })} className="text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400">
+                            + Add Language
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setProblemForm(curr => ({ ...curr, approaches: [...curr.approaches, { id: '', title: '', algorithm: '', timeComplexity: '', spaceComplexity: '', codeSnippets: [] }] }))} className="w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-700 dark:border-white/20 dark:text-slate-300 dark:hover:border-white/40 dark:hover:text-white">
+                    + Add Approach
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button type="button" onClick={() => setIsSolutionModalOpen(false)} className="rounded-xl bg-[#123b36] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
