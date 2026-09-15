@@ -14,6 +14,7 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import POTDPage from './pages/POTDPage';
 import AdminPage from './pages/AdminPage';
 import SupportCreatorPage from './pages/SupportCreatorPage';
+import SolutionPage from './pages/SolutionPage';
 
 function App() {
   const location = useLocation();
@@ -40,6 +41,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/topic/:slug" element={<TopicPage />} />
+          <Route path="/problem/:id/solution" element={<SolutionPage />} />
           <Route path="/potd" element={<POTDPage />} />
           <Route path="/support" element={<SupportCreatorPage />} />
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />

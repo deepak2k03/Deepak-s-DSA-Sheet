@@ -129,16 +129,14 @@ const POTDPage: React.FC = () => {
                   >
                     <Youtube size={16} /> Tutorial
                   </a>
-                  {problem.codeLink && (
-                    <a
-                      href={problem.codeLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface-muted)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:border-[var(--text-primary)]"
-                    >
-                      <Code2 size={16} /> Code
-                    </a>
-                  )}
+                  <a
+                    href={`/problem/${problem.id}/solution`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface-muted)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:border-[var(--text-primary)]"
+                  >
+                    <Code2 size={16} /> Code
+                  </a>
                 </div>
                 <a
                   href={problem.link}

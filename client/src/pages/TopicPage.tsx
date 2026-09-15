@@ -258,7 +258,7 @@ const ProblemRow = ({ problem, index, complete, authenticated, onToggle }: { pro
       <td className="px-5 py-4 text-right">
         <div className="inline-flex w-full justify-end gap-1">
           <Resource href={problem.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`} label="Tutorial" Icon={Youtube} />
-          {problem.codeLink && <Resource href={problem.codeLink} label="Code" Icon={Code2} />}
+          <Resource href={`/problem/${problem.id}/solution`} label="Code" Icon={Code2} />
           <Resource href={problem.link} label="Solve" Icon={ExternalLink} />
         </div>
       </td>
