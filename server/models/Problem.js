@@ -8,7 +8,6 @@ const problemSchema = new mongoose.Schema({
   topic: { type: String, default: 'arrays' }, // 'arrays', 'strings', etc.
   tutorialLink: String,
   solutionLink: String,
-  codeLink: String,
   githubLink: String,
   videoSolutionUrl: String,
   approaches: [{

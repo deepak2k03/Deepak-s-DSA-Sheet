@@ -20,7 +20,7 @@ interface Problem {
   topic: string;
   tutorialLink?: string;
   solutionLink?: string;
-  codeLink?: string;
+  githubLink?: string;
   videoSolutionUrl?: string;
 }
 
