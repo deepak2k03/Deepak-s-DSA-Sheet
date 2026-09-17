@@ -9,6 +9,7 @@ const problemSchema = new mongoose.Schema({
   tutorialLink: String,
   solutionLink: String,
   codeLink: String,
+  githubLink: String,
   videoSolutionUrl: String,
   approaches: [{
     id: String,

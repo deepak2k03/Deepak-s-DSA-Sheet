@@ -38,8 +38,8 @@ interface AdminProblem {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   topic: string;
   tutorialLink: string;
-  solutionLink?: string;
   codeLink: string;
+  githubLink: string;
   videoSolutionUrl: string;
   approaches: Array<{
     id: string;
@@ -121,6 +121,7 @@ interface ProblemFormState {
   tutorialLink: string;
   solutionLink?: string;
   codeLink: string;
+  githubLink: string;
   videoSolutionUrl: string;
   approaches: Array<{
     id: string;
@@ -150,6 +151,7 @@ const defaultProblemForm: ProblemFormState = {
   difficulty: 'Medium' as const,
   tutorialLink: '',
   codeLink: '',
+  githubLink: '',
   videoSolutionUrl: '',
   approaches: [],
 };
@@ -881,6 +883,7 @@ const AdminPage: React.FC = () => {
                 </div>
                 <Input label="Video Tutorial Link (General)" value={problemForm.tutorialLink} onChange={(value) => setProblemForm((current) => ({ ...current, tutorialLink: value }))} placeholder="YouTube or other video tutorial URL" />
                 <Input label="Code Link (External)" value={problemForm.codeLink} onChange={(value) => setProblemForm((current) => ({ ...current, codeLink: value }))} />
+                <Input label="GitHub Solution Link" value={problemForm.githubLink} onChange={(value) => setProblemForm((current) => ({ ...current, githubLink: value }))} />
                 
                 <div className="mt-8 border-t border-slate-200/80 pt-6 dark:border-white/10">
                   <div className="mb-4 flex items-center justify-between">
@@ -939,7 +942,7 @@ const AdminPage: React.FC = () => {
                       <div className="flex gap-2">
                         <button type="button" onClick={() => moveProblem(problem.id, 'up')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Up'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowUp size={16} /></button>
                         <button type="button" onClick={() => moveProblem(problem.id, 'down')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Down'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowDown size={16} /></button>
-                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', codeLink: problem.codeLink || '', videoSolutionUrl: problem.videoSolutionUrl || '', approaches: problem.approaches ? JSON.parse(JSON.stringify(problem.approaches)) : [] }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
+                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', codeLink: problem.codeLink || '', githubLink: problem.githubLink || '', videoSolutionUrl: problem.videoSolutionUrl || '', approaches: problem.approaches ? JSON.parse(JSON.stringify(problem.approaches)) : [] }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
                         {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
                         {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
                       </div>

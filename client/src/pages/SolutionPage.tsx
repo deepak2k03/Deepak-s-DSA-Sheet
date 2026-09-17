@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Code2, ArrowLeft, PlayCircle, Clock, Database, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Code2, ArrowLeft, PlayCircle, Clock, Database, ChevronRight, Loader2, AlertCircle, Github } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { apiUrl } from '../config';
 
@@ -24,6 +24,7 @@ interface ProblemDetail {
   id: number;
   title: string;
   videoSolutionUrl?: string;
+  githubLink?: string;
   approaches?: Approach[];
 }
 
@@ -133,8 +134,15 @@ const SolutionPage: React.FC = () => {
             </Link>
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">Solution: {problem.title}</h1>
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
-            <Code2 size={24} />
+          <div className="flex items-center gap-3">
+            {problem.githubLink && (
+              <a href={problem.githubLink} target="_blank" rel="noopener noreferrer" className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm hover:bg-[var(--bg-surface)] hover:text-teal-500 transition-colors" title="View solution on GitHub">
+                <Github size={24} />
+              </a>
+            )}
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
+              <Code2 size={24} />
+            </div>
           </div>
         </div>
 
