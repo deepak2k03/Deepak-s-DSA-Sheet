@@ -1,19 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Clock,
-  HardDrive,
-  Copy,
-  Check,
-  FileCode,
-  Sparkles,
-  ExternalLink,
   BookOpen,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
-  Layers,
   Loader2,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
@@ -37,8 +29,6 @@ const difficultyBadgeStyle: Record<string, string> = {
 
 const VisualizerDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const [copiedPath, setCopiedPath] = useState(false);
   const [algorithm, setAlgorithm] = useState<VisualizerAlgorithm | null>(() => getVisualizerBySlug(slug || '') || null);
   const [loading, setLoading] = useState(!algorithm);
   const [allVisualizers, setAllVisualizers] = useState<VisualizerAlgorithm[]>([]);
@@ -99,17 +89,10 @@ const VisualizerDetailPage: React.FC = () => {
     );
   }
 
-  const relativeFilePath = `client/public${algorithm.htmlPath}`;
   const pool = allVisualizers.length > 0 ? allVisualizers : getVisualizersByCategory(algorithm.category);
   const relatedAlgorithms = pool.filter(
     (item) => item.category === algorithm.category && item.slug !== algorithm.slug
   );
-
-  const handleCopyPath = () => {
-    navigator.clipboard.writeText(relativeFilePath);
-    setCopiedPath(true);
-    setTimeout(() => setCopiedPath(false), 2000);
-  };
 
   return (
     <div className="page-shell">
@@ -134,7 +117,7 @@ const VisualizerDetailPage: React.FC = () => {
         </nav>
 
         {/* Top Header */}
-        <header className="border-b border-[var(--border-subtle)] pb-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <header className="border-b border-[var(--border-subtle)] pb-6 mb-8">
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-teal-400">
@@ -168,48 +151,6 @@ const VisualizerDetailPage: React.FC = () => {
               {algorithm.description}
             </p>
           </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-            <button
-              onClick={handleCopyPath}
-              className="button-secondary text-xs font-medium !py-2 !px-3"
-              title="Copy relative file path"
-            >
-              {copiedPath ? (
-                <>
-                  <Check size={14} className="text-emerald-400" />
-                  <span>Copied Path</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={14} />
-                  <span>Copy HTML Path</span>
-                </>
-              )}
-            </button>
-
-            {(() => {
-              const token = getStoredToken();
-              const rawRenderUrl = algorithm.renderUrl
-                ? apiUrl(algorithm.renderUrl)
-                : apiUrl(`/api/visualizers/render/${algorithm.slug}`);
-              const renderSrc = token ? `${rawRenderUrl}?token=${encodeURIComponent(token)}` : rawRenderUrl;
-
-              return (
-                <a
-                  href={renderSrc}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="button-secondary text-xs font-medium !py-2 !px-3"
-                  title="Open secure animation render URL"
-                >
-                  <ExternalLink size={14} />
-                  <span>Render Stream</span>
-                </a>
-              );
-            })()}
-          </div>
         </header>
 
         {/* Primary Visualizer Frame */}
@@ -233,8 +174,8 @@ const VisualizerDetailPage: React.FC = () => {
         </section>
 
 
-        {/* Lower Grid: Complexity, Key Concepts, Developer Paste Box */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        {/* Lower Grid: Complexity, Key Concepts */}
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Complexity Breakdown */}
           <div className="rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
@@ -304,59 +245,6 @@ const VisualizerDetailPage: React.FC = () => {
                     #{tag}
                   </span>
                 ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Developer Paste & Integration Guide */}
-          <div className="rounded-2xl border border-teal-500/30 bg-[#0d0d0f] p-6 shadow-sm relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-3">
-              <FileCode size={16} className="text-teal-400" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                How to Paste Code
-              </h2>
-            </div>
-
-            <p className="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed">
-              This visualizer loads from an isolated HTML5 file. Paste your animation code directly into:
-            </p>
-
-            <div className="rounded-xl bg-black/60 p-3 font-mono text-xs text-teal-300 border border-teal-500/20 mb-4 flex items-center justify-between gap-2">
-              <span className="truncate">{relativeFilePath}</span>
-              <button
-                onClick={handleCopyPath}
-                title="Copy Path"
-                className="text-teal-400 hover:text-teal-200 transition-colors shrink-0"
-              >
-                {copiedPath ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs text-[var(--text-secondary)]">
-              <div className="flex items-center gap-2">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-teal-500/20 text-[10px] font-bold text-teal-400">
-                  1
-                </span>
-                <span>Paste styles into <code className="text-teal-300 font-mono">&lt;style&gt;</code></span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-teal-500/20 text-[10px] font-bold text-teal-400">
-                  2
-                </span>
-                <span>Paste canvas/UI into <code className="text-teal-300 font-mono">&lt;div id="visualizer-container"&gt;</code></span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-teal-500/20 text-[10px] font-bold text-teal-400">
-                  3
-                </span>
-                <span>Paste JS animation code into <code className="text-teal-300 font-mono">&lt;script&gt;</code></span>
-              </div>
-              <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)]">
-                <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                <span>
-                  Update <code className="text-emerald-400 font-mono">status: 'available'</code> in{' '}
-                  <code className="text-emerald-400 font-mono">visualizers.ts</code>
-                </span>
               </div>
             </div>
           </div>

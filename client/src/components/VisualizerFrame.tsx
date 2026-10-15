@@ -16,6 +16,7 @@ interface VisualizerFrameProps {
   status?: 'available' | 'unavailable';
   aspectRatio?: 'video' | 'square' | 'tall';
   className?: string;
+  showOpenNewTab?: boolean;
 }
 
 export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
@@ -24,6 +25,7 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
   status = 'available',
   aspectRatio = 'video',
   className = '',
+  showOpenNewTab = false,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -126,17 +128,19 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
             <RotateCcw size={15} />
           </button>
 
-          {/* Open in new tab */}
-          <a
-            href={src}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Open HTML in new tab"
-            aria-label="Open HTML in new tab"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[#1f1f23] hover:text-[var(--text-primary)] active:scale-95"
-          >
-            <ExternalLink size={15} />
-          </a>
+          {/* Open in new tab (hidden by default to protect code) */}
+          {showOpenNewTab && (
+            <a
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open HTML in new tab"
+              aria-label="Open HTML in new tab"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[#1f1f23] hover:text-[var(--text-primary)] active:scale-95"
+            >
+              <ExternalLink size={15} />
+            </a>
+          )}
 
           {/* Fullscreen Toggle */}
           <button
