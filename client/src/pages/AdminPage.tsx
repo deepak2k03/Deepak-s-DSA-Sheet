@@ -46,7 +46,15 @@ import {
 } from '../data/visualizers';
 import { getStoredToken, getStoredUser, updateStoredUser } from '../utils/auth';
 import { getCanonicalTopicSlug } from '../utils/topics';
-import { checkR2Status, replaceAdminVisualizerFile, type R2StatusResponse } from '../utils/visualizerApi';
+import {
+  checkR2Status,
+  replaceAdminVisualizerFile,
+  fetchVisualizerCategories,
+  createAdminVisualizerCategory,
+  deleteAdminVisualizerCategory,
+  type R2StatusResponse,
+  type VisualizerCategoryItem,
+} from '../utils/visualizerApi';
 
 
 type AdminTab = 'overview' | 'topics' | 'problems' | 'visualizers' | 'users' | 'potd' | 'audit';
@@ -329,12 +337,32 @@ const AdminPage: React.FC = () => {
     error: null,
   });
 
+  const [categories, setCategories] = useState<VisualizerCategoryItem[]>([]);
+  const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  const [categoryManagerInput, setCategoryManagerInput] = useState('');
+
+  // Dynamically compute all unique categories from defaults, database, and loaded visualizers
+  const availableCategoryNames = useMemo(() => {
+    const set = new Set<string>(VISUALIZER_CATEGORIES);
+    for (const c of categories) {
+      if (c.name) set.add(c.name);
+    }
+    for (const v of visualizers) {
+      if (v.category) set.add(v.category);
+    }
+    return Array.from(set);
+  }, [categories, visualizers]);
+
   const isAnyModalOpen =
     isSolutionModalOpen ||
     isVisualizerSettingsModalOpen ||
     visualizerCodeModal.isOpen ||
     replaceFileModal.isOpen ||
-    visualizerPreviewModal.isOpen;
+    visualizerPreviewModal.isOpen ||
+    isCategoryManagerOpen;
 
   // Lock background body scrolling when any modal is open
   useEffect(() => {
@@ -351,7 +379,9 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (visualizerPreviewModal.isOpen) {
+        if (isCategoryManagerOpen) {
+          setIsCategoryManagerOpen(false);
+        } else if (visualizerPreviewModal.isOpen) {
           setVisualizerPreviewModal({ isOpen: false, visualizer: null });
         } else if (replaceFileModal.isOpen) {
           setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null });
@@ -368,12 +398,66 @@ const AdminPage: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    isCategoryManagerOpen,
     visualizerPreviewModal.isOpen,
     replaceFileModal.isOpen,
     visualizerCodeModal.isOpen,
     isVisualizerSettingsModalOpen,
     isSolutionModalOpen,
   ]);
+
+  const handleAddNewCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    setCategorySubmitting(true);
+    try {
+      const created = await createAdminVisualizerCategory(trimmed);
+      setCategories((prev) => {
+        if (prev.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) return prev;
+        return [...prev, created];
+      });
+      setVisualizerForm((curr) => ({ ...curr, category: trimmed }));
+      setNewCategoryName('');
+      setIsCreatingNewCategory(false);
+      setNotice(`Category "${trimmed}" created and selected.`);
+    } catch {
+      // If error or already exists, still set it in form
+      setVisualizerForm((curr) => ({ ...curr, category: trimmed }));
+      setNewCategoryName('');
+      setIsCreatingNewCategory(false);
+    } finally {
+      setCategorySubmitting(false);
+    }
+  };
+
+  const handleCreateCategoryInManager = async () => {
+    const trimmed = categoryManagerInput.trim();
+    if (!trimmed) return;
+    setCategorySubmitting(true);
+    try {
+      const created = await createAdminVisualizerCategory(trimmed);
+      setCategories((prev) => {
+        if (prev.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) return prev;
+        return [...prev, created];
+      });
+      setCategoryManagerInput('');
+      setNotice(`Category "${trimmed}" created.`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create category');
+    } finally {
+      setCategorySubmitting(false);
+    }
+  };
+
+  const handleDeleteCategoryInManager = async (id: string, name: string) => {
+    try {
+      await deleteAdminVisualizerCategory(id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setNotice(`Category "${name}" removed.`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete category');
+    }
+  };
 
   const refreshR2Status = async () => {
     setR2Loading(true);
@@ -497,13 +581,14 @@ const AdminPage: React.FC = () => {
         return payload;
       };
 
-      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult, visualizersResult] = await Promise.allSettled([
+      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult, visualizersResult, categoriesResult] = await Promise.allSettled([
         getJson('/api/admin/overview', 'Failed to load overview'),
         getJson(`/api/admin/topics?${topicsQuery}`, 'Failed to load topics'),
         getJson(`/api/admin/problems?${problemsQuery}`, 'Failed to load problems'),
         getJson(`/api/admin/users?${usersQuery}`, 'Failed to load users'),
         getJson(`/api/admin/audit-logs?${auditQuery}`, 'Failed to load audit logs'),
         getJson(`/api/admin/visualizers?${visualizersQuery}`, 'Failed to load visualizers'),
+        getJson('/api/admin/visualizers/categories', 'Failed to load visualizer categories'),
       ]);
 
       if (loadRequestIdRef.current !== requestId) {
@@ -561,6 +646,10 @@ const AdminPage: React.FC = () => {
         if (visualizersResult.value?.r2) setR2Status(visualizersResult.value.r2);
       } else {
         errors.push(visualizersResult.reason instanceof Error ? visualizersResult.reason.message : 'Failed to load visualizers');
+      }
+
+      if (categoriesResult.status === 'fulfilled' && Array.isArray(categoriesResult.value)) {
+        setCategories(categoriesResult.value);
       }
 
       setError(errors.join(' • '));
@@ -1588,6 +1677,15 @@ const AdminPage: React.FC = () => {
 
                   <button
                     type="button"
+                    onClick={() => setIsCategoryManagerOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5 transition"
+                  >
+                    <FolderTree size={14} className="text-teal-500 dark:text-teal-400" />
+                    <span>Categories ({availableCategoryNames.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={openCreateVisualizer}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-[#123b36] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 shadow-sm"
                   >
@@ -1604,7 +1702,7 @@ const AdminPage: React.FC = () => {
                   active={visualizerCategoryFilter === 'All'}
                   onClick={() => setVisualizerCategoryFilter('All')}
                 />
-                {VISUALIZER_CATEGORIES.map((cat) => (
+                {availableCategoryNames.map((cat) => (
                   <FilterChip
                     key={cat}
                     label={cat}
@@ -2042,12 +2140,75 @@ const AdminPage: React.FC = () => {
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-3">
-                      <Select
-                        label="Category"
-                        value={visualizerForm.category}
-                        onChange={(value) => setVisualizerForm((current) => ({ ...current, category: value as AlgorithmCategory }))}
-                        options={VISUALIZER_CATEGORIES.map((c) => ({ value: c, label: c }))}
-                      />
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Category
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingNewCategory((prev) => !prev)}
+                            className="text-xs font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 flex items-center gap-1 transition"
+                          >
+                            <Plus size={12} />
+                            {isCreatingNewCategory ? 'Pick Existing' : 'New Category'}
+                          </button>
+                        </div>
+
+                        {isCreatingNewCategory ? (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddNewCategory();
+                                  }
+                                }}
+                                placeholder="e.g. Trees, Backtracking..."
+                                autoFocus
+                                className="w-full rounded-xl border border-teal-500/50 bg-[#fbfcfa] px-3.5 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-teal-500/40 dark:bg-[#101614] dark:text-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddNewCategory}
+                                disabled={categorySubmitting || !newCategoryName.trim()}
+                                className="shrink-0 rounded-xl bg-teal-600 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 shadow-sm"
+                              >
+                                {categorySubmitting ? <Loader2 size={13} className="animate-spin" /> : 'Set'}
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-slate-400">
+                              Creates category and assigns this algorithm.
+                            </p>
+                          </div>
+                        ) : (
+                          <select
+                            value={visualizerForm.category}
+                            onChange={(e) => {
+                              if (e.target.value === '__NEW__') {
+                                setIsCreatingNewCategory(true);
+                              } else {
+                                setVisualizerForm((current) => ({ ...current, category: e.target.value }));
+                              }
+                            }}
+                            className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20"
+                          >
+                            <option value="" disabled>— Select Category —</option>
+                            {availableCategoryNames.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                            <option value="__NEW__" className="font-semibold text-teal-600 dark:text-teal-400">
+                              + Create New Category...
+                            </option>
+                          </select>
+                        )}
+                      </div>
 
                       <Select
                         label="Difficulty"
@@ -2602,6 +2763,130 @@ const AdminPage: React.FC = () => {
                       />
                     );
                   })()}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* Category Manager Modal */}
+        {isCategoryManagerOpen &&
+          createPortal(
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setIsCategoryManagerOpen(false); }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            >
+              <div className="surface my-auto w-full max-w-xl max-h-[85vh] overflow-hidden rounded-3xl p-6 shadow-2xl border border-[var(--border-strong)] flex flex-col">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3 mb-4 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
+                      <FolderTree size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        Algorithm Categories
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Create, inspect, and organize algorithm categories
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryManagerOpen(false)}
+                    className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-4 flex-1 overflow-y-auto">
+                  {/* Create New Category Card */}
+                  <div className="rounded-2xl border border-teal-500/30 bg-teal-500/5 p-4 space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 block">
+                      Add New Category
+                    </span>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={categoryManagerInput}
+                        onChange={(e) => setCategoryManagerInput(e.target.value)}
+                        placeholder="e.g. Trees, Backtracking, Trie, Heaps..."
+                        className="flex-1 rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-3.5 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleCreateCategoryInManager();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateCategoryInManager}
+                        disabled={categorySubmitting || !categoryManagerInput.trim()}
+                        className="rounded-xl bg-[#123b36] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-50 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 flex items-center gap-1.5 shrink-0 shadow-sm"
+                      >
+                        {categorySubmitting ? <Loader2 size={13} className="animate-spin" /> : <Plus size={14} />}
+                        <span>Create</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List of Categories */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Available Categories ({availableCategoryNames.length})
+                      </span>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {availableCategoryNames.map((catName) => {
+                        const matchingCat = categories.find((c) => c.name.toLowerCase() === catName.toLowerCase());
+                        const count = visualizers.filter((v) => v.category === catName).length;
+                        const canDelete = matchingCat && !matchingCat.isDefault && count === 0;
+
+                        return (
+                          <div
+                            key={catName}
+                            className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 dark:border-white/10 dark:bg-white/[0.02]"
+                          >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <span className="h-2 w-2 rounded-full bg-teal-400 shrink-0" />
+                              <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                {catName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {count} {count === 1 ? 'algo' : 'algos'}
+                              </span>
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategoryInManager(matchingCat.id, matchingCat.name)}
+                                  className="text-slate-400 hover:text-rose-400 p-1 rounded"
+                                  title="Delete unused category"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-[var(--border-subtle)] shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryManagerOpen(false)}
+                    className="button-secondary text-xs font-semibold !py-2 !px-4"
+                  >
+                    Done
+                  </button>
                 </div>
               </div>
             </div>,

@@ -252,3 +252,57 @@ export async function replaceAdminVisualizerFile(
   return await res.json();
 }
 
+export interface VisualizerCategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  order: number;
+  isDefault: boolean;
+  count: number;
+}
+
+export async function fetchVisualizerCategories(): Promise<VisualizerCategoryItem[]> {
+  try {
+    const res = await fetch(apiUrl('/api/visualizers/categories'));
+    if (!res.ok) throw new Error('Failed to fetch categories');
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    return [];
+  } catch (err) {
+    console.warn('Failed to fetch categories from API, using default list:', err);
+    return [];
+  }
+}
+
+export async function createAdminVisualizerCategory(
+  name: string,
+  description?: string
+): Promise<VisualizerCategoryItem> {
+  const res = await fetch(apiUrl('/api/admin/visualizers/categories'), {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ name, description }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.msg || 'Failed to create category');
+  }
+
+  return await res.json();
+}
+
+export async function deleteAdminVisualizerCategory(id: string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/admin/visualizers/categories/${id}`), {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.msg || 'Failed to delete category');
+  }
+}
+
+

@@ -7,6 +7,7 @@ const Topic = require('../models/Topic');
 const POTD = require('../models/POTD');
 const AuditLog = require('../models/AuditLog');
 const Visualizer = require('../models/Visualizer');
+const VisualizerCategory = require('../models/VisualizerCategory');
 const crypto = require('crypto');
 const multer = require('multer');
 const auth = require('../middleware/auth');
@@ -993,6 +994,160 @@ router.get('/visualizers/r2-status', async (req, res) => {
   }
 });
 
+// Ensure a category exists in VisualizerCategory
+const ensureCategoryExists = async (categoryName) => {
+  if (!categoryName || !categoryName.trim()) return;
+  const trimmed = categoryName.trim();
+  const slug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  try {
+    const exists = await VisualizerCategory.findOne({
+      $or: [{ slug }, { name: { $regex: new RegExp(`^${trimmed}$`, 'i') } }],
+    });
+    if (!exists) {
+      const count = await VisualizerCategory.countDocuments();
+      await VisualizerCategory.create({
+        name: trimmed,
+        slug,
+        order: count + 1,
+        isDefault: false,
+      });
+    }
+  } catch (e) {
+    // Ignore duplicate key race conditions
+  }
+};
+
+// GET /api/admin/visualizers/categories - List all categories with algorithm counts
+router.get('/visualizers/categories', async (req, res) => {
+  try {
+    const [dbCategories, usedVisualizers] = await Promise.all([
+      VisualizerCategory.find().sort({ order: 1, name: 1 }).lean(),
+      Visualizer.find({ isDeleted: false }).select('category').lean(),
+    ]);
+
+    const countMap = {};
+    for (const v of usedVisualizers) {
+      if (v.category) countMap[v.category] = (countMap[v.category] || 0) + 1;
+    }
+
+    const result = dbCategories.map((c) => ({
+      id: String(c._id),
+      name: c.name,
+      slug: c.slug,
+      description: c.description || '',
+      order: c.order || 0,
+      isDefault: Boolean(c.isDefault),
+      count: countMap[c.name] || 0,
+    }));
+
+    // Include any custom categories from existing visualizers not in dbCategories
+    const existingNames = new Set(result.map((c) => c.name.toLowerCase()));
+    for (const catName of Object.keys(countMap)) {
+      if (!existingNames.has(catName.toLowerCase())) {
+        result.push({
+          id: catName.toLowerCase(),
+          name: catName,
+          slug: catName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          description: '',
+          order: 99,
+          isDefault: false,
+          count: countMap[catName],
+        });
+      }
+    }
+
+    return res.json(result);
+  } catch (error) {
+    console.error('Admin get categories error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// POST /api/admin/visualizers/categories - Create a new algorithm category
+router.post('/visualizers/categories', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ msg: 'Category name is required' });
+    }
+
+    const trimmed = name.trim();
+    const slug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+    const existing = await VisualizerCategory.findOne({
+      $or: [{ slug }, { name: { $regex: new RegExp(`^${trimmed}$`, 'i') } }],
+    });
+
+    if (existing) {
+      return res.status(400).json({ msg: 'A category with this name already exists' });
+    }
+
+    const count = await VisualizerCategory.countDocuments();
+    const category = await VisualizerCategory.create({
+      name: trimmed,
+      slug,
+      description: (description || '').trim(),
+      order: count + 1,
+      isDefault: false,
+    });
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer_category.create',
+      entityType: 'visualizer_category',
+      entityId: String(category._id),
+      metadata: { name: category.name, slug: category.slug },
+    });
+
+    return res.status(201).json({
+      id: String(category._id),
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      order: category.order,
+      isDefault: false,
+      count: 0,
+    });
+  } catch (error) {
+    console.error('Admin create visualizer category error:', error);
+    return res.status(500).json({ msg: error.message || 'Server Error' });
+  }
+});
+
+// DELETE /api/admin/visualizers/categories/:id - Delete an empty custom category
+router.delete('/visualizers/categories/:id', async (req, res) => {
+  try {
+    const category = await VisualizerCategory.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ msg: 'Category not found' });
+    }
+
+    const usedCount = await Visualizer.countDocuments({
+      category: category.name,
+      isDeleted: false,
+    });
+
+    if (usedCount > 0) {
+      return res.status(400).json({
+        msg: `Cannot delete "${category.name}" because it is currently used by ${usedCount} visualizer(s). Reassign them first.`,
+      });
+    }
+
+    await VisualizerCategory.findByIdAndDelete(req.params.id);
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer_category.delete',
+      entityType: 'visualizer_category',
+      entityId: String(category._id),
+      metadata: { name: category.name },
+    });
+
+    return res.json({ msg: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Admin delete visualizer category error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 // GET /api/admin/visualizers
 router.get('/visualizers', async (req, res) => {
   try {
@@ -1184,10 +1339,13 @@ const createVisualizerHandler = async (req, res) => {
       }
     }
 
+    const finalCategory = (category || 'Searching').trim();
+    await ensureCategoryExists(finalCategory);
+
     const payload = {
       name: name.trim(),
       slug,
-      category: category || 'Searching',
+      category: finalCategory,
       difficulty: difficulty || 'Medium',
       description: (description || '').trim(),
       htmlPath,
@@ -1343,7 +1501,11 @@ router.put('/visualizers/:id', async (req, res) => {
     }
 
     if (name) visualizer.name = name.trim();
-    if (category) visualizer.category = category;
+    if (category) {
+      const finalCategory = category.trim();
+      visualizer.category = finalCategory;
+      await ensureCategoryExists(finalCategory);
+    }
     if (difficulty) visualizer.difficulty = difficulty;
     if (description !== undefined) visualizer.description = description.trim();
     if (status) visualizer.status = status;

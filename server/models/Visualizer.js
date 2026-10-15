@@ -8,7 +8,6 @@ const visualizerSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      enum: ['Searching', 'Sorting', 'Graphs', 'Dynamic Programming', 'Trees', 'Other'],
       default: 'Searching',
     },
     difficulty: {

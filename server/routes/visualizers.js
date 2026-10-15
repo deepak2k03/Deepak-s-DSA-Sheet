@@ -3,8 +3,42 @@ const fs = require('fs');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const Visualizer = require('../models/Visualizer');
+const VisualizerCategory = require('../models/VisualizerCategory');
 const User = require('../models/User');
 const { isR2Configured, getObjectFromR2 } = require('../config/r2');
+
+const DEFAULT_CATEGORIES = [
+  'Searching',
+  'Sorting',
+  'Graphs',
+  'Dynamic Programming',
+  'Trees',
+  'Backtracking',
+  'Greedy',
+  'Linked Lists',
+  'Heaps',
+  'Trie',
+  'Bit Manipulation',
+  'Arrays',
+  'Strings',
+];
+
+const ensureDefaultCategories = async () => {
+  try {
+    const count = await VisualizerCategory.countDocuments();
+    if (count === 0) {
+      const docs = DEFAULT_CATEGORIES.map((cat, idx) => ({
+        name: cat,
+        slug: cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+        order: idx + 1,
+        isDefault: idx < 4,
+      }));
+      await VisualizerCategory.insertMany(docs);
+    }
+  } catch (err) {
+    // Ignore duplicate key or concurrent seeding errors
+  }
+};
 
 const router = express.Router();
 
@@ -86,13 +120,62 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/visualizers/categories - List all categories with counts
+router.get('/categories', async (req, res) => {
+  try {
+    await ensureDefaultCategories();
+
+    const [dbCategories, usedCategories] = await Promise.all([
+      VisualizerCategory.find().sort({ order: 1, name: 1 }).lean(),
+      Visualizer.find({ isDeleted: false, isActive: true }).select('category').lean(),
+    ]);
+
+    const countMap = {};
+    for (const vis of usedCategories) {
+      if (vis.category) {
+        countMap[vis.category] = (countMap[vis.category] || 0) + 1;
+      }
+    }
+
+    const categoriesList = dbCategories.map((c) => ({
+      id: String(c._id),
+      name: c.name,
+      slug: c.slug,
+      description: c.description || '',
+      order: c.order || 0,
+      isDefault: Boolean(c.isDefault),
+      count: countMap[c.name] || 0,
+    }));
+
+    const existingNames = new Set(categoriesList.map((c) => c.name.toLowerCase()));
+    for (const catName of Object.keys(countMap)) {
+      if (!existingNames.has(catName.toLowerCase())) {
+        categoriesList.push({
+          id: catName.toLowerCase(),
+          name: catName,
+          slug: catName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          description: '',
+          order: 99,
+          isDefault: false,
+          count: countMap[catName],
+        });
+      }
+    }
+
+    res.json(categoriesList);
+  } catch (error) {
+    console.error('Error fetching visualizer categories:', error);
+    res.status(500).json({ message: 'Failed to fetch categories' });
+  }
+});
+
 // GET /api/visualizers/:slug - Get single visualizer by slug
 router.get('/:slug', async (req, res) => {
   try {
     const slug = req.params.slug.toLowerCase();
     
-    // Skip if matching /render
-    if (slug === 'render') {
+    // Skip if matching /render or /categories
+    if (slug === 'render' || slug === 'categories') {
       return res.status(404).json({ message: 'Not found' });
     }
 

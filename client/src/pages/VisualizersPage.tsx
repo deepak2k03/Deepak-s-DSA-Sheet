@@ -13,16 +13,20 @@ import {
   CheckCircle2,
   AlertCircle,
   FileCode2,
+  FolderTree,
+  RotateCcw,
+  GitCommit,
+  Binary,
+  Zap,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
 import {
   visualizerAlgorithms,
   VISUALIZER_CATEGORIES,
-  type AlgorithmCategory,
   type VisualizerAlgorithm,
 } from '../data/visualizers';
-import { fetchPublicVisualizers } from '../utils/visualizerApi';
+import { fetchPublicVisualizers, fetchVisualizerCategories } from '../utils/visualizerApi';
 
 const difficultyBadgeStyle: Record<string, string> = {
   Easy: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
@@ -30,15 +34,23 @@ const difficultyBadgeStyle: Record<string, string> = {
   Hard: 'text-rose-400 bg-rose-950/40 border-rose-500/30',
 };
 
-const categoryIconMap: Record<AlgorithmCategory, React.ReactNode> = {
-  Searching: <Search size={14} className="text-teal-400" />,
-  Sorting: <Layers size={14} className="text-emerald-400" />,
-  Graphs: <Sparkles size={14} className="text-cyan-400" />,
-  'Dynamic Programming': <Code2 size={14} className="text-indigo-400" />,
+const getCategoryIcon = (category: string) => {
+  const lower = (category || '').toLowerCase();
+  if (lower.includes('search')) return <Search size={14} className="text-teal-400" />;
+  if (lower.includes('sort')) return <Layers size={14} className="text-emerald-400" />;
+  if (lower.includes('graph')) return <Sparkles size={14} className="text-cyan-400" />;
+  if (lower.includes('dynamic') || lower.includes('dp')) return <Code2 size={14} className="text-indigo-400" />;
+  if (lower.includes('tree')) return <FolderTree size={14} className="text-emerald-400" />;
+  if (lower.includes('backtrack')) return <RotateCcw size={14} className="text-amber-400" />;
+  if (lower.includes('greedy')) return <Zap size={14} className="text-yellow-400" />;
+  if (lower.includes('list')) return <GitCommit size={14} className="text-purple-400" />;
+  if (lower.includes('heap') || lower.includes('trie')) return <Binary size={14} className="text-rose-400" />;
+  return <FolderTree size={14} className="text-teal-400" />;
 };
 
 const VisualizersPage: React.FC = () => {
   const [algorithms, setAlgorithms] = useState<VisualizerAlgorithm[]>(visualizerAlgorithms);
+  const [apiCategories, setApiCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -51,7 +63,23 @@ const VisualizersPage: React.FC = () => {
       })
       .catch(() => setAlgorithms(visualizerAlgorithms))
       .finally(() => setLoading(false));
+
+    fetchVisualizerCategories()
+      .then((cats) => {
+        if (cats && cats.length > 0) {
+          setApiCategories(cats.map((c) => c.name));
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  // Compute all available categories from defaults, API, and active visualizers
+  const allCategories = useMemo(() => {
+    const set = new Set<string>(VISUALIZER_CATEGORIES);
+    for (const c of apiCategories) if (c) set.add(c);
+    for (const a of algorithms) if (a.category) set.add(a.category);
+    return Array.from(set);
+  }, [apiCategories, algorithms]);
 
   // Filtered algorithms
   const filteredAlgorithms = useMemo(() => {
@@ -188,7 +216,7 @@ const VisualizersPage: React.FC = () => {
             >
               All Categories
             </button>
-            {VISUALIZER_CATEGORIES.map((cat) => (
+            {allCategories.map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -199,7 +227,7 @@ const VisualizersPage: React.FC = () => {
                     : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
                 }`}
               >
-                {categoryIconMap[cat]}
+                {getCategoryIcon(cat)}
                 {cat}
               </button>
             ))}
@@ -234,30 +262,21 @@ const VisualizersPage: React.FC = () => {
                 Developer Integration Workflow
               </div>
               <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                Ready to paste your animation code?
+                Algorithm Animations Storage & Pipeline
               </h2>
               <p className="text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                All visualizers run through dedicated standalone HTML files located in{' '}
-                <code className="rounded bg-black/60 px-2 py-0.5 font-mono text-xs text-teal-300 border border-teal-500/30">
-                  client/public/visualizers/*.html
-                </code>
-                . Open any HTML file, insert your HTML markup, CSS styling, and JavaScript logic, then set{' '}
-                <code className="rounded bg-black/60 px-1.5 py-0.5 font-mono text-xs text-teal-300">
-                  status: 'available'
-                </code>{' '}
-                in <code className="rounded bg-black/60 px-1.5 py-0.5 font-mono text-xs text-teal-300">client/src/data/visualizers.ts</code>.
+                All visualizers are stored persistently in{' '}
+                <strong className="text-teal-400">Cloudflare R2</strong> and rendered directly in isolated iframes with restrictive Content Security Policies. Authorized admins can upload new animations, create custom algorithm categories, and edit animation code in real time through the Admin Panel.
               </p>
             </div>
 
             <div className="shrink-0 flex items-center gap-3">
-              <a
-                href="/visualizers/README.md"
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                to="/admin"
                 className="button-secondary text-xs font-semibold !py-2.5 !px-4"
               >
-                View README Guide
-              </a>
+                Admin Control Panel
+              </Link>
             </div>
           </div>
         </section>
@@ -280,7 +299,7 @@ const VisualizerCard: React.FC<{ algorithm: VisualizerAlgorithm }> = ({ algorith
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2 mb-3.5">
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
-            {categoryIconMap[algorithm.category]}
+            {getCategoryIcon(algorithm.category)}
             {algorithm.category}
           </span>
 

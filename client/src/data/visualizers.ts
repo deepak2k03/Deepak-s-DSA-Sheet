@@ -1,8 +1,4 @@
-export type AlgorithmCategory = 
-  | 'Searching'
-  | 'Sorting'
-  | 'Graphs'
-  | 'Dynamic Programming';
+export type AlgorithmCategory = string;
 
 export type AlgorithmDifficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -14,6 +10,16 @@ export interface ComplexityInfo {
   worst: string;
 }
 
+export interface VisualizerCategoryInfo {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  order?: number;
+  isDefault?: boolean;
+  count?: number;
+}
+
 export interface VisualizerAlgorithm {
   id: string;
   slug: string;
@@ -21,7 +27,7 @@ export interface VisualizerAlgorithm {
   category: AlgorithmCategory;
   difficulty: AlgorithmDifficulty;
   description: string;
-  htmlPath: string;
+  htmlPath?: string;
   renderUrl?: string;
   storageType?: 'r2' | 'local';
   r2Key?: string;
@@ -40,12 +46,20 @@ export interface VisualizerAlgorithm {
   updatedAt?: string;
 }
 
-
-export const VISUALIZER_CATEGORIES: AlgorithmCategory[] = [
+export const VISUALIZER_CATEGORIES: string[] = [
   'Searching',
   'Sorting',
   'Graphs',
   'Dynamic Programming',
+  'Trees',
+  'Backtracking',
+  'Greedy',
+  'Linked Lists',
+  'Heaps',
+  'Trie',
+  'Bit Manipulation',
+  'Arrays',
+  'Strings',
 ];
 
 export const visualizerAlgorithms: VisualizerAlgorithm[] = [
