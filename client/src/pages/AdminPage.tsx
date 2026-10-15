@@ -274,7 +274,7 @@ const AdminPage: React.FC = () => {
       });
       const problemsQuery = makeQuery({
         page: problemsPagination.page,
-        limit: problemsPagination.limit,
+        limit: problemTopicFilter ? 100 : problemsPagination.limit,
         query: problemSearch,
         difficulty: problemDifficultyFilter,
         topic: problemTopicFilter,

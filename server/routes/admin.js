@@ -448,29 +448,40 @@ router.get('/problems', async (req, res) => {
     const topic = req.query.topic || '';
     const status = req.query.status || 'all';
 
-    const filter = {};
+    const conditions = [];
 
     if (status === 'deleted') {
-      filter.isDeleted = true;
+      conditions.push({ isDeleted: true });
     } else if (status === 'live') {
-      filter.isDeleted = { $ne: true };
+      conditions.push({ isDeleted: { $ne: true } });
     }
 
     if (difficulty) {
-      filter.difficulty = difficulty;
+      conditions.push({ difficulty });
     }
 
     if (topic) {
-      filter.topic = topic;
+      const canonical = getCanonicalTopicSlug(topic);
+      conditions.push({
+        $or: [
+          { topic: canonical },
+          { topic },
+          { topic: canonical.replace(/-/g, ' ') },
+        ],
+      });
     }
 
     if (q) {
       const maybeNumber = Number(q);
-      filter.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        ...(Number.isFinite(maybeNumber) ? [{ id: maybeNumber }] : []),
-      ];
+      conditions.push({
+        $or: [
+          { title: { $regex: q, $options: 'i' } },
+          ...(Number.isFinite(maybeNumber) ? [{ id: maybeNumber }] : []),
+        ],
+      });
     }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : {};
 
     const [total, problems] = await Promise.all([
       Problem.countDocuments(filter),
@@ -484,7 +495,7 @@ router.get('/problems', async (req, res) => {
 });
 
 router.post('/problems', async (req, res) => {
-  const { title, link, difficulty, topic, tutorialLink, solutionLink, githubLink, problemNumber, videoSolutionUrl, approaches } = req.body;
+  const { title, link, difficulty, topic, tutorialLink, solutionLink, githubLink, problemNumber, videoSolutionUrl, approaches, order } = req.body;
 
   try {
     if (!title || !link || !topic) {
@@ -510,12 +521,27 @@ router.post('/problems', async (req, res) => {
       return res.status(400).json({ msg: 'Problem number already exists' });
     }
 
+    // Determine the problem order in the section so it is placed at the end by default
+    let problemOrder = Number(order);
+    if (!Number.isFinite(problemOrder)) {
+      const topicProblems = await Problem.find({
+        isDeleted: { $ne: true },
+      }).select('order topic');
+
+      const maxOrder = topicProblems
+        .filter((p) => getCanonicalTopicSlug(p.topic) === existingTopic.slug)
+        .reduce((max, p) => (Number.isFinite(p.order) && p.order > max ? p.order : max), -1);
+
+      problemOrder = maxOrder + 1;
+    }
+
     const problem = await Problem.create({
       id: nextProblemNumber,
       title: title.trim(),
       link: link.trim(),
       difficulty: difficulty || 'Medium',
       topic: existingTopic.slug,
+      order: problemOrder,
       tutorialLink: (tutorialLink || '').trim(),
       solutionLink: (solutionLink || '').trim(),
       githubLink: (githubLink || '').trim(),
@@ -563,7 +589,25 @@ router.put('/problems/:problemId', async (req, res) => {
       if (!existingTopic) {
         return res.status(400).json({ msg: 'Select a valid topic' });
       }
-      problem.topic = existingTopic.slug;
+      if (existingTopic.slug !== problem.topic) {
+        problem.topic = existingTopic.slug;
+        if (req.body.order === undefined || !Number.isFinite(Number(req.body.order))) {
+          const topicProblems = await Problem.find({
+            isDeleted: { $ne: true },
+            _id: { $ne: problem._id },
+          }).select('order topic');
+
+          const maxOrder = topicProblems
+            .filter((p) => getCanonicalTopicSlug(p.topic) === existingTopic.slug)
+            .reduce((max, p) => (Number.isFinite(p.order) && p.order > max ? p.order : max), -1);
+
+          problem.order = maxOrder + 1;
+        }
+      }
+    }
+
+    if (req.body.order !== undefined && Number.isFinite(Number(req.body.order))) {
+      problem.order = Number(req.body.order);
     }
 
     problem.title = title !== undefined ? String(title).trim() : problem.title;
