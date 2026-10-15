@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   ArrowDown,
@@ -16,9 +17,21 @@ import {
   Wrench,
   X,
   Youtube,
+  PlayCircle,
+  Eye,
+  Code2,
+  Check,
+  Copy,
+  ExternalLink,
+  FileCode,
+  Trash2,
+  UploadCloud,
+  HardDrive,
+  Settings,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
+import VisualizerFrame from '../components/VisualizerFrame';
 import { apiUrl } from '../config';
 import {
   defaultTopics,
@@ -26,10 +39,17 @@ import {
   topicIconOptions,
   type TopicDefinition,
 } from '../data/topics';
+import {
+  VISUALIZER_CATEGORIES,
+  type AlgorithmCategory,
+  type VisualizerAlgorithm,
+} from '../data/visualizers';
 import { getStoredToken, getStoredUser, updateStoredUser } from '../utils/auth';
 import { getCanonicalTopicSlug } from '../utils/topics';
+import { checkR2Status, replaceAdminVisualizerFile, type R2StatusResponse } from '../utils/visualizerApi';
 
-type AdminTab = 'overview' | 'topics' | 'problems' | 'users' | 'potd' | 'audit';
+
+type AdminTab = 'overview' | 'topics' | 'problems' | 'visualizers' | 'users' | 'potd' | 'audit';
 
 interface AdminProblem {
   id: string;
@@ -87,6 +107,7 @@ interface OverviewData {
     admins: number;
     problems: number;
     topics: number;
+    visualizers?: number;
     totalSolved: number;
   };
   potd: {
@@ -154,10 +175,43 @@ const defaultProblemForm: ProblemFormState = {
   approaches: [],
 };
 
+interface VisualizerFormState {
+  name: string;
+  slug: string;
+  category: AlgorithmCategory;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  description: string;
+  timeBest: string;
+  timeAverage: string;
+  timeWorst: string;
+  spaceComplexity: string;
+  tags: string;
+  keyConcepts: string;
+  status: 'available' | 'unavailable';
+  order: string;
+}
+
+const defaultVisualizerForm: VisualizerFormState = {
+  name: '',
+  slug: '',
+  category: 'Searching',
+  difficulty: 'Medium',
+  description: '',
+  timeBest: 'O(1)',
+  timeAverage: 'O(n)',
+  timeWorst: 'O(n)',
+  spaceComplexity: 'O(1)',
+  tags: '',
+  keyConcepts: '',
+  status: 'unavailable',
+  order: '0',
+};
+
 const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
   { id: 'topics', label: 'Topics', icon: <FolderTree size={16} /> },
   { id: 'problems', label: 'Problems', icon: <Wrench size={16} /> },
+  { id: 'visualizers', label: 'Visualizers', icon: <PlayCircle size={16} /> },
   { id: 'users', label: 'Users', icon: <Users size={16} /> },
   { id: 'potd', label: 'POTD', icon: <Sparkles size={16} /> },
   { id: 'audit', label: 'Audit', icon: <Shield size={16} /> },
@@ -226,6 +280,124 @@ const AdminPage: React.FC = () => {
   const [topicForm, setTopicForm] = useState<TopicFormState>(defaultTopicForm);
   const [problemForm, setProblemForm] = useState<ProblemFormState>(defaultProblemForm);
 
+  const [visualizers, setVisualizers] = useState<VisualizerAlgorithm[]>([]);
+  const [visualizersPagination, setVisualizersPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
+  const [visualizerStats, setVisualizerStats] = useState({ total: 0, live: 0, awaiting: 0 });
+  const [visualizerSearch, setVisualizerSearch] = useState('');
+  const [visualizerCategoryFilter, setVisualizerCategoryFilter] = useState('All');
+  const [visualizerStatusFilter, setVisualizerStatusFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const [editingVisualizerId, setEditingVisualizerId] = useState<string | null>(null);
+  const [visualizerForm, setVisualizerForm] = useState<VisualizerFormState>(defaultVisualizerForm);
+  const [isVisualizerSettingsModalOpen, setIsVisualizerSettingsModalOpen] = useState(false);
+  const [visualizerCodeModal, setVisualizerCodeModal] = useState<{
+    isOpen: boolean;
+    visualizer: VisualizerAlgorithm | null;
+    code: string;
+    filePath: string;
+    saving: boolean;
+    copied: boolean;
+  }>({
+    isOpen: false,
+    visualizer: null,
+    code: '',
+    filePath: '',
+    saving: false,
+    copied: false,
+  });
+  const [visualizerPreviewModal, setVisualizerPreviewModal] = useState<{
+    isOpen: boolean;
+    visualizer: VisualizerAlgorithm | null;
+  }>({
+    isOpen: false,
+    visualizer: null,
+  });
+
+  const [r2Status, setR2Status] = useState<R2StatusResponse | null>(null);
+  const [r2Loading, setR2Loading] = useState(false);
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [replaceFileModal, setReplaceFileModal] = useState<{
+    isOpen: boolean;
+    visualizer: VisualizerAlgorithm | null;
+    file: File | null;
+    uploading: boolean;
+    error: string | null;
+  }>({
+    isOpen: false,
+    visualizer: null,
+    file: null,
+    uploading: false,
+    error: null,
+  });
+
+  const isAnyModalOpen =
+    isSolutionModalOpen ||
+    isVisualizerSettingsModalOpen ||
+    visualizerCodeModal.isOpen ||
+    replaceFileModal.isOpen ||
+    visualizerPreviewModal.isOpen;
+
+  // Lock background body scrolling when any modal is open
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyModalOpen]);
+
+  // Handle ESC key to dismiss topmost modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (visualizerPreviewModal.isOpen) {
+          setVisualizerPreviewModal({ isOpen: false, visualizer: null });
+        } else if (replaceFileModal.isOpen) {
+          setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null });
+        } else if (visualizerCodeModal.isOpen) {
+          setVisualizerCodeModal((p) => ({ ...p, isOpen: false }));
+        } else if (isVisualizerSettingsModalOpen) {
+          setIsVisualizerSettingsModalOpen(false);
+          resetVisualizerForm();
+        } else if (isSolutionModalOpen) {
+          setIsSolutionModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    visualizerPreviewModal.isOpen,
+    replaceFileModal.isOpen,
+    visualizerCodeModal.isOpen,
+    isVisualizerSettingsModalOpen,
+    isSolutionModalOpen,
+  ]);
+
+  const refreshR2Status = async () => {
+    setR2Loading(true);
+    try {
+      const res = await checkR2Status();
+      setR2Status(res);
+    } catch {
+      // Ignored
+    } finally {
+      setR2Loading(false);
+    }
+  };
+
+
+  const filteredVisualizers = useMemo(() => {
+    return visualizers.filter((v) => {
+      const q = visualizerSearch.toLowerCase().trim();
+      if (q && !v.name.toLowerCase().includes(q) && !v.slug.toLowerCase().includes(q) && !v.tags.some(t => t.toLowerCase().includes(q))) return false;
+      if (visualizerCategoryFilter !== 'All' && v.category !== visualizerCategoryFilter) return false;
+      if (visualizerStatusFilter !== 'all' && v.status !== visualizerStatusFilter) return false;
+      return true;
+    });
+  }, [visualizers, visualizerSearch, visualizerCategoryFilter, visualizerStatusFilter]);
+
   const authHeaders = useMemo(() => {
     const token = getStoredToken();
     return {
@@ -242,6 +414,12 @@ const AdminPage: React.FC = () => {
   const resetProblemForm = () => {
     setEditingProblemId(null);
     setProblemForm(defaultProblemForm);
+  };
+
+  const resetVisualizerForm = () => {
+    setEditingVisualizerId(null);
+    setVisualizerForm(defaultVisualizerForm);
+    setSelectedUploadFile(null);
   };
 
   const makeQuery = (entries: Record<string, string | number | undefined>) => {
@@ -300,6 +478,13 @@ const AdminPage: React.FC = () => {
         limit: auditPagination.limit,
         query: auditSearch,
       });
+      const visualizersQuery = makeQuery({
+        page: visualizersPagination.page,
+        limit: visualizersPagination.limit,
+        query: visualizerSearch,
+        category: visualizerCategoryFilter,
+        status: visualizerStatusFilter,
+      });
 
       const getJson = async (path: string, fallbackMessage: string) => {
         const response = await fetch(apiUrl(path), { headers: authHeaders });
@@ -312,12 +497,13 @@ const AdminPage: React.FC = () => {
         return payload;
       };
 
-      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult] = await Promise.allSettled([
+      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult, visualizersResult] = await Promise.allSettled([
         getJson('/api/admin/overview', 'Failed to load overview'),
         getJson(`/api/admin/topics?${topicsQuery}`, 'Failed to load topics'),
         getJson(`/api/admin/problems?${problemsQuery}`, 'Failed to load problems'),
         getJson(`/api/admin/users?${usersQuery}`, 'Failed to load users'),
         getJson(`/api/admin/audit-logs?${auditQuery}`, 'Failed to load audit logs'),
+        getJson(`/api/admin/visualizers?${visualizersQuery}`, 'Failed to load visualizers'),
       ]);
 
       if (loadRequestIdRef.current !== requestId) {
@@ -368,6 +554,15 @@ const AdminPage: React.FC = () => {
         errors.push(auditResult.reason instanceof Error ? auditResult.reason.message : 'Failed to load audit logs');
       }
 
+      if (visualizersResult.status === 'fulfilled') {
+        setVisualizers(Array.isArray(visualizersResult.value?.items) ? visualizersResult.value.items : []);
+        if (visualizersResult.value?.pagination) setVisualizersPagination(visualizersResult.value.pagination);
+        if (visualizersResult.value?.stats) setVisualizerStats(visualizersResult.value.stats);
+        if (visualizersResult.value?.r2) setR2Status(visualizersResult.value.r2);
+      } else {
+        errors.push(visualizersResult.reason instanceof Error ? visualizersResult.reason.message : 'Failed to load visualizers');
+      }
+
       setError(errors.join(' • '));
     } catch (loadError) {
       if (loadRequestIdRef.current === requestId) {
@@ -402,11 +597,26 @@ const AdminPage: React.FC = () => {
     userRoleFilter,
     userStatusFilter,
     auditSearch,
+    visualizerSearch,
+    visualizerCategoryFilter,
+    visualizerStatusFilter,
+    visualizersPagination.page,
     topicsPagination.page,
     problemsPagination.page,
     usersPagination.page,
     auditPagination.page,
   ]);
+
+  useEffect(() => {
+    if (activeTab === 'visualizers') {
+      refreshR2Status();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    setVisualizersPagination((p) => ({ ...p, page: 1 }));
+  }, [visualizerSearch, visualizerCategoryFilter, visualizerStatusFilter]);
+
 
   useEffect(() => {
     setTopicsPagination((p) => ({ ...p, page: 1 }));
@@ -667,6 +877,204 @@ const AdminPage: React.FC = () => {
         throw new Error(payload.msg || 'Failed to set POTD');
       }
     }, 'Problem of the day updated');
+  };
+
+  const editVisualizer = (vis: VisualizerAlgorithm) => {
+    setEditingVisualizerId(vis.id);
+    setVisualizerForm({
+      name: vis.name,
+      slug: vis.slug,
+      category: vis.category,
+      difficulty: vis.difficulty,
+      description: vis.description,
+      timeBest: vis.timeComplexity?.best || 'O(1)',
+      timeAverage: vis.timeComplexity?.average || 'O(n)',
+      timeWorst: vis.timeComplexity?.worst || 'O(n)',
+      spaceComplexity: vis.spaceComplexity || 'O(1)',
+      tags: (vis.tags || []).join(', '),
+      keyConcepts: (vis.keyConcepts || []).join('\n'),
+      status: vis.status,
+      order: String(vis.order || 0),
+    });
+    setSelectedUploadFile(null);
+  };
+
+  const openVisualizerSettings = (vis: VisualizerAlgorithm) => {
+    editVisualizer(vis);
+    setIsVisualizerSettingsModalOpen(true);
+  };
+
+  const openCreateVisualizer = () => {
+    resetVisualizerForm();
+    setIsVisualizerSettingsModalOpen(true);
+  };
+
+  const handleExecuteFileReplace = async () => {
+    if (!replaceFileModal.visualizer || !replaceFileModal.file) return;
+    setReplaceFileModal((curr) => ({ ...curr, uploading: true, error: null }));
+    try {
+      const result = await replaceAdminVisualizerFile(
+        replaceFileModal.visualizer.id,
+        replaceFileModal.file
+      );
+      setNotice(result.msg || 'HTML animation uploaded to persistent storage');
+      setReplaceFileModal({
+        isOpen: false,
+        visualizer: null,
+        file: null,
+        uploading: false,
+        error: null,
+      });
+      loadAdminData(true);
+    } catch (err: any) {
+      setReplaceFileModal((curr) => ({
+        ...curr,
+        uploading: false,
+        error: err.message || 'Failed to upload file',
+      }));
+    }
+  };
+
+  const saveVisualizer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!visualizerForm.name.trim()) return;
+
+    await withNotice(async () => {
+      const payload = {
+        name: visualizerForm.name.trim(),
+        slug: visualizerForm.slug.trim(),
+        category: visualizerForm.category,
+        difficulty: visualizerForm.difficulty,
+        description: visualizerForm.description.trim(),
+        timeComplexity: {
+          best: visualizerForm.timeBest.trim(),
+          average: visualizerForm.timeAverage.trim(),
+          worst: visualizerForm.timeWorst.trim(),
+        },
+        spaceComplexity: visualizerForm.spaceComplexity.trim(),
+        tags: visualizerForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        keyConcepts: visualizerForm.keyConcepts.split('\n').map((c) => c.trim()).filter(Boolean),
+        status: visualizerForm.status,
+        order: Number(visualizerForm.order) || 0,
+      };
+
+      let response: Response;
+      if (editingVisualizerId) {
+        response = await fetch(apiUrl(`/api/admin/visualizers/${editingVisualizerId}`), {
+          method: 'PUT',
+          headers: authHeaders,
+          body: JSON.stringify(payload),
+        });
+      } else if (selectedUploadFile) {
+        const formData = new FormData();
+        formData.append('name', payload.name);
+        formData.append('slug', payload.slug);
+        formData.append('category', payload.category);
+        formData.append('difficulty', payload.difficulty);
+        formData.append('description', payload.description);
+        formData.append('timeBest', payload.timeComplexity.best);
+        formData.append('timeAverage', payload.timeComplexity.average);
+        formData.append('timeWorst', payload.timeComplexity.worst);
+        formData.append('spaceComplexity', payload.spaceComplexity);
+        formData.append('tags', JSON.stringify(payload.tags));
+        formData.append('keyConcepts', JSON.stringify(payload.keyConcepts));
+        formData.append('status', payload.status);
+        formData.append('order', String(payload.order));
+        formData.append('file', selectedUploadFile);
+
+        const token = getStoredToken();
+        const headers: Record<string, string> = token ? { 'x-auth-token': token } : {};
+        response = await fetch(apiUrl('/api/admin/visualizers/upload'), {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+      } else {
+        response = await fetch(apiUrl('/api/admin/visualizers'), {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.msg || 'Failed to save visualizer');
+      }
+
+      setSelectedUploadFile(null);
+      resetVisualizerForm();
+      setIsVisualizerSettingsModalOpen(false);
+    }, editingVisualizerId ? 'Visualizer updated' : selectedUploadFile ? 'Visualizer created and HTML uploaded to storage' : 'Visualizer created with HTML skeleton');
+  };
+
+
+  const toggleVisualizerStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'available' ? 'unavailable' : 'available';
+    await withNotice(async () => {
+      const response = await fetch(apiUrl(`/api/admin/visualizers/${id}/status`), {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.msg || 'Failed to update status');
+    }, `Visualizer marked as ${newStatus === 'available' ? 'Live' : 'Awaiting Code'}`);
+  };
+
+  const deleteVisualizer = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this visualizer?')) return;
+    await withNotice(async () => {
+      const response = await fetch(apiUrl(`/api/admin/visualizers/${id}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.msg || 'Failed to delete visualizer');
+      if (editingVisualizerId === id) resetVisualizerForm();
+    }, 'Visualizer archived');
+  };
+
+  const openCodeModal = async (vis: VisualizerAlgorithm) => {
+    try {
+      const response = await fetch(apiUrl(`/api/admin/visualizers/${vis.id}/code`), {
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.msg || 'Failed to load code');
+      setVisualizerCodeModal({
+        isOpen: true,
+        visualizer: vis,
+        code: data.code,
+        filePath: data.filePath,
+        saving: false,
+        copied: false,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load visualizer code');
+    }
+  };
+
+  const saveVisualizerCode = async () => {
+    if (!visualizerCodeModal.visualizer) return;
+    setVisualizerCodeModal((prev) => ({ ...prev, saving: true }));
+    try {
+      const response = await fetch(
+        apiUrl(`/api/admin/visualizers/${visualizerCodeModal.visualizer.id}/code`),
+        {
+          method: 'PUT',
+          headers: authHeaders,
+          body: JSON.stringify({ code: visualizerCodeModal.code }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.msg || 'Failed to save code');
+      setNotice('HTML code updated directly on disk');
+      setVisualizerCodeModal((prev) => ({ ...prev, isOpen: false, saving: false }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save code');
+      setVisualizerCodeModal((prev) => ({ ...prev, saving: false }));
+    }
   };
 
   if (loading) {
@@ -1085,6 +1493,307 @@ const AdminPage: React.FC = () => {
           </section>
         )}
 
+        {activeTab === 'visualizers' && (
+          <div className="space-y-6">
+            {/* Cloudflare R2 Persistent Storage Status Banner */}
+            <div className="surface rounded-3xl p-5 border border-slate-200/80 dark:border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                  !r2Status || r2Loading
+                    ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                    : r2Status.configured && r2Status.status === 'connected'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : r2Status.configured && r2Status.status === 'error'
+                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                }`}>
+                  <UploadCloud size={22} className={r2Loading ? 'animate-pulse' : ''} />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Cloudflare R2 Persistent Object Storage
+                    </h3>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      !r2Status || r2Loading
+                        ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30'
+                        : r2Status.configured && r2Status.status === 'connected'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        : r2Status.configured && r2Status.status === 'error'
+                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {!r2Status || r2Loading
+                        ? 'Checking Status...'
+                        : r2Status.configured && r2Status.status === 'connected'
+                        ? 'Connected'
+                        : r2Status.configured && r2Status.status === 'error'
+                        ? 'Connection Error'
+                        : 'Credentials Missing (Local Fallback Mode)'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-3xl">
+                    {!r2Status || r2Loading
+                      ? 'Contacting server to verify Cloudflare R2 bucket connection...'
+                      : r2Status.configured && r2Status.status === 'connected'
+                      ? `R2 Bucket: ${r2Status.bucket} • All uploaded animations are saved to persistent S3 object storage.`
+                      : r2Status.configured && r2Status.status === 'error'
+                      ? `Failed connecting to R2 bucket "${r2Status.bucket}": ${r2Status.message}`
+                      : 'Configure R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in server/.env to activate Cloudflare R2.'}
+                  </p>
+                </div>
+              </div>
+
+
+              <button
+                type="button"
+                onClick={refreshR2Status}
+                disabled={r2Loading}
+                className="button-secondary text-xs font-semibold !py-2 !px-3.5 self-start md:self-auto flex items-center gap-1.5 shrink-0"
+              >
+                <RefreshCw size={13} className={r2Loading ? 'animate-spin' : ''} />
+                <span>Test R2 Connection</span>
+              </button>
+            </div>
+
+            <section className="surface rounded-3xl p-6">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                      Visualizer Catalog
+                    </h2>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                      {filteredVisualizers.length} / {visualizers.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      Live: {visualizerStats.live}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-400 border border-amber-500/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      Awaiting Code: {visualizerStats.awaiting}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <SearchBox
+                    value={visualizerSearch}
+                    onChange={setVisualizerSearch}
+                    placeholder="Search visualizers…"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={openCreateVisualizer}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#123b36] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 shadow-sm"
+                  >
+                    <Plus size={15} />
+                    <span>New Visualizer</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <FilterChip
+                  label="All Categories"
+                  active={visualizerCategoryFilter === 'All'}
+                  onClick={() => setVisualizerCategoryFilter('All')}
+                />
+                {VISUALIZER_CATEGORIES.map((cat) => (
+                  <FilterChip
+                    key={cat}
+                    label={cat}
+                    active={visualizerCategoryFilter === cat}
+                    onClick={() => setVisualizerCategoryFilter(cat)}
+                  />
+                ))}
+
+                <span className="mx-1 self-center border-l border-slate-200/80 dark:border-white/10 h-4" />
+
+                <FilterChip
+                  label="All Status"
+                  active={visualizerStatusFilter === 'all'}
+                  onClick={() => setVisualizerStatusFilter('all')}
+                />
+                <FilterChip
+                  label="Live"
+                  active={visualizerStatusFilter === 'available'}
+                  onClick={() => setVisualizerStatusFilter('available')}
+                  color="emerald"
+                />
+                <FilterChip
+                  label="Awaiting Code"
+                  active={visualizerStatusFilter === 'unavailable'}
+                  onClick={() => setVisualizerStatusFilter('unavailable')}
+                  color="amber"
+                />
+              </div>
+
+              {/* List */}
+              <div className="space-y-3">
+                {filteredVisualizers.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-slate-400">
+                    No visualizers match your filters.
+                  </div>
+                ) : (
+                  filteredVisualizers.map((vis) => (
+                    <div
+                      key={vis.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 md:flex-row md:items-center md:justify-between transition-colors hover:border-slate-300 dark:hover:border-white/20"
+                    >
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-bold text-slate-900 dark:text-white">
+                            {vis.name}
+                          </h3>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                            {vis.category}
+                          </span>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            vis.difficulty === 'Easy'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                              : vis.difficulty === 'Medium'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                              : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
+                          }`}>
+                            {vis.difficulty}
+                          </span>
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold flex items-center gap-1 ${
+                            vis.status === 'available'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                          }`}>
+                            {vis.status === 'available' ? 'Live' : 'Awaiting Code'}
+                          </span>
+
+                          {/* Persistent Storage Badge */}
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold flex items-center gap-1 ${
+                            vis.storageType === 'r2'
+                              ? 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20'
+                              : 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border border-slate-500/20'
+                          }`}>
+                            {vis.storageType === 'r2' ? (
+                              <>
+                                <UploadCloud size={11} />
+                                <span>Cloudflare R2</span>
+                              </>
+                            ) : (
+                              <>
+                                <HardDrive size={11} />
+                                <span>Local Disk</span>
+                              </>
+                            )}
+                            {vis.fileSize ? ` (${(vis.fileSize / 1024).toFixed(1)} KB)` : ''}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                          {vis.description || 'No description'}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400">
+                          <code className="rounded bg-black/5 dark:bg-white/5 px-1.5 py-0.5 text-teal-600 dark:text-teal-400">
+                            {vis.r2Key || vis.htmlPath}
+                          </code>
+                          <span>•</span>
+                          <span>Avg: {vis.timeComplexity?.average}</span>
+                          <span>•</span>
+                          <span>Space: {vis.spaceComplexity}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        {/* Configure Animation Settings */}
+                        <button
+                          type="button"
+                          onClick={() => openVisualizerSettings(vis)}
+                          className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 flex items-center gap-1.5 transition"
+                          title="Configure Animation Settings"
+                        >
+                          <Settings size={13} />
+                          Settings
+                        </button>
+
+                        {/* Upload HTML to Cloudflare R2 */}
+                        <button
+                          type="button"
+                          onClick={() => setReplaceFileModal({ isOpen: true, visualizer: vis, file: null, uploading: false, error: null })}
+                          className="rounded-xl border border-slate-200/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1 transition"
+                          title="Upload / Replace HTML animation in Cloudflare R2"
+                        >
+                          <UploadCloud size={13} />
+                          Upload HTML
+                        </button>
+
+                        {/* Toggle Status */}
+                        <button
+                          type="button"
+                          onClick={() => toggleVisualizerStatus(vis.id, vis.status)}
+                          className={`rounded-xl px-2.5 py-1.5 text-xs font-semibold border transition ${
+                            vis.status === 'available'
+                              ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10'
+                              : 'border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10'
+                          }`}
+                          title="Toggle Live vs Awaiting Code"
+                        >
+                          {vis.status === 'available' ? 'Set Awaiting' : 'Set Live'}
+                        </button>
+
+                        {/* Preview */}
+                        <button
+                          type="button"
+                          onClick={() => setVisualizerPreviewModal({ isOpen: true, visualizer: vis })}
+                          className="rounded-xl border border-slate-200/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1 transition"
+                          title="Preview Visualizer"
+                        >
+                          <Eye size={13} />
+                          Preview
+                        </button>
+
+                        {/* Edit Code Modal */}
+                        <button
+                          type="button"
+                          onClick={() => openCodeModal(vis)}
+                          className="rounded-xl border border-slate-200/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1 transition"
+                          title="View / Edit HTML Code"
+                        >
+                          <Code2 size={13} />
+                          Edit Code
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          type="button"
+                          onClick={() => deleteVisualizer(vis.id)}
+                          className="rounded-xl border border-rose-200/80 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/20 transition"
+                          title="Delete Visualizer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {/* Pagination */}
+                {visualizersPagination.pages > 1 && (
+                  <PaginationBar
+                    page={visualizersPagination.page}
+                    totalPages={visualizersPagination.pages}
+                    onPrev={() => setVisualizersPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+                    onNext={() => setVisualizersPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+                  />
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
         {activeTab === 'users' && (
           <section className="surface rounded-3xl p-6">
             <div className="mb-5 flex flex-col gap-3">
@@ -1193,67 +1902,712 @@ const AdminPage: React.FC = () => {
             </div>
           </section>
         )}
-        {isSolutionModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl dark:bg-[#101614] dark:border dark:border-white/10">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Solution Manager</h2>
-                <button type="button" onClick={() => setIsSolutionModalOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5">
-                  <X size={24} />
-                </button>
-              </div>
+        {isSolutionModalOpen &&
+          createPortal(
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setIsSolutionModalOpen(false); }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            >
+              <div className="surface my-auto w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl flex flex-col shadow-2xl border border-[var(--border-strong)]">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-4 shrink-0">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Solution Manager</h2>
+                  <button type="button" onClick={() => setIsSolutionModalOpen(false)} className="rounded-xl p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                    <X size={20} />
+                  </button>
+                </div>
 
-              <div className="space-y-4">
-                <Input label="Embedded Video Solution URL" value={problemForm.videoSolutionUrl} onChange={(value) => setProblemForm((current) => ({ ...current, videoSolutionUrl: value }))} placeholder="e.g., https://www.youtube.com/embed/..." />
-                
-                <div className="mt-6 space-y-6">
-                  {problemForm.approaches.map((approach, index) => (
-                    <div key={index} className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
-                      <div className="mb-4 flex items-center justify-between">
-                        <h4 className="font-semibold text-slate-900 dark:text-white">Approach {index + 1}</h4>
-                        <button type="button" onClick={() => setProblemForm(curr => ({ ...curr, approaches: curr.approaches.filter((_, i) => i !== index) }))} className="text-sm font-medium text-rose-500 hover:text-rose-600">Remove</button>
-                      </div>
-                      <div className="space-y-4">
-                        <Input label="ID (e.g. brute-force, optimal)" value={approach.id} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].id = val; return { ...curr, approaches: arr }; })} />
-                        <Input label="Title (e.g. 1. Brute Force Approach)" value={approach.title} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].title = val; return { ...curr, approaches: arr }; })} />
-                        <TextArea label="Algorithm" value={approach.algorithm} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].algorithm = val; return { ...curr, approaches: arr }; })} />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <Input label="Time Complexity" value={approach.timeComplexity} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].timeComplexity = val; return { ...curr, approaches: arr }; })} placeholder="O(N)" />
-                          <Input label="Space Complexity" value={approach.spaceComplexity} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].spaceComplexity = val; return { ...curr, approaches: arr }; })} placeholder="O(1)" />
+                <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                  <Input label="Embedded Video Solution URL" value={problemForm.videoSolutionUrl} onChange={(value) => setProblemForm((current) => ({ ...current, videoSolutionUrl: value }))} placeholder="e.g., https://www.youtube.com/embed/..." />
+                  
+                  <div className="mt-6 space-y-6">
+                    {problemForm.approaches.map((approach, index) => (
+                      <div key={index} className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h4 className="font-semibold text-slate-900 dark:text-white">Approach {index + 1}</h4>
+                          <button type="button" onClick={() => setProblemForm(curr => ({ ...curr, approaches: curr.approaches.filter((_, i) => i !== index) }))} className="text-sm font-medium text-rose-500 hover:text-rose-600">Remove</button>
                         </div>
-                        
-                        <div className="mt-4 border-t border-slate-100 pt-4 dark:border-white/5">
-                          <h5 className="mb-3 font-medium text-slate-700 dark:text-slate-300">Code Snippets</h5>
-                          {approach.codeSnippets.map((snippet, sIndex) => (
-                            <div key={sIndex} className="mb-4 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
-                              <div className="mb-2 flex items-center justify-between">
-                                <Select label="Language" value={snippet.language} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets[sIndex].language = val; return { ...curr, approaches: arr }; })} options={[{value: 'C++', label: 'C++'}, {value: 'Java', label: 'Java'}, {value: 'Python', label: 'Python'}, {value: 'JavaScript', label: 'JavaScript'}]} />
-                                <button type="button" onClick={() => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets = arr[index].codeSnippets.filter((_, i) => i !== sIndex); return { ...curr, approaches: arr }; })} className="mt-6 text-xs font-semibold text-rose-500">Remove Code</button>
+                        <div className="space-y-4">
+                          <Input label="ID (e.g. brute-force, optimal)" value={approach.id} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].id = val; return { ...curr, approaches: arr }; })} />
+                          <Input label="Title (e.g. 1. Brute Force Approach)" value={approach.title} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].title = val; return { ...curr, approaches: arr }; })} />
+                          <TextArea label="Algorithm" value={approach.algorithm} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].algorithm = val; return { ...curr, approaches: arr }; })} />
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <Input label="Time Complexity" value={approach.timeComplexity} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].timeComplexity = val; return { ...curr, approaches: arr }; })} placeholder="O(N)" />
+                            <Input label="Space Complexity" value={approach.spaceComplexity} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].spaceComplexity = val; return { ...curr, approaches: arr }; })} placeholder="O(1)" />
+                          </div>
+                          
+                          <div className="mt-4 border-t border-slate-100 pt-4 dark:border-white/5">
+                            <h5 className="mb-3 font-medium text-slate-700 dark:text-slate-300">Code Snippets</h5>
+                            {approach.codeSnippets.map((snippet, sIndex) => (
+                              <div key={sIndex} className="mb-4 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <Select label="Language" value={snippet.language} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets[sIndex].language = val; return { ...curr, approaches: arr }; })} options={[{value: 'C++', label: 'C++'}, {value: 'Java', label: 'Java'}, {value: 'Python', label: 'Python'}, {value: 'JavaScript', label: 'JavaScript'}]} />
+                                  <button type="button" onClick={() => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets = arr[index].codeSnippets.filter((_, i) => i !== sIndex); return { ...curr, approaches: arr }; })} className="mt-6 text-xs font-semibold text-rose-500">Remove Code</button>
+                                </div>
+                                <TextArea label="Code" value={snippet.code} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets[sIndex].code = val; return { ...curr, approaches: arr }; })} />
                               </div>
-                              <TextArea label="Code" value={snippet.code} onChange={(val) => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets[sIndex].code = val; return { ...curr, approaches: arr }; })} />
-                            </div>
-                          ))}
-                          <button type="button" onClick={() => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets.push({ language: 'C++', code: '' }); return { ...curr, approaches: arr }; })} className="text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400">
-                            + Add Language
-                          </button>
+                            ))}
+                            <button type="button" onClick={() => setProblemForm(curr => { const arr = [...curr.approaches]; arr[index].codeSnippets.push({ language: 'C++', code: '' }); return { ...curr, approaches: arr }; })} className="text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400">
+                              + Add Language
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => setProblemForm(curr => ({ ...curr, approaches: [...curr.approaches, { id: '', title: '', algorithm: '', timeComplexity: '', spaceComplexity: '', codeSnippets: [] }] }))} className="w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-700 dark:border-white/20 dark:text-slate-300 dark:hover:border-white/40 dark:hover:text-white">
-                    + Add Approach
+                    ))}
+                    <button type="button" onClick={() => setProblemForm(curr => ({ ...curr, approaches: [...curr.approaches, { id: '', title: '', algorithm: '', timeComplexity: '', spaceComplexity: '', codeSnippets: [] }] }))} className="w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-700 dark:border-white/20 dark:text-slate-300 dark:hover:border-white/40 dark:hover:text-white">
+                      + Add Approach
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end border-t border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-4 shrink-0">
+                  <button type="button" onClick={() => setIsSolutionModalOpen(false)} className="rounded-xl bg-[#123b36] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
+                    Done
                   </button>
                 </div>
               </div>
+            </div>,
+            document.body
+          )}
 
-              <div className="mt-8 flex justify-end">
-                <button type="button" onClick={() => setIsSolutionModalOpen(false)} className="rounded-xl bg-[#123b36] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
-                  Done
-                </button>
+        {/* Visualizer Settings & Configuration Modal */}
+        {isVisualizerSettingsModalOpen &&
+          createPortal(
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) { setIsVisualizerSettingsModalOpen(false); resetVisualizerForm(); } }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            >
+              <div className="surface my-auto w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-3xl flex flex-col shadow-2xl border border-[var(--border-strong)]">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-400 border border-teal-500/20">
+                      <Settings size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        {editingVisualizerId
+                          ? `Animation Settings: ${visualizerForm.name || 'Visualizer'}`
+                          : 'New Animation Visualizer'}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {editingVisualizerId
+                          ? 'Configure algorithm parameters, runtime metrics, status, and animation file'
+                          : 'Create a new algorithm visualization and upload standalone HTML animation to Cloudflare R2'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsVisualizerSettingsModalOpen(false);
+                      resetVisualizerForm();
+                    }}
+                    className="rounded-xl p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Modal Body: Scrollable with Clean Grouped Sections */}
+                <form
+                  id="visualizer-settings-modal-form"
+                  onSubmit={saveVisualizer}
+                  className="p-6 overflow-y-auto space-y-5 flex-1 text-left"
+                >
+                  {/* Section 1: General Info */}
+                  <div className="rounded-2xl border border-slate-200/80 p-5 dark:border-white/10 space-y-4 bg-slate-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                        1. General Details
+                      </h4>
+                      <span className="text-[11px] text-slate-400">Primary algorithm identity</span>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Algorithm Name"
+                        value={visualizerForm.name}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, name: value }))}
+                        placeholder="e.g. Quick Sort"
+                        required
+                      />
+
+                      <Input
+                        label="Slug"
+                        value={visualizerForm.slug}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, slug: value }))}
+                        placeholder="auto-derived from name if empty"
+                      />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <Select
+                        label="Category"
+                        value={visualizerForm.category}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, category: value as AlgorithmCategory }))}
+                        options={VISUALIZER_CATEGORIES.map((c) => ({ value: c, label: c }))}
+                      />
+
+                      <Select
+                        label="Difficulty"
+                        value={visualizerForm.difficulty}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, difficulty: value as 'Easy' | 'Medium' | 'Hard' }))}
+                        options={[
+                          { value: 'Easy', label: 'Easy' },
+                          { value: 'Medium', label: 'Medium' },
+                          { value: 'Hard', label: 'Hard' },
+                        ]}
+                      />
+
+                      <Select
+                        label="Runtime Status"
+                        value={visualizerForm.status}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, status: value as 'available' | 'unavailable' }))}
+                        options={[
+                          { value: 'available', label: 'Live (Ready)' },
+                          { value: 'unavailable', label: 'Awaiting Code (Draft)' },
+                        ]}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Display Order"
+                        type="number"
+                        value={visualizerForm.order}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, order: value }))}
+                      />
+                      <Input
+                        label="Tags (comma-separated)"
+                        value={visualizerForm.tags}
+                        onChange={(value) => setVisualizerForm((current) => ({ ...current, tags: value }))}
+                        placeholder="Sorting, Divide and Conquer, Pivot"
+                      />
+                    </div>
+
+                    <TextArea
+                      label="Description"
+                      value={visualizerForm.description}
+                      onChange={(value) => setVisualizerForm((current) => ({ ...current, description: value }))}
+                    />
+                  </div>
+
+                  {/* Section 2: Complexity Metrics */}
+                  <div className="rounded-2xl border border-slate-200/80 p-5 dark:border-white/10 space-y-3 bg-slate-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                        2. Complexity Analysis
+                      </h4>
+                      <span className="text-[11px] text-slate-400">Time & space complexity values</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div>
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Best Time</span>
+                        <input
+                          type="text"
+                          value={visualizerForm.timeBest}
+                          onChange={(e) => setVisualizerForm((curr) => ({ ...curr, timeBest: e.target.value }))}
+                          placeholder="O(n log n)"
+                          className="w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Average Time</span>
+                        <input
+                          type="text"
+                          value={visualizerForm.timeAverage}
+                          onChange={(e) => setVisualizerForm((curr) => ({ ...curr, timeAverage: e.target.value }))}
+                          placeholder="O(n log n)"
+                          className="w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Worst Time</span>
+                        <input
+                          type="text"
+                          value={visualizerForm.timeWorst}
+                          onChange={(e) => setVisualizerForm((curr) => ({ ...curr, timeWorst: e.target.value }))}
+                          placeholder="O(n²)"
+                          className="w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-1">Space Complexity</span>
+                        <input
+                          type="text"
+                          value={visualizerForm.spaceComplexity}
+                          onChange={(e) => setVisualizerForm((curr) => ({ ...curr, spaceComplexity: e.target.value }))}
+                          placeholder="O(log n)"
+                          className="w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 font-mono text-xs text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Standalone Animation File & Storage */}
+                  <div className="rounded-2xl border border-slate-200/80 p-5 dark:border-white/10 space-y-4 bg-slate-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                        3. Animation File & Storage
+                      </h4>
+                      <span className="text-[11px] text-slate-400">Standalone HTML document</span>
+                    </div>
+
+                    {editingVisualizerId ? (
+                      <div className="space-y-3">
+                        {(() => {
+                          const targetVis = visualizers.find((v) => v.id === editingVisualizerId);
+                          if (!targetVis) return null;
+                          return (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-teal-500/20 bg-teal-500/5 p-3.5">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-xs text-slate-900 dark:text-white">Current File:</span>
+                                  <code className="font-mono text-xs text-teal-600 dark:text-teal-400 bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded">
+                                    {targetVis.r2Key || targetVis.htmlPath}
+                                  </code>
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Storage: {targetVis.storageType === 'r2' ? 'Cloudflare R2 Bucket' : 'Local Disk'}
+                                  {targetVis.fileSize ? ` • ${(targetVis.fileSize / 1024).toFixed(1)} KB` : ''}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsVisualizerSettingsModalOpen(false);
+                                    setReplaceFileModal({
+                                      isOpen: true,
+                                      visualizer: targetVis,
+                                      file: null,
+                                      uploading: false,
+                                      error: null,
+                                    });
+                                  }}
+                                  className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 flex items-center gap-1.5 transition"
+                                >
+                                  <UploadCloud size={13} />
+                                  Replace HTML File
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsVisualizerSettingsModalOpen(false);
+                                    openCodeModal(targetVis);
+                                  }}
+                                  className="rounded-xl border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1.5 transition"
+                                >
+                                  <Code2 size={13} />
+                                  Edit Code
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="mb-1.5 block text-xs font-medium text-slate-700 dark:text-slate-300">
+                          Attach Standalone HTML Animation File (Optional)
+                        </span>
+                        <div className="rounded-2xl border border-dashed border-slate-300 dark:border-white/15 p-4 text-center hover:border-teal-500 dark:hover:border-teal-400 transition-colors">
+                          <input
+                            type="file"
+                            accept=".html,.htm"
+                            id="visualizer-create-file"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setSelectedUploadFile(file);
+                            }}
+                          />
+                          {selectedUploadFile ? (
+                            <div className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 text-left">
+                              <div className="flex items-center gap-2.5 overflow-hidden">
+                                <FileCode size={20} className="text-teal-400 shrink-0" />
+                                <div className="truncate">
+                                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                    {selectedUploadFile.name}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400">
+                                  {(selectedUploadFile.size / 1024).toFixed(1)} KB • HTML document
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedUploadFile(null)}
+                              className="text-slate-400 hover:text-rose-400 p-1 rounded-md"
+                              title="Remove file"
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
+                        ) : (
+                          <label
+                            htmlFor="visualizer-create-file"
+                            className="cursor-pointer flex flex-col items-center gap-1.5 py-2"
+                          >
+                            <UploadCloud size={24} className="text-teal-500 dark:text-teal-400" />
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                              Attach standalone .html animation
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              Uploads directly to Cloudflare R2 (creates empty skeleton if omitted)
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 4: Key Concepts */}
+                <div className="rounded-2xl border border-slate-200/80 p-5 dark:border-white/10 space-y-3 bg-slate-50/50 dark:bg-white/[0.02]">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-2.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                      4. Educational Concepts
+                    </h4>
+                    <span className="text-[11px] text-slate-400">Key takeaway points for students</span>
+                  </div>
+
+                  <TextArea
+                    label="Key Concepts (one concept per line)"
+                    value={visualizerForm.keyConcepts}
+                    onChange={(value) => setVisualizerForm((current) => ({ ...current, keyConcepts: value }))}
+                  />
+                </div>
+              </form>
+
+              {/* Modal Sticky Footer */}
+              <div className="flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-4 shrink-0">
+                <span className="text-xs text-slate-400">
+                  {editingVisualizerId ? 'Changes will be saved immediately to the database.' : 'New visualizer will appear in the catalog.'}
+                </span>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsVisualizerSettingsModalOpen(false);
+                      resetVisualizerForm();
+                    }}
+                    className="rounded-xl border border-slate-200/80 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 transition"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    form="visualizer-settings-modal-form"
+                    disabled={saving}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#123b36] px-5 py-2 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 shadow-sm"
+                  >
+                    {saving ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : editingVisualizerId ? (
+                      <Save size={16} />
+                    ) : selectedUploadFile ? (
+                      <UploadCloud size={16} />
+                    ) : (
+                      <Plus size={16} />
+                    )}
+                    {editingVisualizerId
+                      ? 'Save Settings'
+                      : selectedUploadFile
+                      ? 'Create & Upload to Cloudflare R2'
+                      : 'Create Visualizer'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
+
+        {/* Visualizer Code Editor Modal */}
+        {visualizerCodeModal.isOpen && visualizerCodeModal.visualizer &&
+          createPortal(
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setVisualizerCodeModal((p) => ({ ...p, isOpen: false })); }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            >
+              <div className="surface my-auto max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-3xl flex flex-col shadow-2xl border border-[var(--border-strong)]">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400">
+                      <Code2 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        Edit HTML Code: {visualizerCodeModal.visualizer.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Saves directly to{' '}
+                        <code className="font-mono text-teal-500">
+                          {visualizerCodeModal.filePath}
+                        </code>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(visualizerCodeModal.filePath);
+                        setVisualizerCodeModal((p) => ({ ...p, copied: true }));
+                        setTimeout(() => setVisualizerCodeModal((p) => ({ ...p, copied: false })), 2000);
+                      }}
+                      className="rounded-lg border border-[var(--border-strong)] px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-[var(--bg-surface-hover)] flex items-center gap-1"
+                    >
+                      {visualizerCodeModal.copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      {visualizerCodeModal.copied ? 'Copied Path' : 'Copy File Path'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setVisualizerCodeModal((p) => ({ ...p, isOpen: false }))}
+                      className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Body: Textarea Editor */}
+                <div className="p-6 flex-1 overflow-hidden flex flex-col space-y-3 min-h-0">
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between shrink-0">
+                    <span>
+                      💡 Paste your HTML markup, CSS styles, and JS animation code directly below.
+                    </span>
+                    {(() => {
+                      const token = getStoredToken();
+                      const rawUrl = visualizerCodeModal.visualizer.renderUrl
+                        ? apiUrl(visualizerCodeModal.visualizer.renderUrl)
+                        : apiUrl(`/api/visualizers/render/${visualizerCodeModal.visualizer.slug}`);
+                      const streamUrl = token ? `${rawUrl}?token=${encodeURIComponent(token)}` : rawUrl;
+                      return (
+                        <a
+                          href={streamUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold underline hover:text-amber-200 flex items-center gap-1"
+                        >
+                          Open Animation <ExternalLink size={11} />
+                        </a>
+                      );
+                    })()}
+                  </div>
+
+                  <textarea
+                    value={visualizerCodeModal.code}
+                    onChange={(e) => setVisualizerCodeModal((p) => ({ ...p, code: e.target.value }))}
+                    spellCheck={false}
+                    className="w-full flex-1 rounded-xl border border-slate-700 bg-[#09090b] p-4 font-mono text-xs leading-relaxed text-[#fafafa] outline-none transition focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none overflow-y-auto"
+                  />
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-4 shrink-0">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {visualizerCodeModal.code.length} characters
+                  </span>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setVisualizerCodeModal((p) => ({ ...p, isOpen: false }))}
+                      className="rounded-xl border border-[var(--border-strong)] px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-[var(--bg-surface-hover)]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveVisualizerCode}
+                      disabled={visualizerCodeModal.saving}
+                      className="rounded-xl bg-[#123b36] px-5 py-2 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 flex items-center gap-1.5"
+                    >
+                      {visualizerCodeModal.saving ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Save size={15} />
+                      )}
+                      Save Code
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* Upload / Replace Standalone HTML File Modal */}
+        {replaceFileModal.isOpen && replaceFileModal.visualizer &&
+          createPortal(
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget && !replaceFileModal.uploading) setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null }); }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            >
+              <div className="surface my-auto w-full max-w-lg max-h-[85vh] overflow-hidden rounded-3xl p-6 shadow-2xl border border-[var(--border-strong)] flex flex-col">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3 mb-4 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <UploadCloud size={18} className="text-teal-400" />
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Upload HTML: {replaceFileModal.visualizer.name}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null })}
+                    className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto flex-1 space-y-4">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Upload a standalone <code className="text-teal-400">.html</code> animation file for this algorithm. It will be stored persistently in {r2Status?.configured && r2Status.status === 'connected' ? <strong className="text-white">Cloudflare R2</strong> : 'storage'}.
+                  </p>
+
+                  {replaceFileModal.error && (
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+                      {replaceFileModal.error}
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-dashed border-slate-300 dark:border-white/15 p-6 text-center hover:border-teal-500 transition-colors">
+                    <input
+                      type="file"
+                      accept=".html,.htm"
+                      id="replace-file-picker"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        setReplaceFileModal((curr) => ({ ...curr, file: f, error: null }));
+                      }}
+                    />
+                    {replaceFileModal.file ? (
+                      <div className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 text-left">
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <FileCode size={20} className="text-teal-400 shrink-0" />
+                          <div className="truncate">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                              {replaceFileModal.file.name}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {(replaceFileModal.file.size / 1024).toFixed(1)} KB • HTML file
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setReplaceFileModal((curr) => ({ ...curr, file: null }))}
+                          className="text-slate-400 hover:text-rose-400 p-1"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label htmlFor="replace-file-picker" className="cursor-pointer flex flex-col items-center gap-2">
+                        <UploadCloud size={28} className="text-teal-400" />
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          Choose standalone HTML animation file
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          .html or .htm up to 5MB
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-subtle)] shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null })}
+                    className="button-secondary text-xs font-semibold !py-2 !px-4"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!replaceFileModal.file || replaceFileModal.uploading}
+                    onClick={handleExecuteFileReplace}
+                    className="button-primary text-xs font-semibold !py-2 !px-4 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {replaceFileModal.uploading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud size={14} />
+                        <span>Upload & Replace</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* Visualizer Preview Modal */}
+        {visualizerPreviewModal.isOpen && visualizerPreviewModal.visualizer &&
+          createPortal(
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setVisualizerPreviewModal({ isOpen: false, visualizer: null }); }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+            >
+              <div className="surface my-auto max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl flex flex-col shadow-2xl border border-[var(--border-strong)]">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-6 py-3.5 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <PlayCircle size={18} className="text-teal-400" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      Preview: {visualizerPreviewModal.visualizer.name}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setVisualizerPreviewModal({ isOpen: false, visualizer: null })}
+                    className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="p-6 overflow-hidden flex-1 flex flex-col min-h-0">
+                  {(() => {
+                    const token = getStoredToken();
+                    const rawRenderUrl = visualizerPreviewModal.visualizer.renderUrl
+                      ? apiUrl(visualizerPreviewModal.visualizer.renderUrl)
+                      : apiUrl(`/api/visualizers/render/${visualizerPreviewModal.visualizer.slug}`);
+                    const previewSrc = token ? `${rawRenderUrl}?token=${encodeURIComponent(token)}` : rawRenderUrl;
+
+                    return (
+                      <VisualizerFrame
+                        src={previewSrc}
+                        title={visualizerPreviewModal.visualizer.name}
+                        status={visualizerPreviewModal.visualizer.status}
+                        aspectRatio="video"
+                      />
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
       </main>
 
       <Footer />

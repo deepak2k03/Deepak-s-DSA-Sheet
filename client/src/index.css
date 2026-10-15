@@ -311,11 +311,11 @@
 
 /* Page transition */
 .page-transition {
-  animation: page-enter 0.32s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  animation: page-enter 0.25s cubic-bezier(0.2, 0.75, 0.25, 1);
 }
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

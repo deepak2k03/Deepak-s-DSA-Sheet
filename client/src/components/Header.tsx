@@ -12,6 +12,7 @@ import {
   User as UserIcon,
   ChevronDown,
   Flame,
+  PlayCircle,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { clsx } from 'clsx';
@@ -112,6 +113,12 @@ const Header: React.FC = () => {
               icon={<BookMarked size={16} />}
               text="Topics"
               active={location.pathname.includes('/topic')}
+            />
+            <NavLink
+              to="/visualizers"
+              icon={<PlayCircle size={16} />}
+              text="Visualizer"
+              active={location.pathname.startsWith('/visualizer')}
             />
             <NavLink
               to="/leaderboard"

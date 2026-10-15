@@ -1,9 +1,14 @@
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const User = require('../models/User');
 const Problem = require('../models/Problem');
 const Topic = require('../models/Topic');
 const POTD = require('../models/POTD');
 const AuditLog = require('../models/AuditLog');
+const Visualizer = require('../models/Visualizer');
+const crypto = require('crypto');
+const multer = require('multer');
 const auth = require('../middleware/auth');
 const adminOnly = require('../middleware/admin');
 const { clearProblemsCache } = require('../utils/problemCache');
@@ -11,6 +16,14 @@ const { clearLeaderboardCache } = require('../utils/leaderboardCache');
 const { getCanonicalTopicSlug, slugifyTopic } = require('../utils/topics');
 const { sanitizeUser } = require('../utils/userAccess');
 const { writeAuditLog } = require('../utils/audit');
+const {
+  isR2Configured,
+  uploadToR2,
+  getTextFromR2,
+  deleteFromR2,
+  checkR2Health,
+} = require('../config/r2');
+
 
 const router = express.Router();
 
@@ -100,11 +113,12 @@ const getLastNDaysKeys = (days) => {
 
 router.get('/overview', async (req, res) => {
   try {
-    const [users, problems, topics, todayPotd] = await Promise.all([
+    const [users, problems, topics, todayPotd, visualizersCount] = await Promise.all([
       User.find({}).select('role isActive solvedProblems solvedHistory createdAt').lean(),
       Problem.find({ isDeleted: { $ne: true } }).select('id title topic').lean(),
       Topic.find({ isDeleted: { $ne: true } }).lean(),
       POTD.findOne({ date: new Date().toISOString().split('T')[0] }).populate('problem').lean(),
+      Visualizer.countDocuments({ isDeleted: { $ne: true } }),
     ]);
 
     const activeUsers = users.filter((user) => user.isActive !== false);
@@ -161,6 +175,7 @@ router.get('/overview', async (req, res) => {
         admins: adminCount,
         problems: problems.length,
         topics: topics.length,
+        visualizers: visualizersCount,
         totalSolved,
       },
       trends: {
@@ -857,4 +872,700 @@ router.get('/audit-logs', async (req, res) => {
   }
 });
 
+// ==========================================================
+// VISUALIZER ADMIN ENDPOINTS (Cloudflare R2 + Local Fallback)
+// ==========================================================
+
+const getVisualizersDir = () => {
+  const candidate1 = path.resolve(__dirname, '../../client/public/visualizers');
+  if (fs.existsSync(candidate1)) return candidate1;
+  const candidate2 = path.resolve(process.cwd(), '../client/public/visualizers');
+  if (fs.existsSync(candidate2)) return candidate2;
+  return candidate1;
+};
+
+const generateSkeletonHtml = (title) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title} Visualizer</title>
+  <style>
+    /* ========================================================
+       PASTE YOUR CUSTOM CSS / ANIMATION STYLES HERE
+       ======================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0a0a0a;
+      color: #fafafa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #visualizer-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- ========================================================
+       PASTE YOUR HTML VISUALIZATION MARKUP & CONTROLS HERE
+       ======================================================== -->
+  <div id="visualizer-container">
+    <!-- Visualization canvas / DOM elements will mount here -->
+  </div>
+
+  <script>
+    // ========================================================
+    // PASTE YOUR ALGORITHM LOGIC & ANIMATION JAVASCRIPT HERE
+    // ========================================================
+  </script>
+</body>
+</html>
+`;
+
+// Multer in-memory storage: directly streams buffers to Cloudflare R2
+// without storing temporary or permanent files on Render's ephemeral filesystem
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== '.html' && ext !== '.htm') {
+      return cb(new Error('Only standalone HTML files (.html, .htm) are allowed.'));
+    }
+    cb(null, true);
+  },
+});
+
+const handleMulterUpload = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ msg: 'File size too large. Maximum allowed size is 5MB.' });
+      }
+      return res.status(400).json({ msg: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ msg: err.message });
+    }
+    next();
+  });
+};
+
+const validateHtmlBuffer = (buffer) => {
+  if (!buffer || buffer.length === 0) {
+    return { valid: false, error: 'Uploaded HTML file is empty.' };
+  }
+  const content = buffer.toString('utf8');
+  const hasHtmlTag = /<html|<body|<div|<canvas|<svg|<script|<!doctype/i.test(content);
+  if (!hasHtmlTag) {
+    return { valid: false, error: 'The uploaded file does not appear to contain valid HTML markup.' };
+  }
+  const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
+  return { valid: true, checksum, content, size: buffer.length };
+};
+
+// GET /api/admin/visualizers/r2-status
+router.get('/visualizers/r2-status', async (req, res) => {
+  try {
+    const status = await checkR2Health();
+    return res.json(status);
+  } catch (error) {
+    console.error('Admin R2 status check error:', error);
+    return res.status(500).json({ configured: false, status: 'error', message: error.message });
+  }
+});
+
+// GET /api/admin/visualizers
+router.get('/visualizers', async (req, res) => {
+  try {
+    const { page, limit, skip } = parsePaging(req.query);
+    const q = (req.query.query || '').trim();
+    const category = (req.query.category || '').trim();
+    const status = (req.query.status || '').trim();
+
+    const filter = { isDeleted: false };
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { slug: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { tags: { $in: [new RegExp(q, 'i')] } },
+      ];
+    }
+    if (category && category !== 'All') {
+      filter.category = category;
+    }
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    const [total, items, totalAll, liveCount, awaitingCount, r2Health] = await Promise.all([
+      Visualizer.countDocuments(filter),
+      Visualizer.find(filter).sort({ order: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Visualizer.countDocuments({ isDeleted: false }),
+      Visualizer.countDocuments({ isDeleted: false, status: 'available' }),
+      Visualizer.countDocuments({ isDeleted: false, status: 'unavailable' }),
+      checkR2Health(),
+    ]);
+
+    const itemsWithUrls = items.map((vis) => ({
+      ...vis,
+      id: String(vis._id),
+      renderUrl: `/api/visualizers/render/${vis.slug}`,
+    }));
+
+    const result = paginate(itemsWithUrls, total, page, limit);
+    result.stats = {
+      total: totalAll,
+      live: liveCount,
+      awaiting: awaitingCount,
+    };
+    result.r2 = r2Health;
+
+
+    return res.json(result);
+  } catch (error) {
+    console.error('Admin get visualizers error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// Shared handler for visualizer creation (supports both JSON and multipart with file)
+const createVisualizerHandler = async (req, res) => {
+  try {
+    const {
+      name,
+      slug: customSlug,
+      category,
+      difficulty,
+      description,
+      timeComplexity,
+      timeBest,
+      timeAverage,
+      timeWorst,
+      spaceComplexity,
+      tags,
+      keyConcepts,
+      status,
+      order,
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ msg: 'Visualizer name is required' });
+    }
+
+    const slug = (customSlug || name)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+    const existing = await Visualizer.findOne({ slug });
+    if (existing && !existing.isDeleted) {
+      return res.status(400).json({ msg: 'A visualizer with this slug already exists' });
+    }
+
+    let parsedTimeComplexity = { best: 'O(1)', average: 'O(n)', worst: 'O(n)' };
+    if (typeof timeComplexity === 'string') {
+      try {
+        parsedTimeComplexity = { ...parsedTimeComplexity, ...JSON.parse(timeComplexity) };
+      } catch (e) {
+        // Not a JSON string
+      }
+    } else if (typeof timeComplexity === 'object' && timeComplexity !== null) {
+      parsedTimeComplexity = { ...parsedTimeComplexity, ...timeComplexity };
+    }
+    if (timeBest) parsedTimeComplexity.best = timeBest.trim();
+    if (timeAverage) parsedTimeComplexity.average = timeAverage.trim();
+    if (timeWorst) parsedTimeComplexity.worst = timeWorst.trim();
+
+    let parsedTags = [];
+    if (typeof tags === 'string') {
+      try {
+        const jsonParsed = JSON.parse(tags);
+        if (Array.isArray(jsonParsed)) parsedTags = jsonParsed;
+        else parsedTags = tags.split(',').map((t) => t.trim()).filter(Boolean);
+      } catch (e) {
+        parsedTags = tags.split(',').map((t) => t.trim()).filter(Boolean);
+      }
+    } else if (Array.isArray(tags)) {
+      parsedTags = tags;
+    }
+
+    let parsedKeyConcepts = [];
+    if (typeof keyConcepts === 'string') {
+      try {
+        const jsonParsed = JSON.parse(keyConcepts);
+        if (Array.isArray(jsonParsed)) parsedKeyConcepts = jsonParsed;
+        else parsedKeyConcepts = keyConcepts.split('\n').map((c) => c.trim()).filter(Boolean);
+      } catch (e) {
+        parsedKeyConcepts = keyConcepts.split('\n').map((c) => c.trim()).filter(Boolean);
+      }
+    } else if (Array.isArray(keyConcepts)) {
+      parsedKeyConcepts = keyConcepts;
+    }
+
+    const htmlFileName = `${slug}.html`;
+    const htmlPath = `/visualizers/${htmlFileName}`;
+
+    let storageType = 'r2';
+    let r2Key = '';
+    let r2Bucket = '';
+    let fileSize = 0;
+    let fileChecksum = '';
+
+    // Handle uploaded file if present
+    if (req.file) {
+      const validation = validateHtmlBuffer(req.file.buffer);
+      if (!validation.valid) {
+        return res.status(400).json({ msg: validation.error });
+      }
+
+      fileSize = req.file.size;
+      fileChecksum = validation.checksum;
+
+      if (isR2Configured()) {
+        r2Key = `visualizers/${slug}-${Date.now()}.html`;
+        r2Bucket = process.env.R2_BUCKET_NAME || '';
+        await uploadToR2({
+          key: r2Key,
+          body: req.file.buffer,
+          contentType: 'text/html; charset=utf-8',
+        });
+        storageType = 'r2';
+      } else {
+        // Fallback to local file when R2 credentials are not yet supplied
+        const targetDir = getVisualizersDir();
+        const localPath = path.join(targetDir, htmlFileName);
+        fs.writeFileSync(localPath, req.file.buffer);
+        storageType = 'local';
+      }
+    } else {
+      // No file uploaded: generate valid HTML skeleton
+      const skeletonHtml = generateSkeletonHtml(name.trim());
+      const skeletonBuffer = Buffer.from(skeletonHtml, 'utf8');
+      fileSize = skeletonBuffer.length;
+      fileChecksum = crypto.createHash('sha256').update(skeletonBuffer).digest('hex');
+
+      if (isR2Configured()) {
+        r2Key = `visualizers/${slug}-${Date.now()}.html`;
+        r2Bucket = process.env.R2_BUCKET_NAME || '';
+        await uploadToR2({
+          key: r2Key,
+          body: skeletonBuffer,
+          contentType: 'text/html; charset=utf-8',
+        });
+        storageType = 'r2';
+      } else {
+        const targetDir = getVisualizersDir();
+        const localPath = path.join(targetDir, htmlFileName);
+        if (!fs.existsSync(localPath)) {
+          fs.writeFileSync(localPath, skeletonHtml, 'utf8');
+        }
+        storageType = 'local';
+      }
+    }
+
+    const payload = {
+      name: name.trim(),
+      slug,
+      category: category || 'Searching',
+      difficulty: difficulty || 'Medium',
+      description: (description || '').trim(),
+      htmlPath,
+      storageType,
+      r2Key,
+      r2Bucket,
+      fileSize,
+      fileChecksum,
+      status: status || 'unavailable',
+      timeComplexity: parsedTimeComplexity,
+      spaceComplexity: (spaceComplexity || 'O(1)').trim(),
+      tags: parsedTags,
+      keyConcepts: parsedKeyConcepts,
+      order: Number(order) || 0,
+      isDeleted: false,
+      deletedAt: null,
+    };
+
+    let visualizer;
+    if (existing && existing.isDeleted) {
+      visualizer = await Visualizer.findByIdAndUpdate(existing._id, payload, { new: true });
+    } else {
+      visualizer = await Visualizer.create(payload);
+    }
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer.create',
+      entityType: 'visualizer',
+      entityId: String(visualizer._id),
+      metadata: {
+        slug,
+        name: visualizer.name,
+        storageType: visualizer.storageType,
+        r2Key: visualizer.r2Key,
+      },
+    });
+
+    const responseData = visualizer.toObject();
+    responseData.id = String(visualizer._id);
+    responseData.renderUrl = `/api/visualizers/render/${visualizer.slug}`;
+
+    return res.status(201).json(responseData);
+  } catch (error) {
+    console.error('Admin create visualizer error:', error);
+    return res.status(500).json({ msg: error.message || 'Server Error' });
+  }
+};
+
+// POST /api/admin/visualizers & POST /api/admin/visualizers/upload
+router.post('/visualizers', handleMulterUpload, createVisualizerHandler);
+router.post('/visualizers/upload', handleMulterUpload, createVisualizerHandler);
+
+// PUT /api/admin/visualizers/:id/upload - Re-upload / replace standalone HTML animation in R2
+router.put('/visualizers/:id/upload', handleMulterUpload, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ msg: 'Please select an HTML animation file to upload.' });
+    }
+
+    const validation = validateHtmlBuffer(req.file.buffer);
+    if (!validation.valid) {
+      return res.status(400).json({ msg: validation.error });
+    }
+
+    const visualizer = await Visualizer.findById(id);
+    if (!visualizer || visualizer.isDeleted) {
+      return res.status(404).json({ msg: 'Visualizer not found' });
+    }
+
+    // Clean up previous R2 object if exists
+    if (visualizer.r2Key) {
+      try {
+        await deleteFromR2({ key: visualizer.r2Key });
+      } catch (delError) {
+        console.warn(`Could not delete previous R2 key ${visualizer.r2Key}:`, delError.message);
+      }
+    }
+
+    if (isR2Configured()) {
+      const newKey = `visualizers/${visualizer.slug}-${Date.now()}.html`;
+      await uploadToR2({
+        key: newKey,
+        body: req.file.buffer,
+        contentType: 'text/html; charset=utf-8',
+      });
+
+      visualizer.storageType = 'r2';
+      visualizer.r2Key = newKey;
+      visualizer.r2Bucket = process.env.R2_BUCKET_NAME || '';
+      visualizer.fileSize = req.file.size;
+      visualizer.fileChecksum = validation.checksum;
+    } else {
+      // Local fallback
+      const targetDir = getVisualizersDir();
+      const localPath = path.join(targetDir, `${visualizer.slug}.html`);
+      fs.writeFileSync(localPath, req.file.buffer);
+
+      visualizer.storageType = 'local';
+      visualizer.fileSize = req.file.size;
+      visualizer.fileChecksum = validation.checksum;
+    }
+
+    await visualizer.save();
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer.file_replace',
+      entityType: 'visualizer',
+      entityId: String(visualizer._id),
+      metadata: {
+        slug: visualizer.slug,
+        storageType: visualizer.storageType,
+        r2Key: visualizer.r2Key,
+        fileSize: visualizer.fileSize,
+      },
+    });
+
+    const responseData = visualizer.toObject();
+    responseData.id = String(visualizer._id);
+    responseData.renderUrl = `/api/visualizers/render/${visualizer.slug}`;
+
+    return res.json({
+      msg: 'HTML animation uploaded successfully',
+      visualizer: responseData,
+    });
+  } catch (error) {
+    console.error('Admin upload visualizer error:', error);
+    return res.status(500).json({ msg: error.message || 'Server Error' });
+  }
+});
+
+// PUT /api/admin/visualizers/:id - Update metadata
+router.put('/visualizers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      category,
+      difficulty,
+      description,
+      timeComplexity,
+      spaceComplexity,
+      tags,
+      keyConcepts,
+      status,
+      order,
+      isActive,
+    } = req.body;
+
+    const visualizer = await Visualizer.findById(id);
+    if (!visualizer || visualizer.isDeleted) {
+      return res.status(404).json({ msg: 'Visualizer not found' });
+    }
+
+    if (name) visualizer.name = name.trim();
+    if (category) visualizer.category = category;
+    if (difficulty) visualizer.difficulty = difficulty;
+    if (description !== undefined) visualizer.description = description.trim();
+    if (status) visualizer.status = status;
+    if (order !== undefined) visualizer.order = Number(order) || 0;
+    if (isActive !== undefined) visualizer.isActive = Boolean(isActive);
+
+    if (timeComplexity) {
+      visualizer.timeComplexity = {
+        best: timeComplexity.best !== undefined ? timeComplexity.best.trim() : visualizer.timeComplexity.best,
+        average: timeComplexity.average !== undefined ? timeComplexity.average.trim() : visualizer.timeComplexity.average,
+        worst: timeComplexity.worst !== undefined ? timeComplexity.worst.trim() : visualizer.timeComplexity.worst,
+      };
+    }
+    if (spaceComplexity !== undefined) visualizer.spaceComplexity = spaceComplexity.trim();
+    if (tags !== undefined) {
+      visualizer.tags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+    if (keyConcepts !== undefined) {
+      visualizer.keyConcepts = Array.isArray(keyConcepts) ? keyConcepts : keyConcepts.split('\n').map((c) => c.trim()).filter(Boolean);
+    }
+
+    await visualizer.save();
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer.update',
+      entityType: 'visualizer',
+      entityId: String(visualizer._id),
+      metadata: { slug: visualizer.slug, name: visualizer.name },
+    });
+
+    const responseData = visualizer.toObject();
+    responseData.id = String(visualizer._id);
+    responseData.renderUrl = `/api/visualizers/render/${visualizer.slug}`;
+
+    return res.json(responseData);
+  } catch (error) {
+    console.error('Admin update visualizer error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// PATCH /api/admin/visualizers/:id/status
+router.patch('/visualizers/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['available', 'unavailable'].includes(status)) {
+      return res.status(400).json({ msg: 'Status must be available or unavailable' });
+    }
+
+    const visualizer = await Visualizer.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!visualizer || visualizer.isDeleted) {
+      return res.status(404).json({ msg: 'Visualizer not found' });
+    }
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer.status_toggle',
+      entityType: 'visualizer',
+      entityId: String(visualizer._id),
+      metadata: { slug: visualizer.slug, status },
+    });
+
+    const responseData = visualizer.toObject();
+    responseData.id = String(visualizer._id);
+    responseData.renderUrl = `/api/visualizers/render/${visualizer.slug}`;
+
+    return res.json(responseData);
+  } catch (error) {
+    console.error('Admin toggle visualizer status error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// GET /api/admin/visualizers/:id/code
+router.get('/visualizers/:id/code', async (req, res) => {
+  try {
+    const visualizer = await Visualizer.findById(req.params.id);
+    if (!visualizer || visualizer.isDeleted) {
+      return res.status(404).json({ msg: 'Visualizer not found' });
+    }
+
+    let content = '';
+
+    // If stored in R2, fetch live string from Cloudflare R2
+    if (visualizer.storageType === 'r2' && visualizer.r2Key && isR2Configured()) {
+      try {
+        content = await getTextFromR2({ key: visualizer.r2Key });
+        return res.json({
+          code: content,
+          fileName: path.basename(visualizer.r2Key),
+          filePath: visualizer.r2Key,
+          storageType: 'r2',
+        });
+      } catch (r2Err) {
+        console.warn('R2 read failed, falling back to local file:', r2Err.message);
+      }
+    }
+
+    // Local file fallback
+    const targetDir = getVisualizersDir();
+    const fileName = path.basename(visualizer.htmlPath || `${visualizer.slug}.html`);
+    const filePath = path.join(targetDir, fileName);
+
+    if (fs.existsSync(filePath)) {
+      content = fs.readFileSync(filePath, 'utf8');
+    } else {
+      content = generateSkeletonHtml(visualizer.name);
+    }
+
+    return res.json({
+      code: content,
+      fileName,
+      filePath: visualizer.r2Key || `visualizers/${fileName}`,
+      storageType: visualizer.storageType || 'r2',
+    });
+  } catch (error) {
+    console.error('Admin get visualizer code error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// PUT /api/admin/visualizers/:id/code
+router.put('/visualizers/:id/code', async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (typeof code !== 'string') {
+      return res.status(400).json({ msg: 'Code must be a string' });
+    }
+
+    const visualizer = await Visualizer.findById(req.params.id);
+    if (!visualizer || visualizer.isDeleted) {
+      return res.status(404).json({ msg: 'Visualizer not found' });
+    }
+
+    const codeBuffer = Buffer.from(code, 'utf8');
+
+    // Sync to R2 if configured
+    if (isR2Configured()) {
+      const key = visualizer.r2Key || `visualizers/${visualizer.slug}-${Date.now()}.html`;
+      await uploadToR2({
+        key,
+        body: codeBuffer,
+        contentType: 'text/html; charset=utf-8',
+      });
+
+      visualizer.storageType = 'r2';
+      visualizer.r2Key = key;
+      visualizer.r2Bucket = process.env.R2_BUCKET_NAME || '';
+      visualizer.fileSize = codeBuffer.length;
+      visualizer.fileChecksum = crypto.createHash('sha256').update(codeBuffer).digest('hex');
+      await visualizer.save();
+    }
+
+    // Also sync to local filesystem only if file exists
+    try {
+      const targetDir = getVisualizersDir();
+      if (fs.existsSync(targetDir)) {
+        const fileName = path.basename(visualizer.htmlPath || `${visualizer.slug}.html`);
+        const filePath = path.join(targetDir, fileName);
+        if (fs.existsSync(filePath)) {
+          fs.writeFileSync(filePath, code, 'utf8');
+        }
+      }
+    } catch (localWriteErr) {
+      // Ignored if local directory unavailable on production
+    }
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer.code_update',
+      entityType: 'visualizer',
+      entityId: String(visualizer._id),
+      metadata: { slug: visualizer.slug, r2Key: visualizer.r2Key },
+    });
+
+    return res.json({ msg: 'Visualizer code updated successfully' });
+  } catch (error) {
+    console.error('Admin save visualizer code error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// DELETE /api/admin/visualizers/:id
+router.delete('/visualizers/:id', async (req, res) => {
+  try {
+    const visualizer = await Visualizer.findById(req.params.id);
+    if (!visualizer || visualizer.isDeleted) {
+      return res.status(404).json({ msg: 'Visualizer not found' });
+    }
+
+    // Clean up persistent R2 object
+    if (visualizer.r2Key) {
+      try {
+        await deleteFromR2({ key: visualizer.r2Key });
+      } catch (delError) {
+        console.warn(`Could not delete R2 object ${visualizer.r2Key}:`, delError.message);
+      }
+    }
+
+    visualizer.isDeleted = true;
+    visualizer.deletedAt = new Date();
+    await visualizer.save();
+
+    await writeAuditLog(req, {
+      action: 'admin.visualizer.delete',
+      entityType: 'visualizer',
+      entityId: String(visualizer._id),
+      metadata: { slug: visualizer.slug, r2Key: visualizer.r2Key },
+    });
+
+    return res.json({ msg: 'Visualizer deleted successfully' });
+  } catch (error) {
+    console.error('Admin delete visualizer error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 module.exports = router;
+
+

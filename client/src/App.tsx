@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import HomePage from "./components/HomePage"; // Ensure this points to your new Home
 import Header from "./components/Header";
@@ -15,6 +15,8 @@ import POTDPage from './pages/POTDPage';
 import AdminPage from './pages/AdminPage';
 import SupportCreatorPage from './pages/SupportCreatorPage';
 import SolutionPage from './pages/SolutionPage';
+import VisualizersPage from './pages/VisualizersPage';
+import VisualizerDetailPage from './pages/VisualizerDetailPage';
 
 function App() {
   const location = useLocation();
@@ -43,6 +45,9 @@ function App() {
           <Route path="/topic/:slug" element={<TopicPage />} />
           <Route path="/problem/:id/solution" element={<SolutionPage />} />
           <Route path="/potd" element={<POTDPage />} />
+          <Route path="/visualizers" element={<VisualizersPage />} />
+          <Route path="/visualizers/:slug" element={<VisualizerDetailPage />} />
+          <Route path="/visualizer" element={<Navigate to="/visualizers" replace />} />
           <Route path="/support" element={<SupportCreatorPage />} />
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Routes>
