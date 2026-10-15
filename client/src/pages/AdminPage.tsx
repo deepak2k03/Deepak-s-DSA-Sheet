@@ -206,13 +206,12 @@ const AdminPage: React.FC = () => {
 
     const filteredProblems = useMemo(() => {
       return problems.filter(p => {
-        const q = problemSearch.toLowerCase();
+        const q = problemSearch.toLowerCase().trim();
         if (q && !p.title.toLowerCase().includes(q) && !String(p.problemNumber).includes(q)) return false;
         if (problemDifficultyFilter && p.difficulty !== problemDifficultyFilter) return false;
-        if (problemTopicFilter && getCanonicalTopicSlug(p.topic) !== getCanonicalTopicSlug(problemTopicFilter)) return false;
         return true;
       });
-    }, [problems, problemSearch, problemDifficultyFilter, problemTopicFilter]);
+    }, [problems, problemSearch, problemDifficultyFilter]);
 
     const filteredUsers = useMemo(() => {
       return users.filter(u => {
@@ -274,12 +273,10 @@ const AdminPage: React.FC = () => {
         query: topicSearch,
         status: topicStatusFilter,
       });
-      const effectiveProblemLimit = problemTopicFilter
-        ? 500
-        : problemPageSize === 'all'
+      const effectiveProblemLimit = problemPageSize === 'all'
         ? 500
         : problemPageSize;
-      const effectiveProblemPage = problemTopicFilter || problemPageSize === 'all'
+      const effectiveProblemPage = problemPageSize === 'all'
         ? 1
         : problemsPagination.page;
 
@@ -838,6 +835,38 @@ const AdminPage: React.FC = () => {
                 <FilterChip label="Hidden" active={topicStatusFilter === 'hidden'} onClick={() => setTopicStatusFilter('hidden')} color="amber" />
                 <FilterChip label="Deleted" active={topicStatusFilter === 'deleted'} onClick={() => setTopicStatusFilter('deleted')} color="rose" />
               </div>
+              {isReorderingTopics && (
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                      You have unsaved topic order changes
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={saveTopicOrder}
+                      className="rounded-xl bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 transition"
+                    >
+                      Save Order
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsReorderingTopics(false);
+                        loadAdminData(true);
+                      }}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="space-y-3">
                 {filteredTopics.map((topic) => (
                   <div key={topic.id || topic.slug} className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
@@ -869,13 +898,6 @@ const AdminPage: React.FC = () => {
                 onPrev={() => setTopicsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
                 onNext={() => setTopicsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
               />
-              {isReorderingTopics && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-3 shadow-lg backdrop-blur-md">
-                  <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">You have unsaved topic order changes</span>
-                  <button type="button" onClick={saveTopicOrder} className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">Save Order</button>
-                  <button type="button" onClick={() => { setIsReorderingTopics(false); fetchData(); }} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
-                </div>
-              )}
             </div>
           </section>
         )}
@@ -917,7 +939,7 @@ const AdminPage: React.FC = () => {
             <div className="surface rounded-3xl p-6">
               <div className="mb-4 flex flex-col gap-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Problem Bank <span className="ml-1 text-sm font-normal text-slate-400">({filteredProblems.length}/{problems.length})</span></h2>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Problem Bank <span className="ml-1 text-sm font-normal text-slate-400">({problemsPagination.total})</span></h2>
                   <SearchBox value={problemSearch} onChange={setProblemSearch} placeholder="Search by title or #…" />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -938,88 +960,127 @@ const AdminPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div className="max-h-[600px] space-y-3 overflow-y-auto pr-1">
-                {filteredProblems.map((problem) => (
-                  <div key={problem.id} className="rounded-2xl border border-slate-200/80 p-4 dark:border-white/10">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">#{problem.problemNumber} • {problem.topic}</p>
-                        <h3 className="mt-1 font-semibold text-slate-900 dark:text-white">{problem.title}</h3>
-                        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">{problem.difficulty}</p>
-                        {problem.tutorialLink && (
-                          <a href={problem.tutorialLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20">
-                            <Youtube size={14} /> Tutorial
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => moveProblem(problem.id, 'up')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Up'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowUp size={16} /></button>
-                        <button type="button" onClick={() => moveProblem(problem.id, 'down')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Down'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowDown size={16} /></button>
-                        <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', githubLink: problem.githubLink || '', videoSolutionUrl: problem.videoSolutionUrl || '', approaches: problem.approaches ? JSON.parse(JSON.stringify(problem.approaches)) : [] }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
-                        {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
-                        {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {problemTopicFilter ? (
-                <div className="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                  <span>
-                    Showing all <strong className="text-slate-700 dark:text-slate-200">{filteredProblems.length}</strong> problems in{' '}
-                    <strong className="text-teal-700 dark:text-teal-300">
-                      {topics.find((t) => t.slug === problemTopicFilter)?.name || problemTopicFilter}
-                    </strong>{' '}
-                    (single scroll)
-                  </span>
-                </div>
-              ) : (
-                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span>Per page:</span>
-                    {([20, 50, 100, 'all'] as const).map((size) => (
-                      <button
-                        key={String(size)}
-                        type="button"
-                        onClick={() => {
-                          setProblemPageSize(size);
-                          setProblemsPagination((p) => ({ ...p, page: 1 }));
-                        }}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                          problemPageSize === size
-                            ? 'bg-[#123b36] text-white dark:bg-teal-400 dark:text-[#08241f]'
-                            : 'border border-slate-200/80 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5'
-                        }`}
-                      >
-                        {size === 'all' ? 'All' : size}
-                      </button>
-                    ))}
-                    <span className="ml-2">
-                      Showing {problems.length > 0 ? (problemsPagination.page - 1) * (typeof problemPageSize === 'number' ? problemPageSize : problems.length) + 1 : 0}–
-                      {Math.min(
-                        problemsPagination.page * (typeof problemPageSize === 'number' ? problemPageSize : problems.length),
-                        problemsPagination.total
-                      )}{' '}
-                      of {problemsPagination.total} problems
+              {isReorderingProblems && (
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                      You have unsaved problem order changes
                     </span>
                   </div>
-                  {problemPageSize !== 'all' && problemsPagination.pages > 1 && (
-                    <PaginationBar
-                      page={problemsPagination.page}
-                      totalPages={problemsPagination.pages}
-                      onPrev={() => setProblemsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
-                      onNext={() => setProblemsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
-                    />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={saveProblemOrder}
+                      className="rounded-xl bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600 transition"
+                    >
+                      Save Order
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsReorderingProblems(false);
+                        loadAdminData(true);
+                      }}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {refreshing ? (
+                <div className="space-y-3 py-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 animate-pulse bg-slate-50/50 dark:bg-white/[0.02]">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2.5 flex-1">
+                          <div className="h-3 w-32 rounded bg-slate-200/80 dark:bg-white/10" />
+                          <div className="h-5 w-2/3 rounded bg-slate-200/80 dark:bg-white/10" />
+                          <div className="h-3 w-16 rounded bg-slate-200/80 dark:bg-white/10" />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="h-9 w-9 rounded-xl bg-slate-200/80 dark:bg-white/10" />
+                          <div className="h-9 w-9 rounded-xl bg-slate-200/80 dark:bg-white/10" />
+                          <div className="h-9 w-14 rounded-xl bg-slate-200/80 dark:bg-white/10" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="max-h-[600px] space-y-3 overflow-y-auto pr-1">
+                  {filteredProblems.map((problem) => (
+                    <div key={problem.id} className="rounded-2xl border border-slate-200/80 p-4 dark:border-white/10">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">#{problem.problemNumber} • {problem.topic}</p>
+                          <h3 className="mt-1 font-semibold text-slate-900 dark:text-white">{problem.title}</h3>
+                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-400">{problem.difficulty}</p>
+                          {problem.tutorialLink && (
+                            <a href={problem.tutorialLink} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20">
+                              <Youtube size={14} /> Tutorial
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => moveProblem(problem.id, 'up')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Up'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowUp size={16} /></button>
+                          <button type="button" onClick={() => moveProblem(problem.id, 'down')} disabled={problemTopicFilter === '' || problemSearch !== '' || problemDifficultyFilter !== '' || problemStatusFilter !== 'all'} title={problemTopicFilter === '' || problemSearch || problemDifficultyFilter || problemStatusFilter !== 'all' ? 'Filter by a specific topic to reorder' : 'Move Down'} className="rounded-xl border border-slate-200/80 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:hover:bg-transparent dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"><ArrowDown size={16} /></button>
+                          <button type="button" onClick={() => { setEditingProblemId(problem.id); setProblemForm({ problemNumber: String(problem.problemNumber), title: problem.title, link: problem.link, topic: problem.topic, difficulty: problem.difficulty, tutorialLink: problem.tutorialLink || '', githubLink: problem.githubLink || '', videoSolutionUrl: problem.videoSolutionUrl || '', approaches: problem.approaches ? JSON.parse(JSON.stringify(problem.approaches)) : [] }); }} className="rounded-xl border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Edit</button>
+                          {!problem.isDeleted && <button type="button" onClick={() => deleteProblem(problem.id)} className="rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20">Delete</button>}
+                          {problem.isDeleted && <button type="button" onClick={() => restoreProblem(problem.id)} className="rounded-xl border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20">Restore</button>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredProblems.length === 0 && (
+                    <div className="py-12 text-center text-sm text-slate-400">
+                      No problems found matching the selected filters.
+                    </div>
                   )}
                 </div>
               )}
-              {isReorderingProblems && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-3 shadow-lg backdrop-blur-md">
-                  <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">You have unsaved problem order changes</span>
-                  <button type="button" onClick={saveProblemOrder} className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">Save Order</button>
-                  <button type="button" onClick={() => { setIsReorderingProblems(false); loadAdminData(true); }} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <span>Per page:</span>
+                  {([20, 50, 100, 'all'] as const).map((size) => (
+                    <button
+                      key={String(size)}
+                      type="button"
+                      onClick={() => {
+                        setProblemPageSize(size);
+                        setProblemsPagination((p) => ({ ...p, page: 1 }));
+                      }}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                        problemPageSize === size
+                          ? 'bg-[#123b36] text-white dark:bg-teal-400 dark:text-[#08241f]'
+                          : 'border border-slate-200/80 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      {size === 'all' ? 'All' : size}
+                    </button>
+                  ))}
+                  <span className="ml-2">
+                    Showing {problems.length > 0 ? (problemsPagination.page - 1) * (typeof problemPageSize === 'number' ? problemPageSize : problems.length) + 1 : 0}–
+                    {Math.min(
+                      problemsPagination.page * (typeof problemPageSize === 'number' ? problemPageSize : problems.length),
+                      problemsPagination.total
+                    )}{' '}
+                    of {problemsPagination.total} problems
+                  </span>
                 </div>
-              )}
+                {problemPageSize !== 'all' && (
+                  <PaginationBar
+                    page={problemsPagination.page}
+                    totalPages={problemsPagination.pages}
+                    onPrev={() => setProblemsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+                    onNext={() => setProblemsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+                  />
+                )}
+              </div>
             </div>
           </section>
         )}

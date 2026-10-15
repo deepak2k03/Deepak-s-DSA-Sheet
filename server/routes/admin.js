@@ -462,8 +462,10 @@ router.get('/problems', async (req, res) => {
 
     if (topic) {
       const canonical = getCanonicalTopicSlug(topic);
+      const regexPattern = `^(${canonical}|${canonical.replace(/-/g, '[- ]?')}|${topic})$`;
       conditions.push({
         $or: [
+          { topic: { $regex: new RegExp(regexPattern, 'i') } },
           { topic: canonical },
           { topic },
           { topic: canonical.replace(/-/g, ' ') },
