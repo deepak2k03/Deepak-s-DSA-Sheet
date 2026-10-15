@@ -27,6 +27,7 @@ import {
   type TopicDefinition,
 } from '../data/topics';
 import { getStoredToken, getStoredUser, updateStoredUser } from '../utils/auth';
+import { getCanonicalTopicSlug } from '../utils/topics';
 
 type AdminTab = 'overview' | 'topics' | 'problems' | 'users' | 'potd' | 'audit';
 
@@ -186,6 +187,7 @@ const AdminPage: React.FC = () => {
   const [topicStatusFilter, setTopicStatusFilter] = useState<'all' | 'active' | 'hidden' | 'deleted'>('all');
   const [isReorderingTopics, setIsReorderingTopics] = useState(false);
   const [isReorderingProblems, setIsReorderingProblems] = useState(false);
+  const [problemPageSize, setProblemPageSize] = useState<number | 'all'>(20);
   const [problemSearch, setProblemSearch] = useState('');
   const [problemDifficultyFilter, setProblemDifficultyFilter] = useState<'' | 'Easy' | 'Medium' | 'Hard'>('');
   const [problemTopicFilter, setProblemTopicFilter] = useState('');
@@ -207,7 +209,7 @@ const AdminPage: React.FC = () => {
         const q = problemSearch.toLowerCase();
         if (q && !p.title.toLowerCase().includes(q) && !String(p.problemNumber).includes(q)) return false;
         if (problemDifficultyFilter && p.difficulty !== problemDifficultyFilter) return false;
-        if (problemTopicFilter && p.topic !== problemTopicFilter) return false;
+        if (problemTopicFilter && getCanonicalTopicSlug(p.topic) !== getCanonicalTopicSlug(problemTopicFilter)) return false;
         return true;
       });
     }, [problems, problemSearch, problemDifficultyFilter, problemTopicFilter]);
@@ -272,9 +274,18 @@ const AdminPage: React.FC = () => {
         query: topicSearch,
         status: topicStatusFilter,
       });
+      const effectiveProblemLimit = problemTopicFilter
+        ? 500
+        : problemPageSize === 'all'
+        ? 500
+        : problemPageSize;
+      const effectiveProblemPage = problemTopicFilter || problemPageSize === 'all'
+        ? 1
+        : problemsPagination.page;
+
       const problemsQuery = makeQuery({
-        page: problemsPagination.page,
-        limit: problemTopicFilter ? 100 : problemsPagination.limit,
+        page: effectiveProblemPage,
+        limit: effectiveProblemLimit,
         query: problemSearch,
         difficulty: problemDifficultyFilter,
         topic: problemTopicFilter,
@@ -336,7 +347,12 @@ const AdminPage: React.FC = () => {
 
       if (problemsResult.status === 'fulfilled') {
         setProblems(Array.isArray(problemsResult.value?.items) ? problemsResult.value.items : []);
-        if (problemsResult.value?.pagination) setProblemsPagination(problemsResult.value.pagination);
+        if (problemsResult.value?.pagination) {
+          setProblemsPagination({
+            ...problemsResult.value.pagination,
+            limit: typeof problemPageSize === 'number' ? problemPageSize : 20,
+          });
+        }
       } else {
         errors.push(problemsResult.reason instanceof Error ? problemsResult.reason.message : 'Failed to load problems');
       }
@@ -384,6 +400,7 @@ const AdminPage: React.FC = () => {
     problemDifficultyFilter,
     problemTopicFilter,
     problemStatusFilter,
+    problemPageSize,
     userSearch,
     userRoleFilter,
     userStatusFilter,
@@ -400,7 +417,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     setProblemsPagination((p) => ({ ...p, page: 1 }));
-  }, [problemSearch, problemDifficultyFilter, problemTopicFilter, problemStatusFilter]);
+  }, [problemSearch, problemDifficultyFilter, problemTopicFilter, problemStatusFilter, problemPageSize]);
 
   useEffect(() => {
     setUsersPagination((p) => ({ ...p, page: 1 }));
@@ -946,17 +963,61 @@ const AdminPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <PaginationBar
-                page={problemsPagination.page}
-                totalPages={problemsPagination.pages}
-                onPrev={() => setProblemsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
-                onNext={() => setProblemsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
-              />
+              {problemTopicFilter ? (
+                <div className="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>
+                    Showing all <strong className="text-slate-700 dark:text-slate-200">{filteredProblems.length}</strong> problems in{' '}
+                    <strong className="text-teal-700 dark:text-teal-300">
+                      {topics.find((t) => t.slug === problemTopicFilter)?.name || problemTopicFilter}
+                    </strong>{' '}
+                    (single scroll)
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span>Per page:</span>
+                    {([20, 50, 100, 'all'] as const).map((size) => (
+                      <button
+                        key={String(size)}
+                        type="button"
+                        onClick={() => {
+                          setProblemPageSize(size);
+                          setProblemsPagination((p) => ({ ...p, page: 1 }));
+                        }}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                          problemPageSize === size
+                            ? 'bg-[#123b36] text-white dark:bg-teal-400 dark:text-[#08241f]'
+                            : 'border border-slate-200/80 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        {size === 'all' ? 'All' : size}
+                      </button>
+                    ))}
+                    <span className="ml-2">
+                      Showing {problems.length > 0 ? (problemsPagination.page - 1) * (typeof problemPageSize === 'number' ? problemPageSize : problems.length) + 1 : 0}–
+                      {Math.min(
+                        problemsPagination.page * (typeof problemPageSize === 'number' ? problemPageSize : problems.length),
+                        problemsPagination.total
+                      )}{' '}
+                      of {problemsPagination.total} problems
+                    </span>
+                  </div>
+                  {problemPageSize !== 'all' && problemsPagination.pages > 1 && (
+                    <PaginationBar
+                      page={problemsPagination.page}
+                      totalPages={problemsPagination.pages}
+                      onPrev={() => setProblemsPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+                      onNext={() => setProblemsPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
+                    />
+                  )}
+                </div>
+              )}
               {isReorderingProblems && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-6 py-3 shadow-lg backdrop-blur-md">
                   <span className="text-sm font-semibold text-emerald-500 dark:text-emerald-400">You have unsaved problem order changes</span>
                   <button type="button" onClick={saveProblemOrder} className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-600">Save Order</button>
-                  <button type="button" onClick={() => { setIsReorderingProblems(false); fetchData(); }} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
+                  <button type="button" onClick={() => { setIsReorderingProblems(false); loadAdminData(true); }} className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
                 </div>
               )}
             </div>

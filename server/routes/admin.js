@@ -20,7 +20,7 @@ const ALLOWED_ROLES = ['user', 'moderator', 'content_manager', 'admin'];
 
 const parsePaging = (query) => {
   const page = Math.max(Number.parseInt(query.page, 10) || 1, 1);
-  const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 20, 1), 100);
+  const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 20, 1), 500);
   return { page, limit, skip: (page - 1) * limit };
 };
 
