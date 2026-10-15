@@ -511,19 +511,22 @@ router.post('/problems', async (req, res) => {
     let nextProblemNumber = Number(problemNumber);
 
     if (!Number.isFinite(nextProblemNumber) || nextProblemNumber <= 0) {
-      const latestProblem = await Problem.findOne({ isDeleted: { $ne: true } }).sort({ id: -1 }).select('id');
+      const latestProblem = await Problem.findOne({}).sort({ id: -1 }).select('id');
       nextProblemNumber = latestProblem ? latestProblem.id + 1 : 1;
     }
 
-    const duplicate = await Problem.findOne({ id: nextProblemNumber, isDeleted: { $ne: true } });
+    const duplicate = await Problem.findOne({ id: nextProblemNumber });
 
     if (duplicate) {
       return res.status(400).json({ msg: 'Problem number already exists' });
     }
 
     // Determine the problem order in the section so it is placed at the end by default
-    let problemOrder = Number(order);
-    if (!Number.isFinite(problemOrder)) {
+    const hasExplicitOrder = order !== undefined && order !== null && String(order).trim() !== '' && Number.isFinite(Number(order));
+    let problemOrder;
+    if (hasExplicitOrder) {
+      problemOrder = Number(order);
+    } else {
       const topicProblems = await Problem.find({
         isDeleted: { $ne: true },
       }).select('order topic');
@@ -577,7 +580,7 @@ router.put('/problems/:problemId', async (req, res) => {
     }
 
     if (problemNumber !== undefined && Number(problemNumber) !== problem.id) {
-      const duplicate = await Problem.findOne({ id: Number(problemNumber), _id: { $ne: problem._id }, isDeleted: { $ne: true } });
+      const duplicate = await Problem.findOne({ id: Number(problemNumber), _id: { $ne: problem._id } });
       if (duplicate) {
         return res.status(400).json({ msg: 'Problem number already exists' });
       }
@@ -591,7 +594,8 @@ router.put('/problems/:problemId', async (req, res) => {
       }
       if (existingTopic.slug !== problem.topic) {
         problem.topic = existingTopic.slug;
-        if (req.body.order === undefined || !Number.isFinite(Number(req.body.order))) {
+        const hasExplicitOrder = req.body.order !== undefined && req.body.order !== null && String(req.body.order).trim() !== '' && Number.isFinite(Number(req.body.order));
+        if (!hasExplicitOrder) {
           const topicProblems = await Problem.find({
             isDeleted: { $ne: true },
             _id: { $ne: problem._id },
@@ -606,7 +610,8 @@ router.put('/problems/:problemId', async (req, res) => {
       }
     }
 
-    if (req.body.order !== undefined && Number.isFinite(Number(req.body.order))) {
+    const hasExplicitOrder = req.body.order !== undefined && req.body.order !== null && String(req.body.order).trim() !== '' && Number.isFinite(Number(req.body.order));
+    if (hasExplicitOrder) {
       problem.order = Number(req.body.order);
     }
 
