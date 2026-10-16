@@ -336,6 +336,7 @@ const AdminPage: React.FC = () => {
     uploading: false,
     error: null,
   });
+  const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<VisualizerCategoryItem[]>([]);
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
@@ -998,6 +999,19 @@ const AdminPage: React.FC = () => {
     setIsVisualizerSettingsModalOpen(true);
   };
 
+  const closeReplaceFileModal = () => {
+    if (replaceFileInputRef.current) {
+      replaceFileInputRef.current.value = '';
+    }
+    setReplaceFileModal({
+      isOpen: false,
+      visualizer: null,
+      file: null,
+      uploading: false,
+      error: null,
+    });
+  };
+
   const handleExecuteFileReplace = async () => {
     if (!replaceFileModal.visualizer || !replaceFileModal.file) return;
     setReplaceFileModal((curr) => ({ ...curr, uploading: true, error: null }));
@@ -1007,13 +1021,7 @@ const AdminPage: React.FC = () => {
         replaceFileModal.file
       );
       setNotice(result.msg || 'HTML animation uploaded to persistent storage');
-      setReplaceFileModal({
-        isOpen: false,
-        visualizer: null,
-        file: null,
-        uploading: false,
-        error: null,
-      });
+      closeReplaceFileModal();
       loadAdminData(true);
     } catch (err: any) {
       setReplaceFileModal((curr) => ({
@@ -1796,7 +1804,7 @@ const AdminPage: React.FC = () => {
 
                         <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400">
                           <code className="rounded bg-black/5 dark:bg-white/5 px-1.5 py-0.5 text-teal-600 dark:text-teal-400">
-                            {vis.r2Key || vis.htmlPath}
+                            {vis.originalFileName ? `File: ${vis.originalFileName}` : (vis.r2Key || vis.htmlPath)}
                           </code>
                           <span>•</span>
                           <span>Avg: {vis.timeComplexity?.average}</span>
@@ -2613,20 +2621,25 @@ const AdminPage: React.FC = () => {
         {replaceFileModal.isOpen && replaceFileModal.visualizer &&
           createPortal(
             <div
-              onClick={(e) => { if (e.target === e.currentTarget && !replaceFileModal.uploading) setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null }); }}
+              onClick={(e) => { if (e.target === e.currentTarget && !replaceFileModal.uploading) closeReplaceFileModal(); }}
               className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 sm:p-6 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
             >
               <div className="surface my-auto w-full max-w-lg max-h-[85vh] overflow-hidden rounded-3xl p-6 shadow-2xl border border-[var(--border-strong)] flex flex-col">
                 <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3 mb-4 shrink-0">
                   <div className="flex items-center gap-2">
                     <UploadCloud size={18} className="text-teal-400" />
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Upload HTML: {replaceFileModal.visualizer.name}
-                    </h3>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        Upload HTML: {replaceFileModal.visualizer.name}
+                      </h3>
+                      <p className="text-[11px] font-mono text-teal-400">
+                        Target slug: {replaceFileModal.visualizer.slug}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null })}
+                    onClick={closeReplaceFileModal}
                     className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white"
                   >
                     <X size={18} />
@@ -2646,6 +2659,7 @@ const AdminPage: React.FC = () => {
 
                   <div className="rounded-2xl border border-dashed border-slate-300 dark:border-white/15 p-6 text-center hover:border-teal-500 transition-colors">
                     <input
+                      ref={replaceFileInputRef}
                       type="file"
                       accept=".html,.htm"
                       id="replace-file-picker"
@@ -2656,25 +2670,34 @@ const AdminPage: React.FC = () => {
                       }}
                     />
                     {replaceFileModal.file ? (
-                      <div className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 text-left">
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                          <FileCode size={20} className="text-teal-400 shrink-0" />
-                          <div className="truncate">
-                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                              {replaceFileModal.file.name}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {(replaceFileModal.file.size / 1024).toFixed(1)} KB • HTML file
-                            </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 text-left">
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            <FileCode size={20} className="text-teal-400 shrink-0" />
+                            <div className="truncate">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                {replaceFileModal.file.name}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {(replaceFileModal.file.size / 1024).toFixed(1)} KB • HTML file
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (replaceFileInputRef.current) replaceFileInputRef.current.value = '';
+                              setReplaceFileModal((curr) => ({ ...curr, file: null }));
+                            }}
+                            className="text-slate-400 hover:text-rose-400 p-1"
+                            title="Remove file"
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setReplaceFileModal((curr) => ({ ...curr, file: null }))}
-                          className="text-slate-400 hover:text-rose-400 p-1"
-                        >
-                          <X size={16} />
-                        </button>
+                        <div className="rounded-xl border border-teal-500/30 bg-teal-500/10 p-2.5 text-xs text-teal-300 text-left">
+                          Ready to deploy <strong>{replaceFileModal.file.name}</strong> as the active animation for <strong>{replaceFileModal.visualizer.name}</strong>.
+                        </div>
                       </div>
                     ) : (
                       <label htmlFor="replace-file-picker" className="cursor-pointer flex flex-col items-center gap-2">
@@ -2693,7 +2716,7 @@ const AdminPage: React.FC = () => {
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-subtle)] shrink-0">
                   <button
                     type="button"
-                    onClick={() => setReplaceFileModal({ isOpen: false, visualizer: null, file: null, uploading: false, error: null })}
+                    onClick={closeReplaceFileModal}
                     className="button-secondary text-xs font-semibold !py-2 !px-4"
                   >
                     Cancel
@@ -2752,10 +2775,16 @@ const AdminPage: React.FC = () => {
                     const rawRenderUrl = visualizerPreviewModal.visualizer.renderUrl
                       ? apiUrl(visualizerPreviewModal.visualizer.renderUrl)
                       : apiUrl(`/api/visualizers/render/${visualizerPreviewModal.visualizer.slug}`);
-                    const previewSrc = token ? `${rawRenderUrl}?token=${encodeURIComponent(token)}` : rawRenderUrl;
+                    const cacheKey = visualizerPreviewModal.visualizer.updatedAt
+                      ? new Date(visualizerPreviewModal.visualizer.updatedAt).getTime()
+                      : (visualizerPreviewModal.visualizer.fileChecksum || Date.now());
+                    const separator = rawRenderUrl.includes('?') ? '&' : '?';
+                    const withCacheBuster = `${rawRenderUrl}${separator}v=${cacheKey}`;
+                    const previewSrc = token ? `${withCacheBuster}&token=${encodeURIComponent(token)}` : withCacheBuster;
 
                     return (
                       <VisualizerFrame
+                        key={`${visualizerPreviewModal.visualizer.slug}-${cacheKey}`}
                         src={previewSrc}
                         title={visualizerPreviewModal.visualizer.name}
                         status={visualizerPreviewModal.visualizer.status}

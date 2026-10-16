@@ -25,6 +25,7 @@ const visualizerSchema = new mongoose.Schema(
     r2Key: { type: String, trim: true, default: '' },
     r2Bucket: { type: String, trim: true, default: '' },
     contentUrl: { type: String, trim: true, default: '' },
+    originalFileName: { type: String, trim: true, default: '' },
     fileSize: { type: Number, default: 0 },
     fileChecksum: { type: String, trim: true, default: '' },
     status: {

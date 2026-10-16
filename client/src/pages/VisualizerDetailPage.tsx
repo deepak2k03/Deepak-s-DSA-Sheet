@@ -36,6 +36,11 @@ const VisualizerDetailPage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     if (slug) {
+      // Immediately sync local algorithm data for snappy transition
+      const local = getVisualizerBySlug(slug) || null;
+      setAlgorithm(local);
+      if (!local) setLoading(true);
+
       fetchVisualizerBySlug(slug)
         .then((algo) => {
           if (isMounted && algo) {
@@ -160,10 +165,16 @@ const VisualizerDetailPage: React.FC = () => {
             const rawRenderUrl = algorithm.renderUrl
               ? apiUrl(algorithm.renderUrl)
               : apiUrl(`/api/visualizers/render/${algorithm.slug}`);
-            const renderSrc = token ? `${rawRenderUrl}?token=${encodeURIComponent(token)}` : rawRenderUrl;
+            const cacheKey = algorithm.updatedAt
+              ? new Date(algorithm.updatedAt).getTime()
+              : (algorithm.fileChecksum || '1');
+            const separator = rawRenderUrl.includes('?') ? '&' : '?';
+            const withCacheBuster = `${rawRenderUrl}${separator}v=${cacheKey}`;
+            const renderSrc = token ? `${withCacheBuster}&token=${encodeURIComponent(token)}` : withCacheBuster;
 
             return (
               <VisualizerFrame
+                key={`${algorithm.slug}-${cacheKey}`}
                 src={renderSrc}
                 title={`${algorithm.name} Visualizer`}
                 status={algorithm.status}

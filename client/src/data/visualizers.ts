@@ -34,6 +34,7 @@ export interface VisualizerAlgorithm {
   r2Bucket?: string;
   fileSize?: number;
   fileChecksum?: string;
+  originalFileName?: string;
   status: VisualizerStatus;
   timeComplexity: ComplexityInfo;
   spaceComplexity: string;

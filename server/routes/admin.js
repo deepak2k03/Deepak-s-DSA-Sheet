@@ -1286,9 +1286,11 @@ const createVisualizerHandler = async (req, res) => {
     let r2Bucket = '';
     let fileSize = 0;
     let fileChecksum = '';
+    let originalFileName = '';
 
     // Handle uploaded file if present
     if (req.file) {
+      originalFileName = req.file.originalname || '';
       const validation = validateHtmlBuffer(req.file.buffer);
       if (!validation.valid) {
         return res.status(400).json({ msg: validation.error });
@@ -1352,6 +1354,7 @@ const createVisualizerHandler = async (req, res) => {
       storageType,
       r2Key,
       r2Bucket,
+      originalFileName,
       fileSize,
       fileChecksum,
       status: status || 'unavailable',
@@ -1436,6 +1439,7 @@ router.put('/visualizers/:id/upload', handleMulterUpload, async (req, res) => {
       visualizer.storageType = 'r2';
       visualizer.r2Key = newKey;
       visualizer.r2Bucket = process.env.R2_BUCKET_NAME || '';
+      visualizer.originalFileName = req.file.originalname || '';
       visualizer.fileSize = req.file.size;
       visualizer.fileChecksum = validation.checksum;
     } else {
@@ -1445,6 +1449,7 @@ router.put('/visualizers/:id/upload', handleMulterUpload, async (req, res) => {
       fs.writeFileSync(localPath, req.file.buffer);
 
       visualizer.storageType = 'local';
+      visualizer.originalFileName = req.file.originalname || '';
       visualizer.fileSize = req.file.size;
       visualizer.fileChecksum = validation.checksum;
     }
@@ -1457,6 +1462,7 @@ router.put('/visualizers/:id/upload', handleMulterUpload, async (req, res) => {
       entityId: String(visualizer._id),
       metadata: {
         slug: visualizer.slug,
+        originalFileName: visualizer.originalFileName,
         storageType: visualizer.storageType,
         r2Key: visualizer.r2Key,
         fileSize: visualizer.fileSize,

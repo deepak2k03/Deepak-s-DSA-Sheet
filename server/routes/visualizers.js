@@ -258,10 +258,12 @@ router.get('/render/:slug', async (req, res) => {
     );
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-    if (visualizer.status === 'available') {
-      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
-    } else {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    // Always serve the exact active animation version without stale browser cache
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    if (visualizer.fileChecksum) {
+      res.setHeader('ETag', `"${visualizer.fileChecksum}"`);
     }
 
     // 1. Try Cloudflare R2 object storage if configured
