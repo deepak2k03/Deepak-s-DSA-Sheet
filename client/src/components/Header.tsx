@@ -13,6 +13,8 @@ import {
   ChevronDown,
   Flame,
   PlayCircle,
+  Menu,
+  X,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { clsx } from 'clsx';
@@ -29,16 +31,32 @@ const Header: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<StoredUser | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // 2. Create a Ref for the dropdown container
+  // Refs for dropdowns and mobile menu
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileButtonRef = useRef<HTMLButtonElement>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Close menus on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
+
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
 
     const checkAuth = () => {
       const token = getStoredToken();
@@ -52,22 +70,41 @@ const Header: React.FC = () => {
     window.addEventListener(AUTH_STATE_EVENT, checkAuth);
 
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(target)
       ) {
         setIsMenuOpen(false);
+      }
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(target) &&
+        mobileButtonRef.current &&
+        !mobileButtonRef.current.contains(target)
+      ) {
+        setIsMobileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+        setIsMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('storage', checkAuth);
       window.removeEventListener(AUTH_STATE_EVENT, checkAuth);
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [location]);
+  }, []);
 
   const handleLogout = () => {
     clearAuthSession();
@@ -287,12 +324,175 @@ const Header: React.FC = () => {
                 <span>Log in</span>
               </Link>
             )}
+            {/* Mobile Hamburger Menu Toggle Button */}
+            <button
+              ref={mobileButtonRef}
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen((prev) => !prev);
+                setIsMenuOpen(false);
+              }}
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--border-default)] transition-all duration-200 active:scale-95 ml-1"
+              aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isMobileMenuOpen}
+            >
+              {isMobileMenuOpen ? (
+                <X size={19} className="transition-transform duration-200" />
+              ) : (
+                <Menu size={19} className="transition-transform duration-200" />
+              )}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Navigation Dropdown Drawer */}
+      {isMobileMenuOpen && (
+        <div
+          ref={mobileMenuRef}
+          className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--glass-bg)] backdrop-blur-2xl shadow-[var(--shadow-xl)] animate-in slide-in-from-top-2 duration-200"
+          style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(24px) saturate(1.8)',
+            WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100vh-80px)] overflow-y-auto">
+            {/* Primary Navigation Links */}
+            <div className="space-y-1">
+              <MobileNavLink
+                to="/"
+                icon={<LayoutGrid size={18} />}
+                text="Home"
+                active={location.pathname === '/'}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <MobileNavLink
+                to="/topics"
+                icon={<BookMarked size={18} />}
+                text="Topics"
+                active={location.pathname.includes('/topic')}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <MobileNavLink
+                to="/visualizers"
+                icon={<PlayCircle size={18} />}
+                text="Visualizer"
+                active={location.pathname.startsWith('/visualizer')}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <MobileNavLink
+                to="/leaderboard"
+                icon={<Trophy size={18} />}
+                text="Leaderboard"
+                active={location.pathname === '/leaderboard'}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <MobileNavLink
+                to="/potd"
+                icon={<Flame size={18} />}
+                text="Daily Problem"
+                active={location.pathname === '/potd'}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-[var(--border-subtle)] pt-2 space-y-1">
+              <a
+                href="https://github.com/deepak2k03/Deepak-s-DSA-Sheet"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <Github size={18} className="text-[var(--text-muted)]" />
+                <span>GitHub Repository</span>
+              </a>
+
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <UserIcon size={18} className="text-[var(--text-muted)]" />
+                    <span>My Profile (@{user?.username})</span>
+                  </Link>
+                  {user?.role === 'admin' && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <Shield size={18} className="text-[var(--text-muted)]" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors text-left"
+                  >
+                    <LogOut size={18} />
+                    <span>Sign out</span>
+                  </button>
+                </>
+              ) : (
+                <div className="pt-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="button-primary w-full flex items-center justify-center gap-2 !py-2.5 !rounded-xl text-sm font-bold shadow-md"
+                  >
+                    <LogIn size={16} />
+                    <span>Log in / Sign up</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
+
+const MobileNavLink = ({
+  to,
+  icon,
+  text,
+  active,
+  onClick,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  text: string;
+  active: boolean;
+  onClick: () => void;
+}) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className={clsx(
+      'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+      active
+        ? 'bg-[var(--accent-surface)] text-[var(--text-primary)] border border-[var(--accent-border, rgba(94,234,212,0.2))] shadow-sm'
+        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
+    )}
+  >
+    <div className="flex items-center gap-3">
+      <span className={clsx('transition-colors', active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>
+        {icon}
+      </span>
+      <span>{text}</span>
+    </div>
+    {active && (
+      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+    )}
+  </Link>
+);
 
 const NavLink = ({
   to,
