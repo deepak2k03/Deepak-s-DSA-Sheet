@@ -12,7 +12,6 @@ import {
   Layers,
   CheckCircle2,
   AlertCircle,
-  FileCode2,
   FolderTree,
   RotateCcw,
   GitCommit,
@@ -252,34 +251,6 @@ const VisualizersPage: React.FC = () => {
             ))}
           </div>
         )}
-
-        {/* Developer Integration Callout Box */}
-        <section className="mt-14 rounded-2xl border border-teal-500/20 bg-gradient-to-br from-teal-950/20 via-[#0a0a0a] to-[#0a0a0a] p-6 sm:p-8 shadow-xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-400 border border-teal-500/20">
-                <FileCode2 size={13} />
-                Developer Integration Workflow
-              </div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                Algorithm Animations Storage & Pipeline
-              </h2>
-              <p className="text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
-                All visualizers are stored persistently in{' '}
-                <strong className="text-teal-400">Cloudflare R2</strong> and rendered directly in isolated iframes with restrictive Content Security Policies. Authorized admins can upload new animations, create custom algorithm categories, and edit animation code in real time through the Admin Panel.
-              </p>
-            </div>
-
-            <div className="shrink-0 flex items-center gap-3">
-              <Link
-                to="/admin"
-                className="button-secondary text-xs font-semibold !py-2.5 !px-4"
-              >
-                Admin Control Panel
-              </Link>
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer />
