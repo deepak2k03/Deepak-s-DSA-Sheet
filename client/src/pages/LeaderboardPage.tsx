@@ -16,6 +16,8 @@ import {
   ArrowUpDown,
   Loader2,
   X,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
@@ -81,6 +83,167 @@ interface LeaderboardResponse {
   settings: LeaderboardSettings;
 }
 
+const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = {
+  isLeaderboardEnabled: true,
+  isPodiumEnabled: true,
+  isSummaryStatsEnabled: true,
+  showStatActiveLearners: true,
+  showStatTotalSolved: true,
+  showStatTopStreak: true,
+  showStatLastUpdated: true,
+  showWeeklyFilter: true,
+  showMonthlyFilter: true,
+  showStreakColumn: true,
+  showThisWeekColumn: true,
+  showLastSolvedColumn: true,
+  showLevelBadge: true,
+  isSearchEnabled: true,
+  rowsPerPage: 25,
+  defaultPeriod: 'all',
+  showZeroSolves: true,
+  tieBreaker: 'earliest_solve',
+};
+
+function normalizeLeaderboardResponse(
+  raw: any,
+  period: 'all' | 'weekly' | 'monthly' = 'all'
+): LeaderboardResponse {
+  if (!raw) {
+    return {
+      isEnabled: true,
+      period,
+      summary: { totalLearners: 0, totalSolved: 0, topStreak: 0, lastUpdated: new Date().toISOString() },
+      podium: [],
+      users: [],
+      currentUser: null,
+      pagination: { total: 0, page: 1, limit: 25, pages: 1 },
+      settings: DEFAULT_LEADERBOARD_SETTINGS,
+    };
+  }
+
+  // 1. Rich object format from new backend
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const rawUsers: LeaderboardUser[] = Array.isArray(raw.users)
+      ? raw.users.map((u: any, idx: number) => ({
+          rank: typeof u.rank === 'number' ? u.rank : idx + 1,
+          username: u.username || 'Anonymous',
+          totalSolved: typeof u.totalSolved === 'number' ? u.totalSolved : (u.solvedCount || 0),
+          solvedThisWeek: typeof u.solvedThisWeek === 'number' ? u.solvedThisWeek : 0,
+          solvedThisMonth: typeof u.solvedThisMonth === 'number' ? u.solvedThisMonth : 0,
+          solvedCount: typeof u.solvedCount === 'number' ? u.solvedCount : (u.totalSolved || 0),
+          score: typeof u.score === 'number' ? u.score : (u.solvedCount || u.totalSolved || 0),
+          maxStreak: typeof u.maxStreak === 'number' ? u.maxStreak : 0,
+          currentStreak: typeof u.currentStreak === 'number' ? u.currentStreak : 0,
+          lastSolvedAt: u.lastSolvedAt || null,
+          createdAt: u.createdAt || null,
+          level: typeof u.level === 'number' ? u.level : Math.max(1, Math.floor(Math.sqrt((u.solvedCount || u.totalSolved || 0) * 0.45)) + 1),
+        }))
+      : [];
+
+    const rawPodium: LeaderboardUser[] = Array.isArray(raw.podium) && raw.podium.length > 0
+      ? raw.podium.map((u: any, idx: number) => ({
+          rank: typeof u.rank === 'number' ? u.rank : idx + 1,
+          username: u.username || 'Anonymous',
+          totalSolved: typeof u.totalSolved === 'number' ? u.totalSolved : (u.solvedCount || 0),
+          solvedThisWeek: typeof u.solvedThisWeek === 'number' ? u.solvedThisWeek : 0,
+          solvedThisMonth: typeof u.solvedThisMonth === 'number' ? u.solvedThisMonth : 0,
+          solvedCount: typeof u.solvedCount === 'number' ? u.solvedCount : (u.totalSolved || 0),
+          score: typeof u.score === 'number' ? u.score : (u.solvedCount || u.totalSolved || 0),
+          maxStreak: typeof u.maxStreak === 'number' ? u.maxStreak : 0,
+          currentStreak: typeof u.currentStreak === 'number' ? u.currentStreak : 0,
+          lastSolvedAt: u.lastSolvedAt || null,
+          createdAt: u.createdAt || null,
+          level: typeof u.level === 'number' ? u.level : Math.max(1, Math.floor(Math.sqrt((u.solvedCount || u.totalSolved || 0) * 0.45)) + 1),
+        }))
+      : rawUsers.slice(0, 3);
+
+    return {
+      isEnabled: raw.isEnabled !== false,
+      period: raw.period || period,
+      summary: {
+        totalLearners: raw.summary?.totalLearners ?? rawUsers.length,
+        totalSolved: raw.summary?.totalSolved ?? rawUsers.reduce((acc, u) => acc + (u.totalSolved || 0), 0),
+        topStreak: raw.summary?.topStreak ?? Math.max(0, ...rawUsers.map((u) => u.maxStreak || 0)),
+        lastUpdated: raw.summary?.lastUpdated || new Date().toISOString(),
+      },
+      podium: rawPodium,
+      users: rawUsers,
+      currentUser: raw.currentUser || null,
+      pagination: raw.pagination || {
+        total: rawUsers.length,
+        page: 1,
+        limit: 25,
+        pages: Math.max(1, Math.ceil(rawUsers.length / 25)),
+      },
+      settings: { ...DEFAULT_LEADERBOARD_SETTINGS, ...(raw.settings || {}) },
+    };
+  }
+
+  // 2. Legacy array format (e.g. from deployed backend on Render)
+  if (Array.isArray(raw)) {
+    const users: LeaderboardUser[] = raw.map((u: any, idx: number) => {
+      const solved = typeof u.solvedCount === 'number'
+        ? u.solvedCount
+        : Array.isArray(u.solvedProblems)
+        ? u.solvedProblems.length
+        : typeof u.totalSolved === 'number'
+        ? u.totalSolved
+        : 0;
+
+      return {
+        rank: typeof u.rank === 'number' ? u.rank : idx + 1,
+        username: u.username || 'Anonymous',
+        totalSolved: solved,
+        solvedThisWeek: typeof u.solvedThisWeek === 'number' ? u.solvedThisWeek : 0,
+        solvedThisMonth: typeof u.solvedThisMonth === 'number' ? u.solvedThisMonth : 0,
+        solvedCount: solved,
+        score: solved,
+        maxStreak: typeof u.maxStreak === 'number' ? u.maxStreak : 0,
+        currentStreak: typeof u.currentStreak === 'number' ? u.currentStreak : 0,
+        lastSolvedAt: u.lastSolvedAt || null,
+        createdAt: u.createdAt || null,
+        level: typeof u.level === 'number' ? u.level : Math.max(1, Math.floor(Math.sqrt(solved * 0.45)) + 1),
+      };
+    });
+
+    const podium = users.slice(0, 3);
+    const totalSolvedSum = users.reduce((sum, u) => sum + u.totalSolved, 0);
+    const topStreakVal = Math.max(0, ...users.map((u) => u.maxStreak || 0));
+
+    return {
+      isEnabled: true,
+      period,
+      summary: {
+        totalLearners: users.length,
+        totalSolved: totalSolvedSum,
+        topStreak: topStreakVal,
+        lastUpdated: new Date().toISOString(),
+      },
+      podium,
+      users,
+      currentUser: null,
+      pagination: {
+        total: users.length,
+        page: 1,
+        limit: Math.max(25, users.length),
+        pages: 1,
+      },
+      settings: DEFAULT_LEADERBOARD_SETTINGS,
+    };
+  }
+
+  return {
+    isEnabled: true,
+    period,
+    summary: { totalLearners: 0, totalSolved: 0, topStreak: 0, lastUpdated: new Date().toISOString() },
+    podium: [],
+    users: [],
+    currentUser: null,
+    pagination: { total: 0, page: 1, limit: 25, pages: 1 },
+    settings: DEFAULT_LEADERBOARD_SETTINGS,
+  };
+}
+
 function formatRelativeTime(dateStr: string | null): string {
   if (!dateStr) return '—';
   const date = new Date(dateStr);
@@ -112,7 +275,6 @@ function formatLastUpdated(dateStr?: string): string {
   });
 }
 
-// Medal component for Podium cards
 // Medal component for Podium cards
 const PodiumMedal: React.FC<{ rank: number }> = ({ rank }) => {
   if (rank === 1) {
@@ -214,13 +376,13 @@ const PodiumCard: React.FC<{
             <div
               className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-extrabold text-sm sm:text-base border shrink-0 shadow-sm ${avatarBgClass}`}
             >
-              {user.username.charAt(0).toUpperCase()}
+              {(user.username || 'U').charAt(0).toUpperCase()}
             </div>
 
             {/* Username & Level */}
             <div className="min-w-0">
               <h3 className="font-bold text-white text-sm sm:text-base truncate leading-tight">
-                {user.username}
+                {user.username || 'Anonymous'}
               </h3>
               {showLevel && (
                 <div className="mt-0.5">
@@ -281,6 +443,7 @@ const PodiumCard: React.FC<{
 const LeaderboardPage: React.FC = () => {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [period, setPeriod] = useState<'all' | 'weekly' | 'monthly'>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -298,6 +461,7 @@ const LeaderboardPage: React.FC = () => {
   const fetchLeaderboard = useCallback(async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       const token = getStoredToken();
       const headers: Record<string, string> = {};
       if (token) headers['x-auth-token'] = token;
@@ -309,13 +473,17 @@ const LeaderboardPage: React.FC = () => {
       if (search.trim()) params.set('search', search.trim());
       if (currentUser) params.set('username', currentUser);
 
-      const res = await fetch(apiUrl(`/api/auth/leaderboard?${params.toString()}`), { headers });
-      if (res.ok) {
-        const payload: LeaderboardResponse = await res.json();
-        setData(payload);
+      const targetUrl = apiUrl(`/api/auth/leaderboard?${params.toString()}`);
+      const res = await fetch(targetUrl, { headers });
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
       }
-    } catch (error) {
+      const raw = await res.json();
+      const normalized = normalizeLeaderboardResponse(raw, period);
+      setData(normalized);
+    } catch (error: any) {
       console.error('Failed to fetch leaderboard:', error);
+      setFetchError(error?.message || 'Failed to load leaderboard data');
     } finally {
       setLoading(false);
     }
@@ -337,12 +505,23 @@ const LeaderboardPage: React.FC = () => {
     setPage(1);
   };
 
-  const settings = data?.settings;
+  const settings = data?.settings || DEFAULT_LEADERBOARD_SETTINGS;
   const isEnabled = data?.isEnabled !== false;
   const summary = data?.summary;
   const podiumUsers = data?.podium || [];
   const tableUsers = data?.users || [];
   const pagination = data?.pagination || { total: 0, page: 1, limit: 25, pages: 1 };
+
+  // Filter table users by search query (works for both backend-filtered and legacy array payloads)
+  const displayTableUsers = useMemo(() => {
+    if (!search.trim()) return tableUsers;
+    const q = search.trim().toLowerCase();
+    return tableUsers.filter(
+      (u) =>
+        (u.username || '').toLowerCase().includes(q) ||
+        String(u.rank).includes(q)
+    );
+  }, [tableUsers, search]);
 
   // Reorder podium into: 2nd place (left), 1st place (center), 3rd place (right)
   const orderedPodium = useMemo(() => {
@@ -360,9 +539,9 @@ const LeaderboardPage: React.FC = () => {
 
   // Highest solve count in table for proportional progress bars
   const maxSolvedInView = useMemo(() => {
-    if (tableUsers.length === 0) return 1;
-    return Math.max(...tableUsers.map((u) => u.solvedCount), 1);
-  }, [tableUsers]);
+    if (displayTableUsers.length === 0) return 1;
+    return Math.max(...displayTableUsers.map((u) => u.solvedCount), 1);
+  }, [displayTableUsers]);
 
   const periodLabel = period === 'weekly' ? 'This Week' : period === 'monthly' ? 'This Month' : 'All Time';
 
@@ -468,6 +647,24 @@ const LeaderboardPage: React.FC = () => {
             </div>
           )}
         </header>
+
+        {/* Fetch Error Banner / Alert */}
+        {fetchError && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200">
+            <div className="flex items-center gap-2.5 text-xs sm:text-sm">
+              <AlertCircle size={16} className="text-red-400 shrink-0" />
+              <span>{fetchError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchLeaderboard()}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/20 px-3 py-1 text-xs font-bold text-red-200 hover:bg-red-500/30 transition shrink-0"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* If leaderboard is disabled by admin */}
         {!isEnabled ? (
@@ -592,7 +789,7 @@ const LeaderboardPage: React.FC = () => {
                 <div className="flex min-h-[220px] items-center justify-center">
                   <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
                 </div>
-              ) : tableUsers.length === 0 ? (
+              ) : displayTableUsers.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
                   <Trophy size={28} className="mx-auto text-slate-600" />
                   <p className="font-bold text-slate-400">No learners found</p>
@@ -631,9 +828,9 @@ const LeaderboardPage: React.FC = () => {
 
                     {/* Table Body */}
                     <tbody className="divide-y divide-white/[0.05]">
-                      {tableUsers.map((user) => {
+                      {displayTableUsers.map((user) => {
                         const isCurrent =
-                          currentUser && user.username.toLowerCase() === currentUser.toLowerCase();
+                          currentUser && user.username && user.username.toLowerCase() === currentUser.toLowerCase();
 
                         // Progress percentage relative to top solver in view
                         const progressPercent = Math.max(
@@ -643,7 +840,7 @@ const LeaderboardPage: React.FC = () => {
 
                         return (
                           <tr
-                            key={user.username}
+                            key={user.username || user.rank}
                             className={`group transition-colors ${
                               isCurrent
                                 ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.12] border-y border-amber-500/30'
@@ -688,7 +885,7 @@ const LeaderboardPage: React.FC = () => {
                                       : 'bg-white/10 text-white'
                                   }`}
                                 >
-                                  {user.username.charAt(0).toUpperCase()}
+                                  {(user.username || 'U').charAt(0).toUpperCase()}
                                 </div>
 
                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -697,7 +894,7 @@ const LeaderboardPage: React.FC = () => {
                                       isCurrent ? 'text-amber-300' : 'text-white'
                                     }`}
                                   >
-                                    {user.username}
+                                    {user.username || 'Anonymous'}
                                   </span>
 
                                   {isCurrent && (
@@ -781,7 +978,7 @@ const LeaderboardPage: React.FC = () => {
               {pagination.pages > 1 && (
                 <div className="border-t border-white/10 bg-[#0c100e] px-4 py-2.5 flex items-center justify-between text-xs text-slate-400">
                   <span>
-                    Showing {tableUsers.length} of {pagination.total.toLocaleString()} learners
+                    Showing {displayTableUsers.length} of {pagination.total.toLocaleString()} learners
                   </span>
 
                   <div className="flex items-center gap-2">

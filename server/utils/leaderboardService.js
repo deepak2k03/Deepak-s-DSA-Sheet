@@ -196,7 +196,7 @@ async function getProcessedUsers(cacheDurationSeconds = 30) {
     const { maxStreak, currentStreak } = calculateStreaks(history);
 
     return {
-      username: user.username,
+      username: user.username || 'Anonymous',
       totalSolved,
       solvedThisWeek: weekSolvedSet.size,
       solvedThisMonth: monthSolvedSet.size,
@@ -289,7 +289,7 @@ async function queryLeaderboard(options = {}) {
     }
 
     // 3. Fallback: alphabetical
-    return a.username.localeCompare(b.username);
+    return (a.username || '').localeCompare(b.username || '');
   });
 
   // Assign global ranks to all sorted users
@@ -304,14 +304,15 @@ async function queryLeaderboard(options = {}) {
   // Search filter
   let displayUsers = rankedUsers;
   if (search) {
-    displayUsers = displayUsers.filter((u) => u.username.toLowerCase().includes(search));
+    displayUsers = displayUsers.filter((u) => (u.username || '').toLowerCase().includes(search));
   }
 
   // Find current user's entry if username provided
   let currentUserEntry = null;
   if (options.currentUsername) {
+    const target = options.currentUsername.toLowerCase();
     currentUserEntry = rankedUsers.find(
-      (u) => u.username.toLowerCase() === options.currentUsername.toLowerCase()
+      (u) => (u.username || '').toLowerCase() === target
     ) || null;
   }
 
