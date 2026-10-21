@@ -17,7 +17,7 @@ const DEFAULT_LEADERBOARD_SETTINGS = {
   showLastSolvedColumn: true,
   showLevelBadge: true,
   isSearchEnabled: true,
-  rowsPerPage: 25,
+  rowsPerPage: 15,
 
   // Ranking settings
   defaultPeriod: 'all', // 'all' | 'weekly' | 'monthly'
@@ -226,7 +226,7 @@ async function queryLeaderboard(options = {}) {
       summary: { totalLearners: 0, totalSolved: 0, topStreak: 0, lastUpdated: new Date().toISOString() },
       podium: [],
       users: [],
-      pagination: { total: 0, page: 1, limit: settings.rowsPerPage || 25, pages: 1 },
+      pagination: { total: 0, page: 1, limit: settings.rowsPerPage || 15, pages: 1 },
       settings,
     };
   }
@@ -317,7 +317,7 @@ async function queryLeaderboard(options = {}) {
   }
 
   // Pagination
-  const limit = Math.min(Math.max(Number.parseInt(options.limit, 10) || settings.rowsPerPage || 25, 5), 100);
+  const limit = Math.min(Math.max(Number.parseInt(options.limit, 10) || settings.rowsPerPage || 15, 5), 100);
   const page = Math.max(Number.parseInt(options.page, 10) || 1, 1);
   const total = displayUsers.length;
   const pages = Math.max(Math.ceil(total / limit), 1);

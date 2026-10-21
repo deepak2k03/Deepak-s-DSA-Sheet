@@ -277,7 +277,7 @@ const defaultLeaderboardConfig: LeaderboardConfigState = {
   showLastSolvedColumn: true,
   showLevelBadge: true,
   isSearchEnabled: true,
-  rowsPerPage: 25,
+  rowsPerPage: 15,
   defaultPeriod: 'all',
   showZeroSolves: true,
   tieBreaker: 'earliest_solve',
@@ -3275,11 +3275,12 @@ const AdminPage: React.FC = () => {
                         label="Default Rows Per Page"
                         value={String(leaderboardConfig.rowsPerPage)}
                         onChange={(val) =>
-                          setLeaderboardConfig((c) => ({ ...c, rowsPerPage: Number(val) || 25 }))
+                          setLeaderboardConfig((c) => ({ ...c, rowsPerPage: Number(val) || 15 }))
                         }
                         options={[
                           { value: '10', label: '10 Learners per page' },
-                          { value: '25', label: '25 Learners per page (Default)' },
+                          { value: '15', label: '15 Learners per page (Default)' },
+                          { value: '25', label: '25 Learners per page' },
                           { value: '50', label: '50 Learners per page' },
                           { value: '100', label: '100 Learners per page' },
                         ]}

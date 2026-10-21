@@ -4,15 +4,12 @@ import {
   Crown,
   Medal,
   Flame,
-  Code2,
-  Users,
   Calendar,
   Search,
   ChevronRight,
   ChevronLeft,
   Target,
   BarChart2,
-  Sparkles,
   ArrowUpDown,
   Loader2,
   X,
@@ -98,7 +95,7 @@ const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = {
   showLastSolvedColumn: true,
   showLevelBadge: true,
   isSearchEnabled: true,
-  rowsPerPage: 25,
+  rowsPerPage: 15,
   defaultPeriod: 'all',
   showZeroSolves: true,
   tieBreaker: 'earliest_solve',
@@ -172,8 +169,8 @@ function normalizeLeaderboardResponse(
       pagination: raw.pagination || {
         total: rawUsers.length,
         page: 1,
-        limit: 25,
-        pages: Math.max(1, Math.ceil(rawUsers.length / 25)),
+        limit: 15,
+        pages: Math.max(1, Math.ceil(rawUsers.length / 15)),
       },
       settings: { ...DEFAULT_LEADERBOARD_SETTINGS, ...(raw.settings || {}) },
     };
@@ -225,8 +222,8 @@ function normalizeLeaderboardResponse(
       pagination: {
         total: users.length,
         page: 1,
-        limit: Math.max(25, users.length),
-        pages: 1,
+        limit: 15,
+        pages: Math.max(1, Math.ceil(users.length / 15)),
       },
       settings: DEFAULT_LEADERBOARD_SETTINGS,
     };
@@ -261,19 +258,6 @@ function formatRelativeTime(dateStr: string | null): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function formatLastUpdated(dateStr?: string): string {
-  if (!dateStr) return 'Live';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'Live';
-  return d.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
 
 // Medal component for Podium cards
 const PodiumMedal: React.FC<{ rank: number }> = ({ rank }) => {
@@ -305,38 +289,6 @@ const PodiumMedal: React.FC<{ rank: number }> = ({ rank }) => {
   );
 };
 
-// Illuminated Pedestal underneath podium card
-const PodiumPedestal: React.FC<{ rank: number }> = ({ rank }) => {
-  if (rank === 1) {
-    return (
-      <div className="relative w-full flex flex-col items-center mt-1 select-none pointer-events-none">
-        <div className="w-24 h-3 bg-gradient-to-t from-amber-500/30 to-amber-500/5 rounded-t border-t-2 border-amber-400/60 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.35)]">
-          <Crown size={10} className="text-amber-400/90 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]" />
-        </div>
-        <div className="w-32 h-1 bg-gradient-to-t from-amber-600/30 to-amber-500/20 rounded-t-sm border-t border-amber-400/40" />
-      </div>
-    );
-  }
-  if (rank === 2) {
-    return (
-      <div className="relative w-full flex flex-col items-center mt-1 select-none pointer-events-none">
-        <div className="w-20 h-2.5 bg-gradient-to-t from-slate-400/20 to-slate-400/5 rounded-t border-t-2 border-slate-300/40 flex items-center justify-center shadow-[0_0_10px_rgba(203,213,225,0.2)]">
-          <Crown size={9} className="text-slate-300/80 drop-shadow-[0_0_4px_rgba(203,213,225,0.6)]" />
-        </div>
-        <div className="w-28 h-1 bg-gradient-to-t from-slate-500/25 to-slate-400/15 rounded-t-sm border-t border-slate-300/30" />
-      </div>
-    );
-  }
-  return (
-    <div className="relative w-full flex flex-col items-center mt-1 select-none pointer-events-none">
-      <div className="w-20 h-2.5 bg-gradient-to-t from-amber-700/25 to-amber-700/5 rounded-t border-t-2 border-amber-600/40 flex items-center justify-center shadow-[0_0_10px_rgba(180,83,9,0.2)]">
-        <Crown size={9} className="text-amber-500/80 drop-shadow-[0_0_4px_rgba(180,83,9,0.6)]" />
-      </div>
-      <div className="w-28 h-1 bg-gradient-to-t from-amber-800/30 to-amber-700/15 rounded-t-sm border-t border-amber-600/30" />
-    </div>
-  );
-};
-
 // Podium Card Component - Streamlined & Compact
 const PodiumCard: React.FC<{
   user: LeaderboardUser;
@@ -348,45 +300,45 @@ const PodiumCard: React.FC<{
 
   const cardBorderClass =
     rank === 1
-      ? 'border-amber-400/50 bg-[#0d120f]/95 shadow-[0_0_25px_rgba(245,158,11,0.18)] ring-1 ring-amber-400/30'
+      ? 'border-amber-400/60 bg-gradient-to-b from-amber-50/90 to-amber-100/40 shadow-sm ring-1 ring-amber-400/30 dark:border-amber-400/50 dark:bg-[#0d120f]/95 dark:shadow-[0_0_25px_rgba(245,158,11,0.18)] dark:ring-amber-400/30'
       : rank === 2
-      ? 'border-slate-500/40 bg-[#0c1012]/95 shadow-[0_0_18px_rgba(148,163,184,0.08)] ring-1 ring-slate-400/20'
-      : 'border-amber-800/40 bg-[#120e0c]/95 shadow-[0_0_18px_rgba(180,83,9,0.08)] ring-1 ring-amber-700/20';
+      ? 'border-slate-200 bg-white/95 shadow-sm ring-1 ring-slate-200/80 dark:border-slate-500/40 dark:bg-[#0c1012]/95 dark:shadow-[0_0_18px_rgba(148,163,184,0.08)] dark:ring-slate-400/20'
+      : 'border-amber-200 bg-white/95 shadow-sm ring-1 ring-amber-200/60 dark:border-amber-800/40 dark:bg-[#120e0c]/95 dark:shadow-[0_0_18px_rgba(180,83,9,0.08)] dark:ring-amber-700/20';
 
   const avatarBgClass =
     rank === 1
-      ? 'bg-amber-50 text-slate-900 border-amber-300'
+      ? 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-50 dark:text-slate-900'
       : rank === 2
-      ? 'bg-slate-100 text-slate-900 border-slate-300'
-      : 'bg-amber-100/90 text-amber-950 border-amber-400';
+      ? 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-100 dark:text-slate-900'
+      : 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-100/90 dark:text-amber-950';
 
   return (
-    <div className={`flex flex-col items-center ${isFirst ? 'md:-translate-y-1' : ''}`}>
+    <div className={`w-full ${isFirst ? 'md:-translate-y-1' : ''}`}>
       {/* Main Glass Card */}
       <div
-        className={`w-full rounded-2xl border p-3.5 sm:p-4 transition-all duration-300 hover:scale-[1.01] ${cardBorderClass}`}
+        className={`w-full h-full rounded-2xl border p-3 sm:p-3.5 transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between ${cardBorderClass}`}
       >
         {/* Top Row: Medal + Avatar & Username + Solved Score */}
-        <div className="flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Medal */}
             <PodiumMedal rank={rank} />
 
             {/* Avatar Initial */}
             <div
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-extrabold text-sm sm:text-base border shrink-0 shadow-sm ${avatarBgClass}`}
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-extrabold text-xs sm:text-sm border shrink-0 shadow-sm ${avatarBgClass}`}
             >
               {(user.username || 'U').charAt(0).toUpperCase()}
             </div>
 
             {/* Username & Level */}
             <div className="min-w-0">
-              <h3 className="font-bold text-white text-sm sm:text-base truncate leading-tight">
+              <h3 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate leading-tight">
                 {user.username || 'Anonymous'}
               </h3>
               {showLevel && (
                 <div className="mt-0.5">
-                  <span className="inline-flex items-center rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-300">
+                  <span className="inline-flex items-center rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.2 text-[8px] sm:text-[9px] font-bold text-amber-700 dark:text-amber-300">
                     Lv. {user.level}
                   </span>
                 </div>
@@ -396,46 +348,43 @@ const PodiumCard: React.FC<{
 
           {/* Solved Score */}
           <div className="text-right shrink-0">
-            <p className="font-mono text-base sm:text-lg font-black text-white leading-none">
+            <p className="font-mono text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none">
               {user.solvedCount}{' '}
-              <span className="text-[10px] sm:text-xs font-bold text-amber-400 uppercase">QS</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">QS</span>
             </p>
-            <p className="text-[9px] font-semibold text-slate-400 mt-0.5 uppercase tracking-wide">
+            <p className="text-[8px] sm:text-[9px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 uppercase tracking-wide">
               {periodLabel}
             </p>
           </div>
         </div>
 
         {/* Bottom Sub-stats Row - Compact single line */}
-        <div className="mt-3 pt-2.5 border-t border-white/[0.08] grid grid-cols-3 gap-1.5 text-center">
-          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] py-1 px-1.5 flex items-center justify-center gap-1.5">
-            <Flame size={12} className="text-amber-400 fill-amber-400 shrink-0" />
+        <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-white/[0.08] grid grid-cols-3 gap-1 text-center">
+          <div className="rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] py-1 px-1 flex items-center justify-center gap-1">
+            <Flame size={11} className="text-amber-500 fill-amber-500 dark:text-amber-400 dark:fill-amber-400 shrink-0" />
             <div className="text-left leading-tight">
-              <span className="font-mono font-bold text-white text-xs block">{user.maxStreak}</span>
-              <span className="text-[8px] text-slate-400 uppercase tracking-tight block">Streak</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block">{user.maxStreak}</span>
+              <span className="text-[8px] text-slate-500 dark:text-slate-400 uppercase tracking-tight block">Streak</span>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] py-1 px-1.5 flex items-center justify-center gap-1.5">
-            <Target size={12} className="text-emerald-400 shrink-0" />
+          <div className="rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] py-1 px-1 flex items-center justify-center gap-1">
+            <Target size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div className="text-left leading-tight">
-              <span className="font-mono font-bold text-white text-xs block">{user.totalSolved}</span>
-              <span className="text-[8px] text-slate-400 uppercase tracking-tight block">Total</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block">{user.totalSolved}</span>
+              <span className="text-[8px] text-slate-500 dark:text-slate-400 uppercase tracking-tight block">Total</span>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] py-1 px-1.5 flex items-center justify-center gap-1.5">
-            <Calendar size={12} className="text-sky-400 shrink-0" />
+          <div className="rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] py-1 px-1 flex items-center justify-center gap-1">
+            <Calendar size={11} className="text-sky-600 dark:text-sky-400 shrink-0" />
             <div className="text-left leading-tight">
-              <span className="font-mono font-bold text-white text-xs block">{user.solvedThisWeek}</span>
-              <span className="text-[8px] text-slate-400 uppercase tracking-tight block">Week</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block">{user.solvedThisWeek}</span>
+              <span className="text-[8px] text-slate-500 dark:text-slate-400 uppercase tracking-tight block">Week</span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Podium Pedestal Graphic */}
-      <PodiumPedestal rank={rank} />
     </div>
   );
 };
@@ -469,6 +418,7 @@ const LeaderboardPage: React.FC = () => {
       const params = new URLSearchParams({
         period,
         page: String(page),
+        limit: '15',
       });
       if (search.trim()) params.set('search', search.trim());
       if (currentUser) params.set('username', currentUser);
@@ -507,13 +457,12 @@ const LeaderboardPage: React.FC = () => {
 
   const settings = data?.settings || DEFAULT_LEADERBOARD_SETTINGS;
   const isEnabled = data?.isEnabled !== false;
-  const summary = data?.summary;
   const podiumUsers = data?.podium || [];
   const tableUsers = data?.users || [];
-  const pagination = data?.pagination || { total: 0, page: 1, limit: 25, pages: 1 };
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 15, pages: 1 };
 
-  // Filter table users by search query (works for both backend-filtered and legacy array payloads)
-  const displayTableUsers = useMemo(() => {
+  // Filter table users by search query
+  const filteredUsers = useMemo(() => {
     if (!search.trim()) return tableUsers;
     const q = search.trim().toLowerCase();
     return tableUsers.filter(
@@ -522,6 +471,23 @@ const LeaderboardPage: React.FC = () => {
         String(u.rank).includes(q)
     );
   }, [tableUsers, search]);
+
+  const pageSize = settings?.rowsPerPage || 15;
+
+  // Slicing for client-side pagination when all users are in memory (legacy backend or client search)
+  const isClientPaginated = filteredUsers.length > pageSize || !data?.pagination;
+  const effectiveTotal = search.trim() ? filteredUsers.length : (pagination.total || filteredUsers.length);
+  const effectivePages = isClientPaginated
+    ? Math.max(1, Math.ceil(effectiveTotal / pageSize))
+    : (pagination.pages || Math.max(1, Math.ceil(effectiveTotal / pageSize)));
+
+  const displayTableUsers = useMemo(() => {
+    if (filteredUsers.length > pageSize) {
+      const start = (page - 1) * pageSize;
+      return filteredUsers.slice(start, start + pageSize);
+    }
+    return filteredUsers;
+  }, [filteredUsers, page, pageSize]);
 
   // Reorder podium into: 2nd place (left), 1st place (center), 3rd place (right)
   const orderedPodium = useMemo(() => {
@@ -546,119 +512,21 @@ const LeaderboardPage: React.FC = () => {
   const periodLabel = period === 'weekly' ? 'This Week' : period === 'monthly' ? 'This Month' : 'All Time';
 
   return (
-    <div className="page-shell min-h-screen bg-[#070908] text-white">
+    <div className="page-shell min-h-screen">
       <AnimatedBackground />
 
       <main className="page-wrap py-5 sm:py-6 space-y-4 sm:space-y-5">
-        {/* ========================================================= */}
-        {/* HEADER SECTION & SUMMARY STATS - Compact & Full Width */}
-        {/* ========================================================= */}
-        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Left: Title & Subtitle */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)] shrink-0">
-              <Trophy size={20} className="sm:w-[22px] sm:h-[22px]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
-                  Leaderboard
-                </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                  <Sparkles size={10} className="text-amber-400" /> Community
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-400">
-                A live view of learners building consistency.
-              </p>
-            </div>
-          </div>
-
-          {/* Right: Summary Statistics Cards - Sleek & High Density */}
-          {settings?.isSummaryStatsEnabled !== false && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 shrink-0">
-              {/* Active Learners */}
-              {settings?.showStatActiveLearners !== false && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-[#0c1210]/90 px-3 py-1.5 shadow-sm min-w-[120px]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400 shrink-0">
-                    <Users size={14} />
-                  </div>
-                  <div>
-                    <div className="font-mono text-sm sm:text-base font-black text-white leading-tight">
-                      {(summary?.totalLearners ?? 0).toLocaleString()}
-                    </div>
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                      Active
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Total Solved */}
-              {settings?.showStatTotalSolved !== false && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-[#0c1210]/90 px-3 py-1.5 shadow-sm min-w-[120px]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 shrink-0">
-                    <Code2 size={14} />
-                  </div>
-                  <div>
-                    <div className="font-mono text-sm sm:text-base font-black text-white leading-tight">
-                      {(summary?.totalSolved ?? 0).toLocaleString()}
-                    </div>
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                      Solved
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Day Streak Top */}
-              {settings?.showStatTopStreak !== false && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-[#0c1210]/90 px-3 py-1.5 shadow-sm min-w-[120px]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 shrink-0">
-                    <Flame size={14} className="fill-amber-400" />
-                  </div>
-                  <div>
-                    <div className="font-mono text-sm sm:text-base font-black text-white leading-tight">
-                      {summary?.topStreak ?? 0}
-                    </div>
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                      Top Streak
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Last Updated */}
-              {settings?.showStatLastUpdated !== false && (
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#0c1210]/90 px-3 py-1.5 shadow-sm min-w-[130px]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-slate-400 shrink-0">
-                    <Calendar size={13} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                      Updated
-                    </div>
-                    <div className="font-mono text-[11px] font-semibold text-slate-200 truncate max-w-[100px]">
-                      {formatLastUpdated(summary?.lastUpdated)}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </header>
-
         {/* Fetch Error Banner / Alert */}
         {fetchError && (
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-700 dark:text-red-200">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm">
-              <AlertCircle size={16} className="text-red-400 shrink-0" />
+              <AlertCircle size={16} className="text-red-500 dark:text-red-400 shrink-0" />
               <span>{fetchError}</span>
             </div>
             <button
               type="button"
               onClick={() => fetchLeaderboard()}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/20 px-3 py-1 text-xs font-bold text-red-200 hover:bg-red-500/30 transition shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/20 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-200 hover:bg-red-500/30 transition shrink-0"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
               Retry
@@ -668,21 +536,21 @@ const LeaderboardPage: React.FC = () => {
 
         {/* If leaderboard is disabled by admin */}
         {!isEnabled ? (
-          <div className="rounded-3xl border border-white/10 bg-[#0c1210] p-10 text-center space-y-3">
+          <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c1210] p-10 text-center space-y-3">
             <Trophy size={36} className="mx-auto text-amber-500/60" />
-            <h2 className="text-xl font-bold text-white">Leaderboard Temporarily Unavailable</h2>
-            <p className="text-sm text-slate-400 max-w-md mx-auto">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Leaderboard Temporarily Unavailable</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
               The community leaderboard is currently undergoing scheduled updates. Please check back shortly!
             </p>
           </div>
         ) : (
           <>
             {/* ========================================================= */}
-            {/* TOP 3 PODIUM SECTION - Streamlined & Full Width */}
+            {/* TOP 3 PODIUM SECTION - Compact & Centered */}
             {/* ========================================================= */}
             {settings?.isPodiumEnabled !== false && orderedPodium.length > 0 && (
-              <section className="pt-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 lg:gap-5 items-end">
+              <section className="pt-1 flex justify-center">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 w-full max-w-[840px] items-stretch">
                   {orderedPodium.map(({ user, rank }) => (
                     <PodiumCard
                       key={user.username}
@@ -701,14 +569,14 @@ const LeaderboardPage: React.FC = () => {
             {/* ========================================================= */}
             <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               {/* Segmented Filter Pills */}
-              <div className="inline-flex items-center rounded-xl border border-white/10 bg-[#0c100e] p-1 shadow-inner">
+              <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#0c100e] p-1 shadow-inner">
                 <button
                   type="button"
                   onClick={() => handlePeriodChange('all')}
                   className={`rounded-lg px-3.5 py-1 text-xs font-bold transition-all ${
                     period === 'all'
-                      ? 'bg-white/10 text-white shadow-sm border border-white/15'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200 dark:bg-white/10 dark:text-white dark:border-white/15'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
                   All Time
@@ -720,8 +588,8 @@ const LeaderboardPage: React.FC = () => {
                     onClick={() => handlePeriodChange('weekly')}
                     className={`rounded-lg px-3.5 py-1 text-xs font-bold transition-all ${
                       period === 'weekly'
-                        ? 'bg-white/10 text-white shadow-sm border border-white/15'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200 dark:bg-white/10 dark:text-white dark:border-white/15'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                     }`}
                   >
                     This Week
@@ -734,8 +602,8 @@ const LeaderboardPage: React.FC = () => {
                     onClick={() => handlePeriodChange('monthly')}
                     className={`rounded-lg px-3.5 py-1 text-xs font-bold transition-all ${
                       period === 'monthly'
-                        ? 'bg-white/10 text-white shadow-sm border border-white/15'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200 dark:bg-white/10 dark:text-white dark:border-white/15'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                     }`}
                   >
                     This Month
@@ -749,20 +617,20 @@ const LeaderboardPage: React.FC = () => {
                   <div className="relative w-full sm:w-64">
                     <Search
                       size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
                     />
                     <input
                       type="text"
                       value={search}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       placeholder="Search by username..."
-                      className="w-full rounded-xl border border-white/10 bg-[#0c100e] py-1.5 pl-8 pr-7 text-xs text-white placeholder-slate-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                      className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c100e] py-1.5 pl-8 pr-7 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                     />
                     {search && (
                       <button
                         type="button"
                         onClick={() => handleSearchChange('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white"
                       >
                         <X size={13} />
                       </button>
@@ -770,12 +638,12 @@ const LeaderboardPage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="hidden sm:flex items-center gap-2 rounded-xl border border-white/10 bg-[#0c100e] px-3 py-1.5 text-xs text-slate-400 shrink-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c100e] px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Total
                   </span>
-                  <span className="font-mono text-xs font-bold text-white">
-                    {pagination.total.toLocaleString()}
+                  <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                    {effectiveTotal.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -784,15 +652,15 @@ const LeaderboardPage: React.FC = () => {
             {/* ========================================================= */}
             {/* LEADERBOARD TABLE - Compact Rows & Clean View */}
             {/* ========================================================= */}
-            <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#090d0b] shadow-xl relative">
+            <section className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#090d0b] shadow-sm dark:shadow-xl relative">
               {loading ? (
                 <div className="flex min-h-[220px] items-center justify-center">
                   <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
                 </div>
               ) : displayTableUsers.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
-                  <Trophy size={28} className="mx-auto text-slate-600" />
-                  <p className="font-bold text-slate-400">No learners found</p>
+                  <Trophy size={28} className="mx-auto text-slate-400 dark:text-slate-600" />
+                  <p className="font-bold text-slate-700 dark:text-slate-400">No learners found</p>
                   <p className="text-xs text-slate-500">
                     {search ? `No results matching "${search}"` : 'Be the first to solve a problem!'}
                   </p>
@@ -801,7 +669,7 @@ const LeaderboardPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
                     {/* Table Header */}
-                    <thead className="border-b border-white/10 bg-[#0c100e] text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c100e] text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       <tr>
                         <th className="py-2.5 pl-4 pr-2 w-14 text-center">#</th>
                         <th className="py-2.5 px-3">User</th>
@@ -810,7 +678,7 @@ const LeaderboardPage: React.FC = () => {
                         )}
                         <th className="py-2.5 px-3">
                           <span className="inline-flex items-center gap-1">
-                            Solved <ArrowUpDown size={11} className="text-slate-500" />
+                            Solved <ArrowUpDown size={11} className="text-slate-400 dark:text-slate-500" />
                           </span>
                         </th>
                         {settings?.showStreakColumn !== false && (
@@ -827,7 +695,7 @@ const LeaderboardPage: React.FC = () => {
                     </thead>
 
                     {/* Table Body */}
-                    <tbody className="divide-y divide-white/[0.05]">
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05]">
                       {displayTableUsers.map((user) => {
                         const isCurrent =
                           currentUser && user.username && user.username.toLowerCase() === currentUser.toLowerCase();
@@ -843,29 +711,29 @@ const LeaderboardPage: React.FC = () => {
                             key={user.username || user.rank}
                             className={`group transition-colors ${
                               isCurrent
-                                ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.12] border-y border-amber-500/30'
-                                : 'hover:bg-white/[0.02]'
+                                ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.14] border-y border-amber-500/30'
+                                : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'
                             }`}
                           >
                             {/* Rank Column */}
                             <td className="py-2.5 pl-4 pr-2 text-center font-bold">
                               {user.rank === 1 ? (
-                                <div className="inline-flex items-center justify-center gap-1 text-amber-400">
-                                  <Crown size={13} className="fill-amber-400 text-amber-400" />
+                                <div className="inline-flex items-center justify-center gap-1 text-amber-500 dark:text-amber-400">
+                                  <Crown size={13} className="fill-amber-500 dark:fill-amber-400 text-amber-500 dark:text-amber-400" />
                                   <span className="font-mono text-xs font-black">1</span>
                                 </div>
                               ) : user.rank === 2 ? (
-                                <div className="inline-flex items-center justify-center gap-1 text-slate-300">
-                                  <Medal size={13} className="fill-slate-300 text-slate-300" />
+                                <div className="inline-flex items-center justify-center gap-1 text-slate-600 dark:text-slate-300">
+                                  <Medal size={13} className="fill-slate-400 dark:fill-slate-300 text-slate-600 dark:text-slate-300" />
                                   <span className="font-mono text-xs font-black">2</span>
                                 </div>
                               ) : user.rank === 3 ? (
-                                <div className="inline-flex items-center justify-center gap-1 text-amber-600">
-                                  <Medal size={13} className="fill-amber-600 text-amber-600" />
+                                <div className="inline-flex items-center justify-center gap-1 text-amber-700 dark:text-amber-600">
+                                  <Medal size={13} className="fill-amber-600 dark:fill-amber-600 text-amber-700 dark:text-amber-600" />
                                   <span className="font-mono text-xs font-black">3</span>
                                 </div>
                               ) : (
-                                <span className="font-mono text-xs font-semibold text-slate-500">
+                                <span className="font-mono text-xs font-semibold text-slate-400 dark:text-slate-500">
                                   #{user.rank}
                                 </span>
                               )}
@@ -877,12 +745,12 @@ const LeaderboardPage: React.FC = () => {
                                 <div
                                   className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                                     user.rank === 1
-                                      ? 'bg-amber-200 text-amber-950 font-black'
+                                      ? 'bg-amber-100 text-amber-950 font-black'
                                       : user.rank === 2
-                                      ? 'bg-slate-200 text-slate-950 font-black'
+                                      ? 'bg-slate-200 text-slate-900 font-black'
                                       : user.rank === 3
-                                      ? 'bg-amber-700/50 text-amber-100 font-black'
-                                      : 'bg-white/10 text-white'
+                                      ? 'bg-amber-100 text-amber-900 font-black'
+                                      : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white'
                                   }`}
                                 >
                                   {(user.username || 'U').charAt(0).toUpperCase()}
@@ -891,14 +759,14 @@ const LeaderboardPage: React.FC = () => {
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <span
                                     className={`font-semibold text-xs sm:text-sm truncate ${
-                                      isCurrent ? 'text-amber-300' : 'text-white'
+                                      isCurrent ? 'text-amber-600 dark:text-amber-300' : 'text-slate-900 dark:text-white'
                                     }`}
                                   >
                                     {user.username || 'Anonymous'}
                                   </span>
 
                                   {isCurrent && (
-                                    <span className="rounded border border-amber-500/40 bg-amber-500/20 px-1 py-0.2 text-[8px] font-black uppercase text-amber-300">
+                                    <span className="rounded border border-amber-500/40 bg-amber-500/20 px-1 py-0.2 text-[8px] font-black uppercase text-amber-700 dark:text-amber-300">
                                       YOU
                                     </span>
                                   )}
@@ -909,7 +777,7 @@ const LeaderboardPage: React.FC = () => {
                             {/* Level Column */}
                             {settings?.showLevelBadge !== false && (
                               <td className="py-2.5 px-3 text-center">
-                                <span className="inline-flex items-center rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
+                                <span className="inline-flex items-center rounded border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
                                   Lv. {user.level}
                                 </span>
                               </td>
@@ -918,12 +786,12 @@ const LeaderboardPage: React.FC = () => {
                             {/* Solved Count + Mini Progress Bar */}
                             <td className="py-2.5 px-3">
                               <div className="space-y-0.5">
-                                <span className="font-mono text-xs sm:text-sm font-bold text-white">
+                                <span className="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                                   {user.solvedCount}
                                 </span>
-                                <div className="w-16 sm:w-20 h-1 rounded-full bg-white/10 overflow-hidden">
+                                <div className="w-16 sm:w-20 h-1 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
                                   <div
-                                    className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                                    className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-all duration-500"
                                     style={{ width: `${progressPercent}%` }}
                                   />
                                 </div>
@@ -933,8 +801,8 @@ const LeaderboardPage: React.FC = () => {
                             {/* Max Streak Column */}
                             {settings?.showStreakColumn !== false && (
                               <td className="py-2.5 px-3 hidden sm:table-cell">
-                                <div className="flex items-center gap-1 text-slate-300">
-                                  <Flame size={13} className="text-amber-400 fill-amber-400 shrink-0" />
+                                <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                                  <Flame size={13} className="text-amber-500 fill-amber-500 dark:text-amber-400 dark:fill-amber-400 shrink-0" />
                                   <span className="font-mono font-bold text-xs">{user.maxStreak}</span>
                                 </div>
                               </td>
@@ -943,8 +811,8 @@ const LeaderboardPage: React.FC = () => {
                             {/* This Week Column */}
                             {settings?.showThisWeekColumn !== false && (
                               <td className="py-2.5 px-3 hidden md:table-cell">
-                                <div className="flex items-center gap-1 text-slate-300">
-                                  <BarChart2 size={13} className="text-sky-400 shrink-0" />
+                                <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                                  <BarChart2 size={13} className="text-sky-500 dark:text-sky-400 shrink-0" />
                                   <span className="font-mono font-bold text-xs">
                                     {user.solvedThisWeek}
                                   </span>
@@ -954,7 +822,7 @@ const LeaderboardPage: React.FC = () => {
 
                             {/* Last Solved Column */}
                             {settings?.showLastSolvedColumn !== false && (
-                              <td className="py-2.5 px-3 hidden lg:table-cell text-slate-400 text-xs">
+                              <td className="py-2.5 px-3 hidden lg:table-cell text-slate-500 dark:text-slate-400 text-xs">
                                 {formatRelativeTime(user.lastSolvedAt)}
                               </td>
                             )}
@@ -963,7 +831,7 @@ const LeaderboardPage: React.FC = () => {
                             <td className="py-2.5 pr-4 pl-2 text-right">
                               <ChevronRight
                                 size={14}
-                                className="text-slate-600 group-hover:text-slate-300 transition-colors"
+                                className="text-slate-300 group-hover:text-slate-600 dark:text-slate-600 dark:group-hover:text-slate-300 transition-colors"
                               />
                             </td>
                           </tr>
@@ -975,10 +843,10 @@ const LeaderboardPage: React.FC = () => {
               )}
 
               {/* Table Footer with Pagination */}
-              {pagination.pages > 1 && (
-                <div className="border-t border-white/10 bg-[#0c100e] px-4 py-2.5 flex items-center justify-between text-xs text-slate-400">
+              {effectivePages > 1 && (
+                <div className="border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c100e] px-4 py-2.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                   <span>
-                    Showing {displayTableUsers.length} of {pagination.total.toLocaleString()} learners
+                    Showing {displayTableUsers.length} of {effectiveTotal.toLocaleString()} learners
                   </span>
 
                   <div className="flex items-center gap-2">
@@ -986,18 +854,18 @@ const LeaderboardPage: React.FC = () => {
                       type="button"
                       disabled={page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] p-1 text-slate-300 hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-1 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                       <ChevronLeft size={15} />
                     </button>
-                    <span className="font-mono text-xs text-white px-2">
-                      {page} / {pagination.pages}
+                    <span className="font-mono text-xs text-slate-900 dark:text-white px-2">
+                      {page} / {effectivePages}
                     </span>
                     <button
                       type="button"
-                      disabled={page >= pagination.pages}
-                      onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] p-1 text-slate-300 hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      disabled={page >= effectivePages}
+                      onClick={() => setPage((p) => Math.min(effectivePages, p + 1))}
+                      className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-1 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                       <ChevronRight size={15} />
                     </button>
