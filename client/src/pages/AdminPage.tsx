@@ -28,6 +28,10 @@ import {
   UploadCloud,
   HardDrive,
   Settings,
+  Boxes,
+  Lightbulb,
+  Zap,
+  Database,
 } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
@@ -39,10 +43,14 @@ import {
   topicIconOptions,
   type TopicDefinition,
 } from '../data/topics';
+import CustomSelect from '../components/CustomSelect';
 import {
   VISUALIZER_CATEGORIES,
+  DATA_STRUCTURE_FAMILIES,
   type AlgorithmCategory,
   type VisualizerAlgorithm,
+  type VisualizerType,
+  type DataStructureOperation,
 } from '../data/visualizers';
 import { getStoredToken, getStoredUser, updateStoredUser } from '../utils/auth';
 import { getCanonicalTopicSlug } from '../utils/topics';
@@ -52,6 +60,7 @@ import {
   fetchVisualizerCategories,
   createAdminVisualizerCategory,
   deleteAdminVisualizerCategory,
+  fetchAdminMinimalProblems,
   type R2StatusResponse,
   type VisualizerCategoryItem,
 } from '../utils/visualizerApi';
@@ -186,6 +195,10 @@ const defaultProblemForm: ProblemFormState = {
 interface VisualizerFormState {
   name: string;
   slug: string;
+  type: VisualizerType;
+  dataStructureType: string;
+  operations: DataStructureOperation[];
+  problemId: string;
   category: AlgorithmCategory;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   description: string;
@@ -202,6 +215,10 @@ interface VisualizerFormState {
 const defaultVisualizerForm: VisualizerFormState = {
   name: '',
   slug: '',
+  type: 'algorithm',
+  dataStructureType: 'Linear',
+  operations: [],
+  problemId: '',
   category: 'Searching',
   difficulty: 'Medium',
   description: '',
@@ -289,11 +306,21 @@ const AdminPage: React.FC = () => {
   const [problemForm, setProblemForm] = useState<ProblemFormState>(defaultProblemForm);
 
   const [visualizers, setVisualizers] = useState<VisualizerAlgorithm[]>([]);
-  const [visualizersPagination, setVisualizersPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 20, pages: 1 });
+  const [visualizersPagination, setVisualizersPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 100, pages: 1 });
   const [visualizerStats, setVisualizerStats] = useState({ total: 0, live: 0, awaiting: 0 });
+  const [visualizerPillarFilter, setVisualizerPillarFilter] = useState<'algorithm' | 'data-structure' | 'problem' | 'all'>('algorithm');
   const [visualizerSearch, setVisualizerSearch] = useState('');
   const [visualizerCategoryFilter, setVisualizerCategoryFilter] = useState('All');
   const [visualizerStatusFilter, setVisualizerStatusFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const [minimalProblems, setMinimalProblems] = useState<Array<{ id: number; title: string; difficulty: string; topic: string; link: string }>>([]);
+  const [problemPickerSearch, setProblemPickerSearch] = useState('');
+  const [problemPickerTopic, setProblemPickerTopic] = useState('All');
+  const [problemPickerDifficulty, setProblemPickerDifficulty] = useState('All');
+  const [isChangingProblem, setIsChangingProblem] = useState(false);
+  const [newOpName, setNewOpName] = useState('');
+  const [newOpTime, setNewOpTime] = useState('O(1)');
+  const [newOpSpace, setNewOpSpace] = useState('O(1)');
+  const [newOpDesc, setNewOpDesc] = useState('');
   const [editingVisualizerId, setEditingVisualizerId] = useState<string | null>(null);
   const [visualizerForm, setVisualizerForm] = useState<VisualizerFormState>(defaultVisualizerForm);
   const [isVisualizerSettingsModalOpen, setIsVisualizerSettingsModalOpen] = useState(false);
@@ -476,12 +503,136 @@ const AdminPage: React.FC = () => {
   const filteredVisualizers = useMemo(() => {
     return visualizers.filter((v) => {
       const q = visualizerSearch.toLowerCase().trim();
-      if (q && !v.name.toLowerCase().includes(q) && !v.slug.toLowerCase().includes(q) && !v.tags.some(t => t.toLowerCase().includes(q))) return false;
-      if (visualizerCategoryFilter !== 'All' && v.category !== visualizerCategoryFilter) return false;
+      if (
+        q &&
+        !v.name.toLowerCase().includes(q) &&
+        !v.slug.toLowerCase().includes(q) &&
+        !v.problemTitle?.toLowerCase().includes(q) &&
+        !v.tags?.some((t) => t.toLowerCase().includes(q))
+      ) {
+        return false;
+      }
+      if (visualizerPillarFilter !== 'all' && (v.type || 'algorithm') !== visualizerPillarFilter) {
+        return false;
+      }
+      if (visualizerCategoryFilter !== 'All') {
+        if (visualizerPillarFilter === 'data-structure') {
+          if (v.dataStructureType !== visualizerCategoryFilter && v.category !== visualizerCategoryFilter) return false;
+        } else if (visualizerPillarFilter === 'problem') {
+          if (v.problemTopic !== visualizerCategoryFilter && v.category !== visualizerCategoryFilter) return false;
+        } else if (v.category !== visualizerCategoryFilter) {
+          return false;
+        }
+      }
       if (visualizerStatusFilter !== 'all' && v.status !== visualizerStatusFilter) return false;
       return true;
     });
-  }, [visualizers, visualizerSearch, visualizerCategoryFilter, visualizerStatusFilter]);
+  }, [visualizers, visualizerSearch, visualizerPillarFilter, visualizerCategoryFilter, visualizerStatusFilter]);
+
+  const pillarCategoryNames = useMemo(() => {
+    if (visualizerPillarFilter === 'data-structure') {
+      return DATA_STRUCTURE_FAMILIES;
+    }
+    if (visualizerPillarFilter === 'problem') {
+      const set = new Set<string>();
+      visualizers.filter((v) => v.type === 'problem').forEach((v) => {
+        if (v.problemTopic) set.add(v.problemTopic);
+        else if (v.category) set.add(v.category);
+      });
+      return Array.from(set);
+    }
+    const set = new Set<string>();
+    visualizers.filter((v) => !v.type || v.type === 'algorithm').forEach((v) => {
+      if (v.category) set.add(v.category);
+    });
+    for (const cat of availableCategoryNames) {
+      set.add(cat);
+    }
+    return Array.from(set);
+  }, [visualizerPillarFilter, visualizers, availableCategoryNames]);
+
+  const algorithmVisualizers = useMemo(
+    () => filteredVisualizers.filter((v) => !v.type || v.type === 'algorithm'),
+    [filteredVisualizers]
+  );
+  const dataStructureVisualizers = useMemo(
+    () => filteredVisualizers.filter((v) => v.type === 'data-structure'),
+    [filteredVisualizers]
+  );
+  const problemVisualizers = useMemo(
+    () => filteredVisualizers.filter((v) => v.type === 'problem'),
+    [filteredVisualizers]
+  );
+
+  const groupedAlgorithms = useMemo(() => {
+    const map = new Map<string, VisualizerAlgorithm[]>();
+    for (const vis of algorithmVisualizers) {
+      const cat = vis.category || 'General';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(vis);
+    }
+    return Array.from(map.entries());
+  }, [algorithmVisualizers]);
+
+  const groupedDataStructures = useMemo(() => {
+    const map = new Map<string, VisualizerAlgorithm[]>();
+    for (const vis of dataStructureVisualizers) {
+      const family = vis.dataStructureType || 'Linear';
+      if (!map.has(family)) map.set(family, []);
+      map.get(family)!.push(vis);
+    }
+    return Array.from(map.entries());
+  }, [dataStructureVisualizers]);
+
+  const groupedProblems = useMemo(() => {
+    const map = new Map<string, VisualizerAlgorithm[]>();
+    for (const vis of problemVisualizers) {
+      const topic = vis.problemTopic || vis.category || 'General';
+      if (!map.has(topic)) map.set(topic, []);
+      map.get(topic)!.push(vis);
+    }
+    return Array.from(map.entries());
+  }, [problemVisualizers]);
+
+  const minimalProblemTopics = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of minimalProblems) {
+      if (p.topic) set.add(p.topic);
+    }
+    return Array.from(set).sort();
+  }, [minimalProblems]);
+
+  const topicProblemCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of minimalProblems) {
+      if (p.topic) counts[p.topic] = (counts[p.topic] || 0) + 1;
+    }
+    return counts;
+  }, [minimalProblems]);
+
+  const filteredMinimalProblems = useMemo(() => {
+    const query = problemPickerSearch.toLowerCase().trim();
+    return minimalProblems.filter((p) => {
+      if (query) {
+        const matchId = String(p.id).includes(query);
+        const matchTitle = p.title.toLowerCase().includes(query);
+        const matchTopic = p.topic?.toLowerCase().includes(query);
+        if (!matchId && !matchTitle && !matchTopic) return false;
+      }
+      if (problemPickerTopic !== 'All' && p.topic !== problemPickerTopic) {
+        return false;
+      }
+      if (problemPickerDifficulty !== 'All' && p.difficulty !== problemPickerDifficulty) {
+        return false;
+      }
+      return true;
+    });
+  }, [minimalProblems, problemPickerSearch, problemPickerTopic, problemPickerDifficulty]);
+
+  const currentlyLinkedProblem = useMemo(() => {
+    if (!visualizerForm.problemId) return null;
+    return minimalProblems.find((p) => String(p.id) === String(visualizerForm.problemId));
+  }, [visualizerForm.problemId, minimalProblems]);
 
   const authHeaders = useMemo(() => {
     const token = getStoredToken();
@@ -505,6 +656,61 @@ const AdminPage: React.FC = () => {
     setEditingVisualizerId(null);
     setVisualizerForm(defaultVisualizerForm);
     setSelectedUploadFile(null);
+    setNewOpName('');
+    setNewOpTime('O(1)');
+    setNewOpSpace('O(1)');
+    setNewOpDesc('');
+    setProblemPickerSearch('');
+    setProblemPickerTopic('All');
+    setProblemPickerDifficulty('All');
+    setIsChangingProblem(false);
+  };
+
+  const handleAddOperation = () => {
+    if (!newOpName.trim()) return;
+    setVisualizerForm((prev) => ({
+      ...prev,
+      operations: [
+        ...(prev.operations || []),
+        {
+          name: newOpName.trim(),
+          timeComplexity: newOpTime.trim() || 'O(1)',
+          spaceComplexity: newOpSpace.trim() || 'O(1)',
+          description: newOpDesc.trim(),
+        },
+      ],
+    }));
+    setNewOpName('');
+    setNewOpTime('O(1)');
+    setNewOpSpace('O(1)');
+    setNewOpDesc('');
+  };
+
+  const handleRemoveOperation = (index: number) => {
+    setVisualizerForm((prev) => ({
+      ...prev,
+      operations: (prev.operations || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSelectProblemForVisualizer = (selectedProblemId: string) => {
+    const prob = minimalProblems.find((p) => String(p.id) === selectedProblemId);
+    if (!prob) {
+      setVisualizerForm((curr) => ({ ...curr, problemId: '' }));
+      setIsChangingProblem(false);
+      return;
+    }
+    const slugName = prob.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const derivedSlug = `problem-${prob.id}-${slugName}`;
+    setVisualizerForm((curr) => ({
+      ...curr,
+      problemId: String(prob.id),
+      name: curr.name ? curr.name : prob.title,
+      slug: curr.slug ? curr.slug : derivedSlug,
+      category: curr.category || prob.topic,
+      difficulty: (prob.difficulty as 'Easy' | 'Medium' | 'Hard') || curr.difficulty,
+    }));
+    setIsChangingProblem(false);
   };
 
   const makeQuery = (entries: Record<string, string | number | undefined>) => {
@@ -569,6 +775,7 @@ const AdminPage: React.FC = () => {
         query: visualizerSearch,
         category: visualizerCategoryFilter,
         status: visualizerStatusFilter,
+        type: visualizerPillarFilter !== 'all' ? visualizerPillarFilter : undefined,
       });
 
       const getJson = async (path: string, fallbackMessage: string) => {
@@ -582,7 +789,7 @@ const AdminPage: React.FC = () => {
         return payload;
       };
 
-      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult, visualizersResult, categoriesResult] = await Promise.allSettled([
+      const [overviewResult, topicsResult, problemsResult, usersResult, auditResult, visualizersResult, categoriesResult, minimalProblemsResult] = await Promise.allSettled([
         getJson('/api/admin/overview', 'Failed to load overview'),
         getJson(`/api/admin/topics?${topicsQuery}`, 'Failed to load topics'),
         getJson(`/api/admin/problems?${problemsQuery}`, 'Failed to load problems'),
@@ -590,6 +797,7 @@ const AdminPage: React.FC = () => {
         getJson(`/api/admin/audit-logs?${auditQuery}`, 'Failed to load audit logs'),
         getJson(`/api/admin/visualizers?${visualizersQuery}`, 'Failed to load visualizers'),
         getJson('/api/admin/visualizers/categories', 'Failed to load visualizer categories'),
+        getJson('/api/admin/problems/list-minimal', 'Failed to load minimal problems'),
       ]);
 
       if (loadRequestIdRef.current !== requestId) {
@@ -653,6 +861,10 @@ const AdminPage: React.FC = () => {
         setCategories(categoriesResult.value);
       }
 
+      if (minimalProblemsResult.status === 'fulfilled' && Array.isArray(minimalProblemsResult.value)) {
+        setMinimalProblems(minimalProblemsResult.value);
+      }
+
       setError(errors.join(' • '));
     } catch (loadError) {
       if (loadRequestIdRef.current === requestId) {
@@ -690,6 +902,7 @@ const AdminPage: React.FC = () => {
     visualizerSearch,
     visualizerCategoryFilter,
     visualizerStatusFilter,
+    visualizerPillarFilter,
     visualizersPagination.page,
     topicsPagination.page,
     problemsPagination.page,
@@ -705,7 +918,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     setVisualizersPagination((p) => ({ ...p, page: 1 }));
-  }, [visualizerSearch, visualizerCategoryFilter, visualizerStatusFilter]);
+  }, [visualizerSearch, visualizerCategoryFilter, visualizerStatusFilter, visualizerPillarFilter]);
 
 
   useEffect(() => {
@@ -974,6 +1187,10 @@ const AdminPage: React.FC = () => {
     setVisualizerForm({
       name: vis.name,
       slug: vis.slug,
+      type: vis.type || 'algorithm',
+      dataStructureType: vis.dataStructureType || 'Linear',
+      operations: vis.operations || [],
+      problemId: vis.problemId ? String(vis.problemId) : '',
       category: vis.category,
       difficulty: vis.difficulty,
       description: vis.description,
@@ -987,6 +1204,10 @@ const AdminPage: React.FC = () => {
       order: String(vis.order || 0),
     });
     setSelectedUploadFile(null);
+    setProblemPickerSearch('');
+    setProblemPickerTopic('All');
+    setProblemPickerDifficulty('All');
+    setIsChangingProblem(false);
   };
 
   const openVisualizerSettings = (vis: VisualizerAlgorithm) => {
@@ -994,8 +1215,10 @@ const AdminPage: React.FC = () => {
     setIsVisualizerSettingsModalOpen(true);
   };
 
-  const openCreateVisualizer = () => {
+  const openCreateVisualizer = (pillar?: VisualizerType) => {
     resetVisualizerForm();
+    const targetType = pillar || (visualizerPillarFilter !== 'all' ? visualizerPillarFilter : 'algorithm');
+    setVisualizerForm((prev) => ({ ...prev, type: targetType }));
     setIsVisualizerSettingsModalOpen(true);
   };
 
@@ -1040,6 +1263,10 @@ const AdminPage: React.FC = () => {
       const payload = {
         name: visualizerForm.name.trim(),
         slug: visualizerForm.slug.trim(),
+        type: visualizerForm.type || 'algorithm',
+        dataStructureType: visualizerForm.dataStructureType,
+        operations: visualizerForm.operations,
+        problemId: visualizerForm.problemId ? Number(visualizerForm.problemId) : null,
         category: visualizerForm.category,
         difficulty: visualizerForm.difficulty,
         description: visualizerForm.description.trim(),
@@ -1066,6 +1293,12 @@ const AdminPage: React.FC = () => {
         const formData = new FormData();
         formData.append('name', payload.name);
         formData.append('slug', payload.slug);
+        formData.append('type', payload.type);
+        formData.append('dataStructureType', payload.dataStructureType || '');
+        formData.append('operations', JSON.stringify(payload.operations || []));
+        if (payload.problemId) {
+          formData.append('problemId', String(payload.problemId));
+        }
         formData.append('category', payload.category);
         formData.append('difficulty', payload.difficulty);
         formData.append('description', payload.description);
@@ -1172,6 +1405,189 @@ const AdminPage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to save code');
       setVisualizerCodeModal((prev) => ({ ...prev, saving: false }));
     }
+  };
+
+  const renderVisualizerCard = (vis: VisualizerAlgorithm) => {
+    const isDataStructure = vis.type === 'data-structure';
+    const isProblem = vis.type === 'problem';
+    const isLive = vis.status === 'available';
+
+    return (
+      <div
+        key={vis.id}
+        className="flex flex-col justify-between rounded-2xl border border-l-4 border-l-teal-500 border-slate-200/80 dark:border-white/10 hover:border-teal-500/50 bg-white dark:bg-[#111715] p-4 sm:p-5 transition-all duration-200 hover:shadow-lg gap-4"
+      >
+        {/* Top Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="p-2 rounded-xl shrink-0 bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+              {isDataStructure ? <Boxes size={18} /> : isProblem ? <Lightbulb size={18} /> : <Zap size={18} />}
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                  {isDataStructure ? 'Data Structure' : isProblem ? `Sheet Problem #${vis.problemId || ''}` : 'Algorithm'}
+                </span>
+
+                <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                  {vis.dataStructureType || vis.category}
+                </span>
+
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    vis.difficulty === 'Easy'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                      : vis.difficulty === 'Medium'
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                      : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
+                  }`}
+                >
+                  {vis.difficulty}
+                </span>
+              </div>
+
+              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate" title={vis.name}>
+                {vis.name}
+              </h3>
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold flex items-center gap-1.5 ${
+                isLive
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              {isLive ? 'Live in R2' : 'Awaiting HTML'}
+            </span>
+            <span className="text-[10px] font-mono text-slate-400">
+              {vis.fileSize ? `${(vis.fileSize / 1024).toFixed(1)} KB` : 'No file'}
+            </span>
+          </div>
+        </div>
+
+        {/* Pillar Specific Body */}
+        <div className="space-y-2.5">
+          {isProblem && (
+            <div className="rounded-xl border border-teal-500/20 bg-teal-500/[0.04] p-2.5 space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-teal-700 dark:text-teal-300">
+                <span className="flex items-center gap-1.5">
+                  <Lightbulb size={13} />
+                  Linked Sheet Problem #{vis.problemId}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-500/10 border border-teal-500/20">
+                  {vis.problemTopic || vis.category}
+                </span>
+              </div>
+              <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">
+                {vis.problemTitle || vis.name}
+              </p>
+            </div>
+          )}
+
+          {!isDataStructure && !isProblem && (
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 rounded-xl px-3 py-1.5">
+              <span>Avg: <strong className="text-teal-600 dark:text-teal-400">{vis.timeComplexity?.average || 'O(n)'}</strong></span>
+              <span>•</span>
+              <span>Worst: <strong className="text-slate-700 dark:text-slate-300">{vis.timeComplexity?.worst || 'O(n²)'}</strong></span>
+              <span>•</span>
+              <span>Space: <strong className="text-slate-700 dark:text-slate-300">{vis.spaceComplexity || 'O(1)'}</strong></span>
+            </div>
+          )}
+
+          {/* Description Snippet */}
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+            {vis.description || 'No description provided.'}
+          </p>
+
+          {/* Storage / File Info */}
+          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-white/5">
+            <span className="flex items-center gap-1.5 truncate max-w-[280px] font-mono text-[10px]">
+              <FileCode size={12} className="text-teal-500 shrink-0" />
+              <span className="truncate">{vis.originalFileName || vis.r2Key || vis.htmlPath}</span>
+            </span>
+            <span className="shrink-0 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              {vis.storageType === 'r2' ? 'Cloudflare R2' : 'Local'}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+          {/* Main Upload / Replace Action */}
+          <button
+            type="button"
+            onClick={() => setReplaceFileModal({ isOpen: true, visualizer: vis, file: null, uploading: false, error: null })}
+            className={`rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition ${
+              !isLive
+                ? 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm'
+                : 'border border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300 hover:bg-teal-500/20'
+            }`}
+            title="Upload / Replace standalone HTML animation"
+          >
+            <UploadCloud size={13} />
+            <span>{!isLive ? 'Upload HTML' : 'Replace HTML'}</span>
+          </button>
+
+          {/* Secondary Actions */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setVisualizerPreviewModal({ isOpen: true, visualizer: vis })}
+              className="rounded-xl border border-slate-200/80 p-1.5 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 transition"
+              title="Preview animation"
+            >
+              <Eye size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openVisualizerSettings(vis)}
+              className="rounded-xl border border-slate-200/80 p-1.5 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 transition"
+              title="Edit configuration & parameters"
+            >
+              <Settings size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openCodeModal(vis)}
+              className="rounded-xl border border-slate-200/80 p-1.5 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 transition"
+              title="Inspect HTML code"
+            >
+              <Code2 size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleVisualizerStatus(vis.id, vis.status)}
+              className={`rounded-xl p-1.5 border transition ${
+                isLive
+                  ? 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10'
+                  : 'border-amber-500/30 text-amber-600 hover:bg-amber-500/10'
+              }`}
+              title={isLive ? 'Mark as Awaiting Code' : 'Mark as Live'}
+            >
+              <Check size={14} className={isLive ? 'opacity-100' : 'opacity-40'} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => deleteVisualizer(vis.id)}
+              className="rounded-xl border border-rose-200/80 p-1.5 text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/20 transition"
+              title="Delete visualizer"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -1654,33 +2070,27 @@ const AdminPage: React.FC = () => {
             </div>
 
             <section className="surface rounded-3xl p-6">
-              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              {/* Master Header */}
+              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                      Visualizer Catalog
+                      Visualizer Hub & Animations
                     </h2>
                     <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300">
                       {filteredVisualizers.length} / {visualizers.length}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      Live: {visualizerStats.live}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-400 border border-amber-500/20">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                      Awaiting Code: {visualizerStats.awaiting}
-                    </span>
-                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Manage 3-pillar visualizers and upload standalone HTML animations to Cloudflare R2
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
                   <SearchBox
                     value={visualizerSearch}
                     onChange={setVisualizerSearch}
-                    placeholder="Search visualizers…"
+                    placeholder="Search by name, tags, topic..."
                   />
 
                   <button
@@ -1694,23 +2104,198 @@ const AdminPage: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={openCreateVisualizer}
+                    onClick={() => openCreateVisualizer()}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-[#123b36] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0b2d29] dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300 shadow-sm"
                   >
                     <Plus size={15} />
-                    <span>New Visualizer</span>
+                    <span>
+                      {visualizerPillarFilter === 'algorithm'
+                        ? 'New Algorithm'
+                        : visualizerPillarFilter === 'data-structure'
+                        ? 'New Data Structure'
+                        : visualizerPillarFilter === 'problem'
+                        ? 'New Sheet Problem'
+                        : 'New Visualizer'}
+                    </span>
                   </button>
                 </div>
               </div>
 
-              {/* Filters */}
-              <div className="mb-4 flex flex-wrap items-center gap-2">
+              {/* 3-Pillar Master Sub-Navigation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                {/* Pillar 1: Algorithms */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisualizerPillarFilter('algorithm');
+                    setVisualizerCategoryFilter('All');
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    visualizerPillarFilter === 'algorithm'
+                      ? 'border-teal-500 bg-teal-500/10 dark:bg-teal-500/[0.08] shadow-md ring-1 ring-teal-500/50'
+                      : 'border-slate-200/80 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20 bg-slate-50/50 dark:bg-white/[0.02]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-xl ${visualizerPillarFilter === 'algorithm' ? 'bg-teal-500 text-white' : 'bg-slate-200/60 dark:bg-white/10 text-teal-600 dark:text-teal-400'}`}>
+                        <Zap size={16} />
+                      </div>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">1. Algorithms</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300">
+                      {visualizers.filter((v) => !v.type || v.type === 'algorithm').length}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 line-clamp-1">
+                    Sorting, Searching, Graphs, DP
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] font-medium">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {visualizers.filter((v) => (!v.type || v.type === 'algorithm') && v.status === 'available').length} Live
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      {visualizers.filter((v) => (!v.type || v.type === 'algorithm') && v.status !== 'available').length} Awaiting
+                    </span>
+                  </div>
+                </button>
+
+                {/* Pillar 2: Data Structures */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisualizerPillarFilter('data-structure');
+                    setVisualizerCategoryFilter('All');
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    visualizerPillarFilter === 'data-structure'
+                      ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/[0.08] shadow-md ring-1 ring-indigo-500/50'
+                      : 'border-slate-200/80 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20 bg-slate-50/50 dark:bg-white/[0.02]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-xl ${visualizerPillarFilter === 'data-structure' ? 'bg-indigo-500 text-white' : 'bg-slate-200/60 dark:bg-white/10 text-indigo-600 dark:text-indigo-400'}`}>
+                        <Boxes size={16} />
+                      </div>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">2. Data Structures</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">
+                      {visualizers.filter((v) => v.type === 'data-structure').length}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 line-clamp-1">
+                    Structures & operations matrix
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] font-medium">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {visualizers.filter((v) => v.type === 'data-structure' && v.status === 'available').length} Live
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      {visualizers.filter((v) => v.type === 'data-structure' && v.status !== 'available').length} Awaiting
+                    </span>
+                  </div>
+                </button>
+
+                {/* Pillar 3: Sheet Problems */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisualizerPillarFilter('problem');
+                    setVisualizerCategoryFilter('All');
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    visualizerPillarFilter === 'problem'
+                      ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/[0.08] shadow-md ring-1 ring-amber-500/50'
+                      : 'border-slate-200/80 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20 bg-slate-50/50 dark:bg-white/[0.02]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-xl ${visualizerPillarFilter === 'problem' ? 'bg-amber-500 text-white' : 'bg-slate-200/60 dark:bg-white/10 text-amber-600 dark:text-amber-400'}`}>
+                        <Lightbulb size={16} />
+                      </div>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">3. Sheet Problems</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                      {visualizers.filter((v) => v.type === 'problem').length}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 line-clamp-1">
+                    Solutions linked to sheet problems
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] font-medium">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {visualizers.filter((v) => v.type === 'problem' && v.status === 'available').length} Live
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      {visualizers.filter((v) => v.type === 'problem' && v.status !== 'available').length} Awaiting
+                    </span>
+                  </div>
+                </button>
+
+                {/* Pillar 4: All Visualizers (Divided Overview) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisualizerPillarFilter('all');
+                    setVisualizerCategoryFilter('All');
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    visualizerPillarFilter === 'all'
+                      ? 'border-slate-500 bg-slate-500/10 dark:bg-white/[0.06] shadow-md ring-1 ring-slate-400/50'
+                      : 'border-slate-200/80 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20 bg-slate-50/50 dark:bg-white/[0.02]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-xl ${visualizerPillarFilter === 'all' ? 'bg-slate-800 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-200/60 dark:bg-white/10 text-slate-600 dark:text-slate-300'}`}>
+                        <LayoutDashboard size={16} />
+                      </div>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">All (Grouped)</span>
+                    </div>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                      {visualizers.length}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 line-clamp-1">
+                    Master view separated by pillar
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] font-medium">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {visualizerStats.live} Live
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                      {visualizerStats.awaiting} Awaiting
+                    </span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Context Filters */}
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">
+                  {visualizerPillarFilter === 'data-structure' ? 'Family:' : 'Category:'}
+                </span>
+
                 <FilterChip
-                  label="All Categories"
+                  label="All"
                   active={visualizerCategoryFilter === 'All'}
                   onClick={() => setVisualizerCategoryFilter('All')}
                 />
-                {availableCategoryNames.map((cat) => (
+                {pillarCategoryNames.map((cat) => (
                   <FilterChip
                     key={cat}
                     label={cat}
@@ -1721,6 +2306,9 @@ const AdminPage: React.FC = () => {
 
                 <span className="mx-1 self-center border-l border-slate-200/80 dark:border-white/10 h-4" />
 
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">
+                  Status:
+                </span>
                 <FilterChip
                   label="All Status"
                   active={visualizerStatusFilter === 'all'}
@@ -1740,162 +2328,168 @@ const AdminPage: React.FC = () => {
                 />
               </div>
 
-              {/* List */}
-              <div className="space-y-3">
-                {filteredVisualizers.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-slate-400">
-                    No visualizers match your filters.
-                  </div>
-                ) : (
-                  filteredVisualizers.map((vis) => (
-                    <div
-                      key={vis.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 md:flex-row md:items-center md:justify-between transition-colors hover:border-slate-300 dark:hover:border-white/20"
-                    >
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-bold text-slate-900 dark:text-white">
-                            {vis.name}
+              {/* Main Content Area */}
+              {filteredVisualizers.length === 0 ? (
+                <div className="p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
+                  <PlayCircle size={32} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    No visualizers match your filters
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Try adjusting search keywords or click "+ New Visualizer" to add one.
+                  </p>
+                </div>
+              ) : visualizerPillarFilter === 'all' ? (
+                /* Master All View: Explicitly Divided into 3 Distinct Sections */
+                <div className="space-y-8">
+                  {/* Section 1: Algorithms */}
+                  {algorithmVisualizers.length > 0 && (
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-teal-500/20 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400">
+                            <Zap size={16} />
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                            Pillar 1: Algorithm Visualizations
                           </h3>
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-white/5 dark:text-slate-300">
-                            {vis.category}
-                          </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            vis.difficulty === 'Easy'
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
-                              : vis.difficulty === 'Medium'
-                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
-                              : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
-                          }`}>
-                            {vis.difficulty}
-                          </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold flex items-center gap-1 ${
-                            vis.status === 'available'
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
-                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
-                          }`}>
-                            {vis.status === 'available' ? 'Live' : 'Awaiting Code'}
-                          </span>
-
-                          {/* Persistent Storage Badge */}
-                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold flex items-center gap-1 ${
-                            vis.storageType === 'r2'
-                              ? 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20'
-                              : 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border border-slate-500/20'
-                          }`}>
-                            {vis.storageType === 'r2' ? (
-                              <>
-                                <UploadCloud size={11} />
-                                <span>Cloudflare R2</span>
-                              </>
-                            ) : (
-                              <>
-                                <HardDrive size={11} />
-                                <span>Local Disk</span>
-                              </>
-                            )}
-                            {vis.fileSize ? ` (${(vis.fileSize / 1024).toFixed(1)} KB)` : ''}
+                          <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-bold">
+                            {algorithmVisualizers.length}
                           </span>
                         </div>
-
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                          {vis.description || 'No description'}
-                        </p>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[11px] text-slate-400">
-                          <code className="rounded bg-black/5 dark:bg-white/5 px-1.5 py-0.5 text-teal-600 dark:text-teal-400">
-                            {vis.originalFileName ? `File: ${vis.originalFileName}` : (vis.r2Key || vis.htmlPath)}
-                          </code>
-                          <span>•</span>
-                          <span>Avg: {vis.timeComplexity?.average}</span>
-                          <span>•</span>
-                          <span>Space: {vis.spaceComplexity}</span>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setVisualizerPillarFilter('algorithm')}
+                          className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline"
+                        >
+                          View Only Algorithms →
+                        </button>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {/* Configure Animation Settings */}
-                        <button
-                          type="button"
-                          onClick={() => openVisualizerSettings(vis)}
-                          className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 flex items-center gap-1.5 transition"
-                          title="Configure Animation Settings"
-                        >
-                          <Settings size={13} />
-                          Settings
-                        </button>
-
-                        {/* Upload HTML to Cloudflare R2 */}
-                        <button
-                          type="button"
-                          onClick={() => setReplaceFileModal({ isOpen: true, visualizer: vis, file: null, uploading: false, error: null })}
-                          className="rounded-xl border border-slate-200/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1 transition"
-                          title="Upload / Replace HTML animation in Cloudflare R2"
-                        >
-                          <UploadCloud size={13} />
-                          Upload HTML
-                        </button>
-
-                        {/* Toggle Status */}
-                        <button
-                          type="button"
-                          onClick={() => toggleVisualizerStatus(vis.id, vis.status)}
-                          className={`rounded-xl px-2.5 py-1.5 text-xs font-semibold border transition ${
-                            vis.status === 'available'
-                              ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10'
-                              : 'border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10'
-                          }`}
-                          title="Toggle Live vs Awaiting Code"
-                        >
-                          {vis.status === 'available' ? 'Set Awaiting' : 'Set Live'}
-                        </button>
-
-                        {/* Preview */}
-                        <button
-                          type="button"
-                          onClick={() => setVisualizerPreviewModal({ isOpen: true, visualizer: vis })}
-                          className="rounded-xl border border-slate-200/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1 transition"
-                          title="Preview Visualizer"
-                        >
-                          <Eye size={13} />
-                          Preview
-                        </button>
-
-                        {/* Edit Code Modal */}
-                        <button
-                          type="button"
-                          onClick={() => openCodeModal(vis)}
-                          className="rounded-xl border border-slate-200/80 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5 flex items-center gap-1 transition"
-                          title="View / Edit HTML Code"
-                        >
-                          <Code2 size={13} />
-                          Edit Code
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          onClick={() => deleteVisualizer(vis.id)}
-                          className="rounded-xl border border-rose-200/80 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/20 transition"
-                          title="Delete Visualizer"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {algorithmVisualizers.map(renderVisualizerCard)}
                       </div>
                     </div>
-                  ))
-                )}
+                  )}
 
-                {/* Pagination */}
-                {visualizersPagination.pages > 1 && (
-                  <PaginationBar
-                    page={visualizersPagination.page}
-                    totalPages={visualizersPagination.pages}
-                    onPrev={() => setVisualizersPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
-                    onNext={() => setVisualizersPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))}
-                  />
-                )}
-              </div>
+                  {/* Section 2: Data Structures */}
+                  {dataStructureVisualizers.length > 0 && (
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                            <Boxes size={16} />
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                            Pillar 2: Data Structures & Operations
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold">
+                            {dataStructureVisualizers.length}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setVisualizerPillarFilter('data-structure')}
+                          className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          View Only Data Structures →
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {dataStructureVisualizers.map(renderVisualizerCard)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section 3: Sheet Problems */}
+                  {problemVisualizers.length > 0 && (
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            <Lightbulb size={16} />
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                            Pillar 3: Sheet Problem Visual Solutions
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                            {problemVisualizers.length}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setVisualizerPillarFilter('problem')}
+                          className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          View Only Sheet Problems →
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {problemVisualizers.map(renderVisualizerCard)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : visualizerPillarFilter === 'algorithm' ? (
+                /* Dedicated Algorithms View: Grouped by Category */
+                <div className="space-y-6">
+                  {groupedAlgorithms.map(([categoryName, items]) => (
+                    <div key={categoryName} className="space-y-3">
+                      <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-white/10 pb-2">
+                        <Zap size={15} className="text-teal-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                          {categoryName}
+                        </h3>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 font-bold">
+                          {items.length}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {items.map(renderVisualizerCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : visualizerPillarFilter === 'data-structure' ? (
+                /* Dedicated Data Structures View: Grouped by Family */
+                <div className="space-y-6">
+                  {groupedDataStructures.map(([familyName, items]) => (
+                    <div key={familyName} className="space-y-3">
+                      <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-white/10 pb-2">
+                        <Boxes size={15} className="text-indigo-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                          {familyName} Data Structures
+                        </h3>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                          {items.length}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {items.map(renderVisualizerCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Dedicated Sheet Problems View: Grouped by Topic */
+                <div className="space-y-6">
+                  {groupedProblems.map(([topicName, items]) => (
+                    <div key={topicName} className="space-y-3">
+                      <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-white/10 pb-2">
+                        <Lightbulb size={15} className="text-amber-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                          {topicName}
+                        </h3>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold">
+                          {items.length}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {items.map(renderVisualizerCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
         )}
@@ -1986,7 +2580,17 @@ const AdminPage: React.FC = () => {
             <div className="surface rounded-3xl p-6">
               <h2 className="mb-5 text-xl font-bold text-slate-900 dark:text-white">Pin Today&apos;s Challenge</h2>
               <div className="space-y-4">
-                <Select label="Problem" value={selectedPotdProblemId} onChange={setSelectedPotdProblemId} options={problems.map((problem) => ({ value: problem.id, label: `#${problem.problemNumber} ${problem.title}` }))} required />
+                <Select
+                  label="Problem"
+                  value={selectedPotdProblemId}
+                  onChange={setSelectedPotdProblemId}
+                  options={problems.map((problem) => ({
+                    value: problem.id,
+                    label: `#${problem.problemNumber} ${problem.title}`,
+                    badge: problem.difficulty,
+                  }))}
+                  required
+                />
                 <button onClick={assignPotd} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#123b36] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-70 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300">
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                   Set Problem of the Day
@@ -2092,13 +2696,13 @@ const AdminPage: React.FC = () => {
                     <div>
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">
                         {editingVisualizerId
-                          ? `Animation Settings: ${visualizerForm.name || 'Visualizer'}`
-                          : 'New Animation Visualizer'}
+                          ? `Visualizer Configuration: ${visualizerForm.name || 'Visualizer'}`
+                          : 'New Visualizer'}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         {editingVisualizerId
-                          ? 'Configure algorithm parameters, runtime metrics, status, and animation file'
-                          : 'Create a new algorithm visualization and upload standalone HTML animation to Cloudflare R2'}
+                          ? 'Configure parameters, operations, sheet problem links, status, and animation file'
+                          : 'Create a new visualization (Algorithm, Data Structure, or Sheet Problem) and upload standalone HTML animation to Cloudflare R2'}
                       </p>
                     </div>
                   </div>
@@ -2121,21 +2725,468 @@ const AdminPage: React.FC = () => {
                   onSubmit={saveVisualizer}
                   className="p-6 overflow-y-auto space-y-5 flex-1 text-left"
                 >
+                  {/* Pillar Selection Segment */}
+                  <div className="rounded-2xl border border-slate-200/80 p-4 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                          Visualization Pillar
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Select which of the 3 DSA pillars this visualizer belongs to
+                        </p>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 uppercase tracking-wider border border-teal-500/20">
+                        {visualizerForm.type === 'data-structure' ? 'Data Structure' : visualizerForm.type === 'problem' ? 'Sheet Problem' : 'Algorithm'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setVisualizerForm((c) => ({ ...c, type: 'algorithm' }))}
+                        className={`p-3 rounded-xl border text-left flex items-start gap-3 transition ${
+                          visualizerForm.type === 'algorithm'
+                            ? 'border-teal-500 bg-teal-500/10 shadow-sm'
+                            : 'border-slate-200/70 hover:border-slate-300 dark:border-white/5 dark:hover:border-white/10 bg-white dark:bg-white/[0.01]'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg ${visualizerForm.type === 'algorithm' ? 'bg-teal-500 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400'}`}>
+                          <Zap size={16} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white">1. Algorithm</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">Sorting, Searching, Graphs, DP</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setVisualizerForm((c) => ({ ...c, type: 'data-structure' }))}
+                        className={`p-3 rounded-xl border text-left flex items-start gap-3 transition ${
+                          visualizerForm.type === 'data-structure'
+                            ? 'border-indigo-500 bg-indigo-500/10 shadow-sm'
+                            : 'border-slate-200/70 hover:border-slate-300 dark:border-white/5 dark:hover:border-white/10 bg-white dark:bg-white/[0.01]'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg ${visualizerForm.type === 'data-structure' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400'}`}>
+                          <Boxes size={16} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white">2. Data Structure</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">DS & all operations (Push, Pop, Insert...)</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setVisualizerForm((c) => ({ ...c, type: 'problem' }))}
+                        className={`p-3 rounded-xl border text-left flex items-start gap-3 transition ${
+                          visualizerForm.type === 'problem'
+                            ? 'border-amber-500 bg-amber-500/10 shadow-sm'
+                            : 'border-slate-200/70 hover:border-slate-300 dark:border-white/5 dark:hover:border-white/10 bg-white dark:bg-white/[0.01]'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg ${visualizerForm.type === 'problem' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400'}`}>
+                          <Lightbulb size={16} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white">3. Sheet Problem</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">Solution animation for sheet problem</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* If Sheet Problem: Problem Picker (Searchable & Filterable) */}
+                  {visualizerForm.type === 'problem' && (
+                    <div className="rounded-2xl border border-teal-500/30 bg-teal-500/[0.03] dark:bg-teal-500/5 p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-teal-500/20 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <Lightbulb size={16} className="text-teal-500" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">
+                            Linked Sheet Problem
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-teal-600/80 dark:text-teal-400/80">
+                          Connects directly to sheet problem & solution page
+                        </span>
+                      </div>
+
+                      {/* Case 1: A problem is currently selected and admin is not in 'changing' mode */}
+                      {currentlyLinkedProblem && !isChangingProblem ? (
+                        <div className="rounded-2xl border border-teal-500/30 bg-white dark:bg-[#121917] p-4 shadow-xs space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <span className="shrink-0 font-mono text-xs font-extrabold rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 px-2.5 py-1.5 shadow-2xs">
+                                #{currentlyLinkedProblem.id}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                  <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                                    {currentlyLinkedProblem.topic}
+                                  </span>
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                      currentlyLinkedProblem.difficulty === 'Easy'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                                        : currentlyLinkedProblem.difficulty === 'Medium'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                                        : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
+                                    }`}
+                                  >
+                                    {currentlyLinkedProblem.difficulty}
+                                  </span>
+                                </div>
+                                <h5 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                                  {currentlyLinkedProblem.title}
+                                </h5>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setIsChangingProblem(true)}
+                                className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 flex items-center gap-1.5 transition"
+                              >
+                                <Search size={13} />
+                                <span>Change Problem</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectProblemForVisualizer('')}
+                                className="rounded-xl border border-slate-200/80 p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:border-white/10 dark:hover:bg-rose-950/20 transition"
+                                title="Unlink problem"
+                              >
+                                <X size={15} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-teal-700/80 dark:text-teal-300/80 pt-2 border-t border-teal-500/15">
+                            <span className="flex items-center gap-1">
+                              <Check size={13} className="text-teal-500" />
+                              Auto-populates title, slug, and topic from sheet
+                            </span>
+                            {currentlyLinkedProblem.link && (
+                              <a
+                                href={currentlyLinkedProblem.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 hover:underline text-teal-600 dark:text-teal-400 font-medium"
+                              >
+                                <span>View Problem Link</span>
+                                <ExternalLink size={11} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        /* Case 2: Interactive Search & Filter Box to pick a problem */
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                              Search & Select Problem from Sheet ({minimalProblems.length} available)
+                            </label>
+                            {currentlyLinkedProblem && (
+                              <button
+                                type="button"
+                                onClick={() => setIsChangingProblem(false)}
+                                className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline font-medium"
+                              >
+                                Cancel (Keep #{currentlyLinkedProblem.id})
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Search Input Bar */}
+                          <div className="relative">
+                            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="text"
+                              value={problemPickerSearch}
+                              onChange={(e) => setProblemPickerSearch(e.target.value)}
+                              placeholder="Search by problem name (e.g. 2Sum, LRU, Search...) or #ID..."
+                              autoFocus={isChangingProblem}
+                              className="w-full rounded-xl border border-teal-500/40 bg-white dark:bg-[#101614] pl-9 pr-9 py-2 text-sm text-slate-900 dark:text-white outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                            />
+                            {problemPickerSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setProblemPickerSearch('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Quick Filter Row: Topics Dropdown + Difficulty Pills */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Topic Select */}
+                            <CustomSelect
+                              size="sm"
+                              value={problemPickerTopic}
+                              onChange={setProblemPickerTopic}
+                              options={[
+                                {
+                                  value: 'All',
+                                  label: `All Topics (${minimalProblems.length})`,
+                                },
+                                ...minimalProblemTopics.map((top) => ({
+                                  value: top,
+                                  label: top,
+                                  badge: `${topicProblemCounts[top] || 0}`,
+                                  badgeColor: 'teal' as const,
+                                })),
+                              ]}
+                              className="w-48 sm:w-56"
+                            />
+
+                            {/* Difficulty Pills */}
+                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200/60 dark:border-white/5">
+                              {['All', 'Easy', 'Medium', 'Hard'].map((diff) => (
+                                <button
+                                  key={diff}
+                                  type="button"
+                                  onClick={() => setProblemPickerDifficulty(diff)}
+                                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
+                                    problemPickerDifficulty === diff
+                                      ? 'bg-white dark:bg-teal-500 text-slate-900 dark:text-[#08241f] shadow-xs'
+                                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                  }`}
+                                >
+                                  {diff}
+                                </button>
+                              ))}
+                            </div>
+
+                            <span className="text-[11px] text-slate-400 ml-auto font-medium">
+                              Found {filteredMinimalProblems.length} problem{filteredMinimalProblems.length === 1 ? '' : 's'}
+                            </span>
+                          </div>
+
+                          {/* Scrollable Results List */}
+                          <div className="max-h-56 overflow-y-auto space-y-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 p-2">
+                            {filteredMinimalProblems.length > 0 ? (
+                              filteredMinimalProblems.map((prob) => {
+                                const isSelected = String(prob.id) === String(visualizerForm.problemId);
+                                return (
+                                  <button
+                                    key={prob.id}
+                                    type="button"
+                                    onClick={() => handleSelectProblemForVisualizer(String(prob.id))}
+                                    className={`w-full flex items-center justify-between gap-3 p-2.5 rounded-xl text-left transition-all ${
+                                      isSelected
+                                        ? 'bg-teal-500/15 border border-teal-500/40 text-teal-900 dark:text-teal-100 shadow-2xs'
+                                        : 'bg-white dark:bg-[#121917] border border-slate-200/60 dark:border-white/5 hover:border-teal-500/40 hover:bg-teal-500/[0.04]'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <span className="shrink-0 font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                                        #{prob.id}
+                                      </span>
+                                      <span className="font-semibold text-xs text-slate-900 dark:text-white truncate">
+                                        {prob.title}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                                        {prob.topic}
+                                      </span>
+                                      <span
+                                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                          prob.difficulty === 'Easy'
+                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                                            : prob.difficulty === 'Medium'
+                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                                            : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
+                                        }`}
+                                      >
+                                        {prob.difficulty}
+                                      </span>
+                                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md transition ${
+                                        isSelected
+                                          ? 'bg-teal-600 text-white'
+                                          : 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300'
+                                      }`}>
+                                        {isSelected ? 'Selected' : 'Link'}
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              <div className="p-6 text-center text-xs text-slate-400 space-y-2">
+                                <p>No sheet problems found matching &quot;{problemPickerSearch}&quot;.</p>
+                                {(problemPickerSearch || problemPickerTopic !== 'All' || problemPickerDifficulty !== 'All') && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setProblemPickerSearch('');
+                                      setProblemPickerTopic('All');
+                                      setProblemPickerDifficulty('All');
+                                    }}
+                                    className="button-secondary text-xs !py-1 !px-3 font-semibold"
+                                  >
+                                    Reset Filters
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* If Data Structure: Family and Operations Matrix */}
+                  {visualizerForm.type === 'data-structure' && (
+                    <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <Boxes size={16} className="text-indigo-500" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                            Data Structure Classification & Operations
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-indigo-600/80 dark:text-indigo-400/80">Operations matrix for this DS</span>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <CustomSelect
+                            label="Data Structure Family"
+                            value={visualizerForm.dataStructureType || 'Linear'}
+                            onChange={(val) => setVisualizerForm((c) => ({ ...c, dataStructureType: val }))}
+                            options={DATA_STRUCTURE_FAMILIES.map((family) => ({
+                              value: family,
+                              label: family,
+                            }))}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Operations Table / Editor */}
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                            Supported Operations ({visualizerForm.operations?.length || 0})
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            Actions users can visualize in your HTML animation
+                          </span>
+                        </div>
+
+                        {/* Existing Operations List */}
+                        {visualizerForm.operations && visualizerForm.operations.length > 0 ? (
+                          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            {visualizerForm.operations.map((op, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#121917] text-xs"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-900 dark:text-white">{op.name}</span>
+                                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                      Time: {op.timeComplexity}
+                                    </span>
+                                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                                      Space: {op.spaceComplexity || 'O(1)'}
+                                    </span>
+                                  </div>
+                                  {op.description && (
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                      {op.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOperation(idx)}
+                                  className="text-slate-400 hover:text-rose-500 p-1 rounded-md transition"
+                                  title="Remove operation"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-3 text-center rounded-xl border border-dashed border-slate-300 dark:border-white/10 text-xs text-slate-400">
+                            No operations configured yet. Add operations below to show in the complexity matrix.
+                          </div>
+                        )}
+
+                        {/* Add Operation Form */}
+                        <div className="p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] space-y-2.5">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">
+                            + Add Operation
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                            <input
+                              type="text"
+                              value={newOpName}
+                              onChange={(e) => setNewOpName(e.target.value)}
+                              placeholder="Operation (e.g. Insert, Pop)"
+                              className="w-full rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-indigo-600 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                            />
+                            <input
+                              type="text"
+                              value={newOpTime}
+                              onChange={(e) => setNewOpTime(e.target.value)}
+                              placeholder="Time (e.g. O(1))"
+                              className="w-full rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 font-mono text-xs text-slate-900 outline-none focus:border-indigo-600 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                            />
+                            <input
+                              type="text"
+                              value={newOpSpace}
+                              onChange={(e) => setNewOpSpace(e.target.value)}
+                              placeholder="Space (e.g. O(1))"
+                              className="w-full rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 font-mono text-xs text-slate-900 outline-none focus:border-indigo-600 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddOperation}
+                              disabled={!newOpName.trim()}
+                              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 transition flex items-center justify-center gap-1 shadow-sm"
+                            >
+                              <Plus size={13} />
+                              Add Op
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={newOpDesc}
+                            onChange={(e) => setNewOpDesc(e.target.value)}
+                            placeholder="Operation description (e.g. Inserts element at head or tail)"
+                            className="w-full rounded-lg border border-slate-200/80 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-indigo-600 dark:border-white/10 dark:bg-[#101614] dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Section 1: General Info */}
                   <div className="rounded-2xl border border-slate-200/80 p-5 dark:border-white/10 space-y-4 bg-slate-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-2.5">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
-                        1. General Details
+                        {visualizerForm.type === 'data-structure' ? 'Data Structure Details' : visualizerForm.type === 'problem' ? 'Problem Solution Details' : '1. General Details'}
                       </h4>
-                      <span className="text-[11px] text-slate-400">Primary algorithm identity</span>
+                      <span className="text-[11px] text-slate-400">
+                        {visualizerForm.type === 'data-structure' ? 'Structure identity & naming' : visualizerForm.type === 'problem' ? 'Problem solution identity' : 'Primary algorithm identity'}
+                      </span>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Input
-                        label="Algorithm Name"
+                        label={visualizerForm.type === 'data-structure' ? 'Data Structure Name' : visualizerForm.type === 'problem' ? 'Problem Solution Title' : 'Algorithm Name'}
                         value={visualizerForm.name}
                         onChange={(value) => setVisualizerForm((current) => ({ ...current, name: value }))}
-                        placeholder="e.g. Quick Sort"
+                        placeholder={visualizerForm.type === 'data-structure' ? 'e.g. Singly Linked List' : visualizerForm.type === 'problem' ? 'e.g. Largest Element Solution' : 'e.g. Quick Sort'}
                         required
                       />
 
@@ -2194,27 +3245,28 @@ const AdminPage: React.FC = () => {
                             </p>
                           </div>
                         ) : (
-                          <select
+                          <CustomSelect
+                            placeholder="— Select Category —"
                             value={visualizerForm.category}
-                            onChange={(e) => {
-                              if (e.target.value === '__NEW__') {
+                            onChange={(val) => {
+                              if (val === '__NEW__') {
                                 setIsCreatingNewCategory(true);
                               } else {
-                                setVisualizerForm((current) => ({ ...current, category: e.target.value }));
+                                setVisualizerForm((current) => ({ ...current, category: val }));
                               }
                             }}
-                            className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20"
-                          >
-                            <option value="" disabled>— Select Category —</option>
-                            {availableCategoryNames.map((cat) => (
-                              <option key={cat} value={cat}>
-                                {cat}
-                              </option>
-                            ))}
-                            <option value="__NEW__" className="font-semibold text-teal-600 dark:text-teal-400">
-                              + Create New Category...
-                            </option>
-                          </select>
+                            options={[
+                              ...availableCategoryNames.map((cat) => ({
+                                value: cat,
+                                label: cat,
+                              })),
+                              {
+                                value: '__NEW__',
+                                label: '+ Create New Category...',
+                                isAction: true,
+                              },
+                            ]}
+                          />
                         )}
                       </div>
 
@@ -2955,22 +4007,7 @@ const TextArea = ({ label, value, onChange }: { label: string; value: string; on
   </label>
 );
 
-const Select = ({ label, value, onChange, options, required = false }: { label: string; value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; required?: boolean; }) => (
-  <label className="block">
-    <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      required={required}
-      className="w-full rounded-xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-white/10 dark:bg-[#101614] dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/20"
-    >
-      <option value="" disabled={required}>— Select —</option>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
-  </label>
-);
+const Select = CustomSelect;
 
 const ToggleRow = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void; }) => (
   <label className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-[#fbfcfa] px-4 py-3 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-[#101614] dark:text-slate-200">

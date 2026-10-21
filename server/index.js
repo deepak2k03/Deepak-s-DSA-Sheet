@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const seedDefaultTopics = require('./utils/seedDefaultTopics');
 const seedDefaultVisualizers = require('./utils/seedDefaultVisualizers');
+const seedThreePillarVisualizers = require('./utils/seedThreePillarVisualizers');
 const { globalRateLimiter } = require('./utils/rateLimiter');
 
 const app = express();
@@ -29,6 +30,7 @@ const startServer = async () => {
 	await connectDB();
 	await seedDefaultTopics();
 	await seedDefaultVisualizers();
+	await seedThreePillarVisualizers();
 
 	app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };

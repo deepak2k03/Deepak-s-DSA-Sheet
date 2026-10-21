@@ -25,6 +25,8 @@ interface ProblemDetail {
   title: string;
   videoSolutionUrl?: string;
   githubLink?: string;
+  visualizerSlug?: string;
+  hasVisualizer?: boolean;
   approaches?: Approach[];
 }
 
@@ -127,21 +129,30 @@ const SolutionPage: React.FC = () => {
       <AnimatedBackground />
       
       <div className="z-10 mx-auto max-w-5xl relative">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <Link to="/" className="inline-flex items-center text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2">
               <ArrowLeft size={16} className="mr-1" /> Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">Solution: {problem.title}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {problem.visualizerSlug && (
+              <Link
+                to={`/visualizers/${problem.visualizerSlug}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-teal-500/20 to-teal-500/10 border border-amber-500/30 px-3.5 py-2.5 text-xs font-bold text-amber-300 hover:border-amber-400 hover:text-amber-200 transition-all shadow-sm"
+              >
+                <PlayCircle size={16} className="text-amber-400 animate-pulse" />
+                <span>Interactive Visual Solution</span>
+              </Link>
+            )}
             {problem.githubLink && (
-              <a href={problem.githubLink} target="_blank" rel="noopener noreferrer" className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm hover:bg-[var(--bg-surface)] hover:text-teal-500 transition-colors" title="View solution on GitHub">
-                <Github size={24} />
+              <a href={problem.githubLink} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm hover:bg-[var(--bg-surface)] hover:text-teal-500 transition-colors" title="View solution on GitHub">
+                <Github size={20} />
               </a>
             )}
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
-              <Code2 size={24} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shadow-sm">
+              <Code2 size={20} />
             </div>
           </div>
         </div>

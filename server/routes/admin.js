@@ -1148,6 +1148,20 @@ router.delete('/visualizers/categories/:id', async (req, res) => {
   }
 });
 
+// GET /api/admin/problems/list-minimal - Lightweight problem picker for visualizer linking
+router.get('/problems/list-minimal', async (req, res) => {
+  try {
+    const problems = await Problem.find({ isDeleted: { $ne: true } })
+      .select('id title difficulty topic link hasVisualizer visualizerSlug')
+      .sort({ id: 1 })
+      .lean();
+    return res.json(problems);
+  } catch (error) {
+    console.error('Admin get minimal problems error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
 // GET /api/admin/visualizers
 router.get('/visualizers', async (req, res) => {
   try {
@@ -1155,6 +1169,7 @@ router.get('/visualizers', async (req, res) => {
     const q = (req.query.query || '').trim();
     const category = (req.query.category || '').trim();
     const status = (req.query.status || '').trim();
+    const type = (req.query.type || '').trim();
 
     const filter = { isDeleted: false };
     if (q) {
@@ -1162,6 +1177,7 @@ router.get('/visualizers', async (req, res) => {
         { name: { $regex: q, $options: 'i' } },
         { slug: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
+        { problemTitle: { $regex: q, $options: 'i' } },
         { tags: { $in: [new RegExp(q, 'i')] } },
       ];
     }
@@ -1171,19 +1187,26 @@ router.get('/visualizers', async (req, res) => {
     if (status && status !== 'all') {
       filter.status = status;
     }
+    if (type && type !== 'all') {
+      filter.type = type;
+    }
 
-    const [total, items, totalAll, liveCount, awaitingCount, r2Health] = await Promise.all([
+    const [total, items, totalAll, liveCount, awaitingCount, algorithmsCount, dataStructuresCount, problemsCount, r2Health] = await Promise.all([
       Visualizer.countDocuments(filter),
       Visualizer.find(filter).sort({ order: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
       Visualizer.countDocuments({ isDeleted: false }),
       Visualizer.countDocuments({ isDeleted: false, status: 'available' }),
       Visualizer.countDocuments({ isDeleted: false, status: 'unavailable' }),
+      Visualizer.countDocuments({ isDeleted: false, $or: [{ type: 'algorithm' }, { type: { $exists: false } }] }),
+      Visualizer.countDocuments({ isDeleted: false, type: 'data-structure' }),
+      Visualizer.countDocuments({ isDeleted: false, type: 'problem' }),
       checkR2Health(),
     ]);
 
     const itemsWithUrls = items.map((vis) => ({
       ...vis,
       id: String(vis._id),
+      type: vis.type || 'algorithm',
       renderUrl: `/api/visualizers/render/${vis.slug}`,
     }));
 
@@ -1192,9 +1215,11 @@ router.get('/visualizers', async (req, res) => {
       total: totalAll,
       live: liveCount,
       awaiting: awaitingCount,
+      algorithms: algorithmsCount,
+      dataStructures: dataStructuresCount,
+      problems: problemsCount,
     };
     result.r2 = r2Health;
-
 
     return res.json(result);
   } catch (error) {
@@ -1221,6 +1246,10 @@ const createVisualizerHandler = async (req, res) => {
       keyConcepts,
       status,
       order,
+      type,
+      dataStructureType,
+      operations,
+      problemId,
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -1276,6 +1305,39 @@ const createVisualizerHandler = async (req, res) => {
       }
     } else if (Array.isArray(keyConcepts)) {
       parsedKeyConcepts = keyConcepts;
+    }
+
+    let parsedOperations = [];
+    if (typeof operations === 'string') {
+      try {
+        const jsonOps = JSON.parse(operations);
+        if (Array.isArray(jsonOps)) parsedOperations = jsonOps;
+      } catch (e) {
+        // Not JSON string
+      }
+    } else if (Array.isArray(operations)) {
+      parsedOperations = operations;
+    }
+
+    let problemTitle = '';
+    let problemTopic = '';
+    let problemDifficulty = '';
+    let problemLink = '';
+    let parsedProblemId = null;
+
+    if (problemId !== undefined && problemId !== null && problemId !== '') {
+      parsedProblemId = Number(problemId);
+      const linkedProblem = await Problem.findOne({ id: parsedProblemId, isDeleted: { $ne: true } });
+      if (linkedProblem) {
+        problemTitle = linkedProblem.title || '';
+        problemTopic = linkedProblem.topic || '';
+        problemDifficulty = linkedProblem.difficulty || 'Medium';
+        problemLink = linkedProblem.link || '';
+        linkedProblem.hasVisualizer = true;
+        linkedProblem.visualizerSlug = slug;
+        await linkedProblem.save();
+        clearProblemsCache();
+      }
     }
 
     const htmlFileName = `${slug}.html`;
@@ -1341,14 +1403,22 @@ const createVisualizerHandler = async (req, res) => {
       }
     }
 
-    const finalCategory = (category || 'Searching').trim();
+    const finalCategory = (category || (problemTopic ? (problemTopic.charAt(0).toUpperCase() + problemTopic.slice(1)) : 'Searching')).trim();
     await ensureCategoryExists(finalCategory);
 
     const payload = {
       name: name.trim(),
       slug,
+      type: type || 'algorithm',
+      dataStructureType: (dataStructureType || '').trim(),
+      operations: parsedOperations,
+      problemId: parsedProblemId,
+      problemTitle,
+      problemTopic,
+      problemDifficulty,
+      problemLink,
       category: finalCategory,
-      difficulty: difficulty || 'Medium',
+      difficulty: difficulty || problemDifficulty || 'Medium',
       description: (description || '').trim(),
       htmlPath,
       storageType,
@@ -1499,6 +1569,10 @@ router.put('/visualizers/:id', async (req, res) => {
       status,
       order,
       isActive,
+      type,
+      dataStructureType,
+      operations,
+      problemId,
     } = req.body;
 
     const visualizer = await Visualizer.findById(id);
@@ -1517,6 +1591,53 @@ router.put('/visualizers/:id', async (req, res) => {
     if (status) visualizer.status = status;
     if (order !== undefined) visualizer.order = Number(order) || 0;
     if (isActive !== undefined) visualizer.isActive = Boolean(isActive);
+
+    if (type) visualizer.type = type;
+    if (dataStructureType !== undefined) visualizer.dataStructureType = dataStructureType.trim();
+
+    if (operations !== undefined) {
+      let parsedOperations = [];
+      if (typeof operations === 'string') {
+        try {
+          const jsonOps = JSON.parse(operations);
+          if (Array.isArray(jsonOps)) parsedOperations = jsonOps;
+        } catch (e) {}
+      } else if (Array.isArray(operations)) {
+        parsedOperations = operations;
+      }
+      visualizer.operations = parsedOperations;
+    }
+
+    if (problemId !== undefined) {
+      const newProblemId = problemId ? Number(problemId) : null;
+      if (visualizer.problemId && visualizer.problemId !== newProblemId) {
+        await Problem.findOneAndUpdate(
+          { id: visualizer.problemId },
+          { hasVisualizer: false, visualizerSlug: '' }
+        );
+      }
+
+      if (newProblemId) {
+        const linkedProblem = await Problem.findOne({ id: newProblemId, isDeleted: { $ne: true } });
+        if (linkedProblem) {
+          visualizer.problemId = newProblemId;
+          visualizer.problemTitle = linkedProblem.title || '';
+          visualizer.problemTopic = linkedProblem.topic || '';
+          visualizer.problemDifficulty = linkedProblem.difficulty || 'Medium';
+          visualizer.problemLink = linkedProblem.link || '';
+          linkedProblem.hasVisualizer = true;
+          linkedProblem.visualizerSlug = visualizer.slug;
+          await linkedProblem.save();
+          clearProblemsCache();
+        }
+      } else {
+        visualizer.problemId = null;
+        visualizer.problemTitle = '';
+        visualizer.problemTopic = '';
+        visualizer.problemDifficulty = '';
+        visualizer.problemLink = '';
+      }
+    }
 
     if (timeComplexity) {
       visualizer.timeComplexity = {
@@ -1539,7 +1660,7 @@ router.put('/visualizers/:id', async (req, res) => {
       action: 'admin.visualizer.update',
       entityType: 'visualizer',
       entityId: String(visualizer._id),
-      metadata: { slug: visualizer.slug, name: visualizer.name },
+      metadata: { slug: visualizer.slug, name: visualizer.name, type: visualizer.type },
     });
 
     const responseData = visualizer.toObject();
@@ -1549,7 +1670,7 @@ router.put('/visualizers/:id', async (req, res) => {
     return res.json(responseData);
   } catch (error) {
     console.error('Admin update visualizer error:', error);
-    return res.status(500).json({ msg: 'Server Error' });
+    return res.status(500).json({ msg: error.message || 'Server Error' });
   }
 });
 
@@ -1714,6 +1835,14 @@ router.delete('/visualizers/:id', async (req, res) => {
       } catch (delError) {
         console.warn(`Could not delete R2 object ${visualizer.r2Key}:`, delError.message);
       }
+    }
+
+    if (visualizer.problemId) {
+      await Problem.findOneAndUpdate(
+        { id: visualizer.problemId },
+        { hasVisualizer: false, visualizerSlug: '' }
+      );
+      clearProblemsCache();
     }
 
     visualizer.isDeleted = true;

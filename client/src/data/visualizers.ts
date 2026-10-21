@@ -4,6 +4,15 @@ export type AlgorithmDifficulty = 'Easy' | 'Medium' | 'Hard';
 
 export type VisualizerStatus = 'available' | 'unavailable';
 
+export type VisualizerType = 'algorithm' | 'data-structure' | 'problem';
+
+export interface DataStructureOperation {
+  name: string;
+  timeComplexity: string;
+  spaceComplexity?: string;
+  description?: string;
+}
+
 export interface ComplexityInfo {
   best: string;
   average: string;
@@ -24,6 +33,14 @@ export interface VisualizerAlgorithm {
   id: string;
   slug: string;
   name: string;
+  type?: VisualizerType;
+  dataStructureType?: string;
+  operations?: DataStructureOperation[];
+  problemId?: number;
+  problemTitle?: string;
+  problemTopic?: string;
+  problemDifficulty?: string;
+  problemLink?: string;
   category: AlgorithmCategory;
   difficulty: AlgorithmDifficulty;
   description: string;
@@ -46,6 +63,14 @@ export interface VisualizerAlgorithm {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export const DATA_STRUCTURE_FAMILIES = [
+  'All',
+  'Linear',
+  'Trees & BST',
+  'Heaps & Hashing',
+  'Graphs & Advanced',
+];
 
 export const VISUALIZER_CATEGORIES: string[] = [
   'Searching',

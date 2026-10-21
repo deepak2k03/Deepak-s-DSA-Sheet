@@ -86,11 +86,19 @@ const getLocalFilePath = (slug) => {
   return null;
 };
 
-// GET /api/visualizers - List all active visualizers
+// GET /api/visualizers - List active visualizers with optional pillar type filter
 router.get('/', async (req, res) => {
   try {
-    const { category, search } = req.query;
+    const { category, search, type, problemId } = req.query;
     const filter = { isDeleted: false, isActive: true };
+
+    if (type && type !== 'all') {
+      filter.type = type;
+    }
+
+    if (problemId) {
+      filter.problemId = Number(problemId);
+    }
 
     if (category && category !== 'All') {
       filter.category = category;
@@ -100,6 +108,7 @@ router.get('/', async (req, res) => {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
+        { problemTitle: { $regex: search, $options: 'i' } },
         { tags: { $in: [new RegExp(search, 'i')] } },
       ];
     }
@@ -110,6 +119,7 @@ router.get('/', async (req, res) => {
     const withUrls = visualizers.map((vis) => ({
       ...vis,
       id: String(vis._id),
+      type: vis.type || 'algorithm',
       renderUrl: `/api/visualizers/render/${vis.slug}`,
     }));
 
@@ -117,6 +127,32 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Error fetching visualizers:', error);
     res.status(500).json({ message: 'Failed to fetch visualizers' });
+  }
+});
+
+// GET /api/visualizers/stats - Overall stats for the 3 pillars
+router.get('/stats', async (req, res) => {
+  try {
+    const activeFilter = { isDeleted: false, isActive: true };
+    const [all, algorithms, dataStructures, problems, live] = await Promise.all([
+      Visualizer.countDocuments(activeFilter),
+      Visualizer.countDocuments({ ...activeFilter, $or: [{ type: 'algorithm' }, { type: { $exists: false } }] }),
+      Visualizer.countDocuments({ ...activeFilter, type: 'data-structure' }),
+      Visualizer.countDocuments({ ...activeFilter, type: 'problem' }),
+      Visualizer.countDocuments({ ...activeFilter, status: 'available' }),
+    ]);
+
+    res.json({
+      total: all,
+      algorithms,
+      dataStructures,
+      problems,
+      live,
+      awaiting: all - live,
+    });
+  } catch (error) {
+    console.error('Error fetching visualizer stats:', error);
+    res.status(500).json({ message: 'Failed to fetch visualizer stats' });
   }
 });
 
@@ -174,8 +210,8 @@ router.get('/:slug', async (req, res) => {
   try {
     const slug = req.params.slug.toLowerCase();
     
-    // Skip if matching /render or /categories
-    if (slug === 'render' || slug === 'categories') {
+    // Skip if matching /render, /categories, or /stats
+    if (slug === 'render' || slug === 'categories' || slug === 'stats') {
       return res.status(404).json({ message: 'Not found' });
     }
 

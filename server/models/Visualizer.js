@@ -39,6 +39,50 @@ const visualizerSchema = new mongoose.Schema(
       worst: { type: String, default: 'O(n)' },
     },
     spaceComplexity: { type: String, default: 'O(1)' },
+    type: {
+      type: String,
+      enum: ['algorithm', 'data-structure', 'problem'],
+      default: 'algorithm',
+      index: true,
+    },
+    dataStructureType: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    operations: [
+      {
+        name: { type: String, trim: true },
+        timeComplexity: { type: String, trim: true, default: 'O(1)' },
+        spaceComplexity: { type: String, trim: true, default: 'O(1)' },
+        description: { type: String, trim: true, default: '' },
+      },
+    ],
+    problemId: {
+      type: Number,
+      default: null,
+      index: true,
+    },
+    problemTitle: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    problemTopic: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    problemDifficulty: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    problemLink: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     tags: [{ type: String, trim: true }],
     keyConcepts: [{ type: String, trim: true }],
     order: { type: Number, default: 0 },

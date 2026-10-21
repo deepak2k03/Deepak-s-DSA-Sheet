@@ -10,6 +10,8 @@ const problemSchema = new mongoose.Schema({
   solutionLink: String,
   githubLink: String,
   videoSolutionUrl: String,
+  visualizerSlug: { type: String, trim: true, default: '' },
+  hasVisualizer: { type: Boolean, default: false },
   approaches: [{
     id: String,
     title: String,

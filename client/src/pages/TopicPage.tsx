@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, CheckCircle2, Code2, ExternalLink, Filter, Globe, Lock, Youtube, Star, FileText, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, Code2, ExternalLink, Filter, Globe, Lock, Youtube, Star, FileText, X, PlayCircle } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
 import AnimatedBackground from '../components/AnimatedBackground';
@@ -10,7 +10,19 @@ import { updateStoredUser } from '../utils/auth';
 import { fetchPublicTopics } from '../utils/topicApi';
 import { getCanonicalTopicSlug } from '../utils/topics';
 
-interface Problem { id: number; title: string; link: string; tutorialLink?: string; solutionLink?: string; githubLink?: string; videoSolutionUrl?: string; difficulty: 'Easy' | 'Medium' | 'Hard'; topic: string; }
+interface Problem {
+  id: number;
+  title: string;
+  link: string;
+  tutorialLink?: string;
+  solutionLink?: string;
+  githubLink?: string;
+  videoSolutionUrl?: string;
+  visualizerSlug?: string;
+  hasVisualizer?: boolean;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  topic: string;
+}
 
 const difficultyStyle: Record<string, string> = { 
   Easy: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30', 
@@ -367,6 +379,14 @@ const ProblemRow = ({ problem, index, complete, isRevision, hasNote, authenticat
       </td>
       <td className="px-5 py-4 text-center">
         <div className="inline-flex w-full justify-center gap-1">
+          {problem.visualizerSlug && (
+            <Resource
+              href={`/visualizers/${problem.visualizerSlug}`}
+              label="Interactive Visual Animation"
+              Icon={PlayCircle}
+              highlight
+            />
+          )}
           <Resource href={problem.videoSolutionUrl || problem.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`} label="Tutorial" Icon={Youtube} />
           <Resource href={`/problem/${problem.id}/solution`} label="Code" Icon={Code2} />
         </div>
@@ -375,13 +395,17 @@ const ProblemRow = ({ problem, index, complete, isRevision, hasNote, authenticat
   );
 };
 
-const Resource = ({ href, label, Icon }: { href: string; label: string; Icon: typeof Youtube }) => (
+const Resource = ({ href, label, Icon, highlight }: { href: string; label: string; Icon: typeof Youtube; highlight?: boolean }) => (
   <a 
     href={href} 
-    target="_blank" 
-    rel="noreferrer" 
+    target={href.startsWith('http') ? '_blank' : undefined} 
+    rel={href.startsWith('http') ? 'noreferrer' : undefined} 
     title={label} 
-    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
+    className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+      highlight
+        ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-300'
+        : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]'
+    }`}
   >
     <Icon size={14} />
   </a>

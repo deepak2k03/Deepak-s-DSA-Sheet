@@ -29,12 +29,14 @@ const getAuthHeaders = () => {
 
 export async function fetchPublicVisualizers(
   category?: string,
-  search?: string
+  search?: string,
+  type?: string
 ): Promise<VisualizerAlgorithm[]> {
   try {
     const params = new URLSearchParams();
     if (category && category !== 'All') params.append('category', category);
     if (search) params.append('search', search);
+    if (type && type !== 'all') params.append('type', type);
 
     const res = await fetch(apiUrl(`/api/visualizers?${params.toString()}`));
     if (!res.ok) throw new Error('Failed to fetch from API');
@@ -46,6 +48,44 @@ export async function fetchPublicVisualizers(
   } catch (error) {
     console.warn('Falling back to local visualizers registry:', error);
     return visualizerAlgorithms;
+  }
+}
+
+export async function fetchVisualizerStats(): Promise<{
+  total: number;
+  algorithms: number;
+  dataStructures: number;
+  problems: number;
+  live: number;
+  awaiting: number;
+}> {
+  try {
+    const res = await fetch(apiUrl('/api/visualizers/stats'));
+    if (!res.ok) throw new Error('Failed to fetch visualizer stats');
+    return await res.json();
+  } catch (error) {
+    return { total: 0, algorithms: 0, dataStructures: 0, problems: 0, live: 0, awaiting: 0 };
+  }
+}
+
+export async function fetchAdminMinimalProblems(): Promise<Array<{
+  id: number;
+  title: string;
+  difficulty: string;
+  topic: string;
+  link: string;
+  hasVisualizer?: boolean;
+  visualizerSlug?: string;
+}>> {
+  try {
+    const res = await fetch(apiUrl('/api/admin/problems/list-minimal'), {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch minimal problems:', error);
+    return [];
   }
 }
 
@@ -72,6 +112,7 @@ export async function fetchAdminVisualizers(params: {
   query?: string;
   category?: string;
   status?: string;
+  type?: string;
 }): Promise<AdminVisualizersResponse> {
   const queryParams = new URLSearchParams();
   if (params.page) queryParams.append('page', String(params.page));
@@ -79,6 +120,7 @@ export async function fetchAdminVisualizers(params: {
   if (params.query) queryParams.append('query', params.query);
   if (params.category && params.category !== 'All') queryParams.append('category', params.category);
   if (params.status && params.status !== 'all') queryParams.append('status', params.status);
+  if (params.type && params.type !== 'all') queryParams.append('type', params.type);
 
   const res = await fetch(apiUrl(`/api/admin/visualizers?${queryParams.toString()}`), {
     headers: getAuthHeaders(),
