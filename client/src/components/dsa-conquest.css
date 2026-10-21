@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════
    CINEMATIC DSA CONQUEST ANIMATION STYLING
-   Aesthetic: Deep Black (#050505) + Emerald (#34D399) + Cyberpunk Grid
+   Cleaned & Streamlined for Mountain Summit & Twinkling Star
    ══════════════════════════════════════════════════════════════════ */
 
 @keyframes conquestPulse {
@@ -9,132 +9,9 @@
     transform: scale(1);
   }
   50% {
-    opacity: 0.85;
-    transform: scale(1.04);
+    opacity: 0.75;
+    transform: scale(1.05);
   }
-}
-
-@keyframes conquestRotateCw {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes conquestRotateCcw {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes conquestScanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(1000%);
-  }
-}
-
-@keyframes conquestBeam {
-  0% {
-    stroke-dashoffset: 400;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes conquestFloat {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes conquestShimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes conquestNodePulse {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(52, 211, 153, 0.25);
-  }
-  50% {
-    box-shadow: 0 0 24px rgba(52, 211, 153, 0.7);
-  }
-}
-
-@keyframes conquestBeacon {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(0.95);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-
-.animate-conquest-pulse {
-  animation: conquestPulse 3s ease-in-out infinite;
-}
-
-.animate-conquest-rotate-cw {
-  animation: conquestRotateCw 22s linear infinite;
-}
-
-.animate-conquest-rotate-ccw {
-  animation: conquestRotateCcw 16s linear infinite;
-}
-
-.animate-conquest-float {
-  animation: conquestFloat 4s ease-in-out infinite;
-}
-
-.animate-conquest-scanline {
-  animation: conquestScanline 4s linear infinite;
-}
-
-.animate-conquest-node-pulse {
-  animation: conquestNodePulse 2s ease-in-out infinite;
-}
-
-.animate-conquest-beacon {
-  animation: conquestBeacon 2.5s ease-in-out infinite;
-}
-
-/* Glass & Neon Utilities */
-.conquest-glass {
-  background: rgba(10, 15, 13, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(52, 211, 153, 0.18);
-}
-
-.conquest-card-glow {
-  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
-}
-
-.conquest-text-gradient {
-  background: linear-gradient(135deg, #ffffff 20%, #a7f3d0 60%, #34d399 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.conquest-portal-gradient {
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.22) 0%, rgba(16, 185, 129, 0.08) 45%, transparent 70%);
 }
 
 @keyframes goldenStarBlink {
@@ -164,7 +41,7 @@
     filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.45));
   }
   50% {
-    filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.85));
+    filter: drop-shadow(0 0 16px rgba(52, 211, 153, 0.8));
   }
 }
 
@@ -177,9 +54,13 @@
     opacity: 0.9;
   }
   100% {
-    transform: translateY(-30px) scale(1);
+    transform: translateY(-28px) scale(1);
     opacity: 0;
   }
+}
+
+.animate-conquest-pulse {
+  animation: conquestPulse 3s ease-in-out infinite;
 }
 
 .animate-golden-star-blink {
@@ -208,15 +89,21 @@
   animation: starSparkle 2.8s ease-out infinite 1.7s;
 }
 
+.conquest-text-gradient {
+  background: linear-gradient(135deg, #ffffff 20%, #a7f3d0 60%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .animate-conquest-pulse,
-  .animate-conquest-rotate-cw,
-  .animate-conquest-rotate-ccw,
-  .animate-conquest-float,
-  .animate-conquest-scanline,
-  .animate-conquest-node-pulse,
-  .animate-conquest-beacon {
+  .animate-golden-star-blink,
+  .animate-golden-ray-rotate,
+  .animate-mountain-glow,
+  .animate-star-sparkle-1,
+  .animate-star-sparkle-2,
+  .animate-star-sparkle-3 {
     animation: none !important;
   }
 }
