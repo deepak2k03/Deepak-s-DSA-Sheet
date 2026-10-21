@@ -5,7 +5,7 @@ import { apiUrl } from '../config';
 import { defaultTopics } from '../data/topics';
 import { fetchPublicTopics } from '../utils/topicApi';
 import AnimatedBackground from './AnimatedBackground';
-import BinaryTreeAnimation from './BinaryTreeAnimation';
+import DSAConquestAnimation from './DSAConquestAnimation';
 import Footer from './Footer';
 
 const HomePage: React.FC = () => {
@@ -95,8 +95,8 @@ const HomePage: React.FC = () => {
           <div className="relative w-full">
              <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 blur-3xl opacity-50 dark:opacity-30 rounded-[40px] z-0"></div>
              
-             <div className="relative z-10 w-full overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-black shadow-2xl shadow-emerald-900/5 dark:shadow-none h-[400px] lg:h-[460px] xl:h-[500px]">
-                <BinaryTreeAnimation />
+             <div className="relative z-10 w-full flex items-center justify-center overflow-visible min-h-[400px] lg:min-h-[460px] xl:min-h-[500px]">
+                <DSAConquestAnimation />
              </div>
              
 
