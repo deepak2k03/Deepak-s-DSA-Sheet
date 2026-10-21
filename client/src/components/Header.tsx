@@ -125,7 +125,7 @@ const Header: React.FC = () => {
       )}
     >
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16">
         <div className="flex items-center justify-between h-[72px]">
           {/* LEFT: Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
@@ -357,7 +357,7 @@ const Header: React.FC = () => {
             WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
           }}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-3 max-h-[calc(100vh-80px)] overflow-y-auto">
+          <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 py-4 space-y-3 max-h-[calc(100vh-80px)] overflow-y-auto">
             {/* Primary Navigation Links */}
             <div className="space-y-1">
               <MobileNavLink

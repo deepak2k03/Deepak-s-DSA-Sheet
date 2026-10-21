@@ -62,7 +62,7 @@ const LeaderboardPage: React.FC = () => {
   return (
     <div className="page-shell">
       <AnimatedBackground />
-      <main className="page-wrap max-w-4xl py-10 sm:py-14">
+      <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         <header className="border-b border-[var(--border-subtle)] pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">

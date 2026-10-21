@@ -6,7 +6,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-base)] mt-20">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2 text-[var(--text-muted)]">
           <Code2 size={18} />
           <span className="text-sm font-medium">DSA Sheet</span>

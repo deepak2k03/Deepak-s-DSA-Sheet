@@ -128,7 +128,7 @@ const SolutionPage: React.FC = () => {
     <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
       <AnimatedBackground />
       
-      <div className="z-10 mx-auto max-w-5xl relative">
+      <div className="z-10 w-full max-w-5xl mx-auto relative">
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <Link to="/" className="inline-flex items-center text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2">

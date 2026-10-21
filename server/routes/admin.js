@@ -189,6 +189,13 @@ router.get('/overview', async (req, res) => {
             problemId: String(todayPotd.problem._id),
             problemNumber: todayPotd.problem.id,
             title: todayPotd.problem.title,
+            difficulty: todayPotd.problem.difficulty,
+            topic: todayPotd.problem.topic,
+            link: todayPotd.problem.link,
+            tutorialLink: todayPotd.problem.tutorialLink || todayPotd.problem.videoSolutionUrl,
+            customDescription: todayPotd.customDescription || '',
+            customEstimatedTime: todayPotd.customEstimatedTime || '',
+            customFocusArea: todayPotd.customFocusArea || '',
             date: todayPotd.date,
           }
         : null,
@@ -810,37 +817,57 @@ router.patch('/users/:userId', async (req, res) => {
 });
 
 router.post('/potd', async (req, res) => {
-  const { problemId } = req.body;
+  const { problemId, customDescription, customEstimatedTime, customFocusArea } = req.body;
 
   try {
-    const problem = await Problem.findOne({ _id: problemId, isDeleted: { $ne: true } });
+    const query = mongoose.Types.ObjectId.isValid(problemId)
+      ? { _id: problemId, isDeleted: { $ne: true } }
+      : { id: Number(problemId) || 0, isDeleted: { $ne: true } };
+    const problem = await Problem.findOne(query);
 
     if (!problem) {
       return res.status(404).json({ msg: 'Problem not found' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const targetDate = (req.body.date && typeof req.body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.body.date))
+      ? req.body.date
+      : new Date().toISOString().split('T')[0];
 
-    await POTD.findOneAndUpdate(
-      { date: today },
-      { date: today, problem: problem._id },
+    const updateDoc = {
+      date: targetDate,
+      problem: problem._id,
+    };
+    if (customDescription !== undefined) updateDoc.customDescription = customDescription;
+    if (customEstimatedTime !== undefined) updateDoc.customEstimatedTime = customEstimatedTime;
+    if (customFocusArea !== undefined) updateDoc.customFocusArea = customFocusArea;
+
+    const saved = await POTD.findOneAndUpdate(
+      { date: targetDate },
+      updateDoc,
       { upsert: true, new: true },
     );
 
     await writeAuditLog(req, {
       action: 'admin.potd.set',
       entityType: 'potd',
-      entityId: today,
+      entityId: targetDate,
       metadata: { problemId: String(problem._id), problemNumber: problem.id },
     });
 
     return res.json({
       msg: 'Problem of the day updated successfully',
       potd: {
-        date: today,
+        date: targetDate,
         problemId: String(problem._id),
         problemNumber: problem.id,
         title: problem.title,
+        difficulty: problem.difficulty,
+        topic: problem.topic,
+        link: problem.link,
+        tutorialLink: problem.tutorialLink || problem.videoSolutionUrl,
+        customDescription: saved.customDescription || '',
+        customEstimatedTime: saved.customEstimatedTime || '',
+        customFocusArea: saved.customFocusArea || '',
       },
     });
   } catch (error) {

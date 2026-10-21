@@ -103,7 +103,20 @@ router.get('/potd', async (req, res) => {
       await potdEntry.save();
       potdEntry = await potdEntry.populate('problem');
     }
-    res.json(potdEntry.problem);
+
+    const problemData = potdEntry.problem.toObject();
+    if (potdEntry.customDescription) {
+      problemData.description = potdEntry.customDescription;
+    }
+    if (potdEntry.customEstimatedTime) {
+      problemData.estimatedTime = potdEntry.customEstimatedTime;
+    }
+    if (potdEntry.customFocusArea) {
+      problemData.focusArea = potdEntry.customFocusArea;
+    }
+    problemData.potdDate = potdEntry.date;
+
+    res.json(problemData);
 
   } catch (err) {
     console.error(err.message);

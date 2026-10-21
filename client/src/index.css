@@ -189,9 +189,10 @@
     color: var(--text-primary);
   }
 
-  /* ── Page content wrapper ── */
+  /* ── Page content wrapper — full area utilization ── */
   .page-wrap {
-    @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10;
+    @apply w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16;
+    max-width: 100%;
   }
 
   /* ── Eyebrow label ── */
@@ -271,29 +272,40 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   SCROLLBAR — Premium custom scrollbar
+   SCROLLBAR — Completely hidden everywhere while keeping scroll active
    ═══════════════════════════════════════════════════════ */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border: 3px solid transparent;
-  background-clip: content-box;
-  border-radius: 99px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scrollbar-hover);
-  background-clip: content-box;
-}
-/* Firefox */
+
+/* Firefox & IE/Edge */
+html,
+body,
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.hide-scrollbar,
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* ═══════════════════════════════════════════════════════

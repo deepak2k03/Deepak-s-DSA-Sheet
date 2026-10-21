@@ -280,7 +280,7 @@ const ProfilePage: React.FC = () => {
     return (
        <div className="page-shell">
          <AnimatedBackground />
-         <div className="page-wrap max-w-5xl mx-auto py-20 text-center">
+         <div className="page-wrap py-20 text-center">
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">Please sign in to view your profile.</h1>
          </div>
        </div>
@@ -292,7 +292,7 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="page-shell">
       <AnimatedBackground />
-      <main className="page-wrap max-w-6xl mx-auto py-10 sm:py-14">
+      <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         
         {/* Profile Header */}
         <div className="mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-[var(--border-subtle)]">

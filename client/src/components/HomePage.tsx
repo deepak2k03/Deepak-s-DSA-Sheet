@@ -35,11 +35,11 @@ const HomePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="page-shell overflow-hidden">
+    <div className="page-shell overflow-x-hidden">
       <AnimatedBackground />
       <main>
         {/* HERO SECTION */}
-        <section className="page-wrap relative grid min-h-[70vh] items-center gap-16 pt-8 pb-20 lg:grid-cols-[1fr_1fr] lg:pt-12 lg:pb-28">
+        <section className="page-wrap relative grid min-h-[70vh] items-center gap-12 xl:gap-20 pt-8 pb-20 lg:grid-cols-[1.1fr_1fr] lg:pt-12 lg:pb-28">
           
           {/* Left Column (Content) */}
           <div className="relative z-10 flex flex-col items-start text-left">
@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
               </span>
             </h1>
             
-            <p className="mt-6 max-w-xl text-lg text-[var(--text-secondary)] leading-relaxed">
+            <p className="mt-6 max-w-2xl text-lg text-[var(--text-secondary)] leading-relaxed">
               A thoughtfully curated DSA roadmap that helps you recognize patterns, build momentum, and see every bit of progress. No busy dashboards, just code.
             </p>
             
@@ -92,7 +92,7 @@ const HomePage: React.FC = () => {
           <div className="relative w-full">
              <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 blur-3xl opacity-50 dark:opacity-30 rounded-[40px] z-0"></div>
              
-             <div className="relative z-10 w-full overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-black shadow-2xl shadow-emerald-900/5 dark:shadow-none h-[400px]">
+             <div className="relative z-10 w-full overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-black shadow-2xl shadow-emerald-900/5 dark:shadow-none h-[400px] lg:h-[460px] xl:h-[500px]">
                 <BinaryTreeAnimation />
              </div>
              
