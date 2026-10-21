@@ -21,11 +21,14 @@ const HomePage: React.FC = () => {
         ]);
         const problemData = await problems.json(); 
         const userData = await users.json();
+        const userList = Array.isArray(userData) ? userData : (userData?.users || []);
+        const activeUsersCount = userData?.summary?.totalLearners ?? userList.length;
+        const totalSolvesCount = userData?.summary?.totalSolved ?? userList.reduce((sum: number, user: { solvedCount?: number }) => sum + (user.solvedCount || 0), 0);
         setStats({ 
           totalProblems: Array.isArray(problemData) ? problemData.length : 0, 
-          activeUsers: Array.isArray(userData) ? userData.length : 0, 
+          activeUsers: activeUsersCount, 
           topicsCount: topics.length, 
-          totalSolves: Array.isArray(userData) ? userData.reduce((sum: number, user: { solvedCount?: number }) => sum + (user.solvedCount || 0), 0) : 0 
+          totalSolves: totalSolvesCount, 
         });
       } catch { 
         setStats({ totalProblems: 450, activeUsers: 0, topicsCount: defaultTopics.length, totalSolves: 0 }); 
@@ -130,11 +133,11 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {[
+            {([
               [BookOpen, 'Structured roadmap', 'Move through the concepts in an order that makes sense.'],
               [BarChart3, 'Progress you can feel', 'See solved work, topic depth, and daily consistency at a glance.'],
               [Trophy, 'Friendly competition', 'Find motivation on the leaderboard without losing focus.']
-            ].map(([Icon, title, copy]) => {
+            ] as const).map(([Icon, title, copy]) => {
               const I = Icon as typeof BookOpen;
               return (
                 <article key={String(title)} className="group flex flex-col rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-md)] hover:border-[var(--text-primary)]">

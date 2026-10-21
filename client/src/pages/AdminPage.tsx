@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AlertCircle,
@@ -8,16 +8,13 @@ import {
   Boxes,
   Calendar,
   Check,
-  Clock,
   Code2,
   Copy,
-  Database,
   ExternalLink,
   Eye,
   FileCode,
   FileText,
   FolderTree,
-  HardDrive,
   LayoutDashboard,
   Lightbulb,
   Loader2,
@@ -32,6 +29,7 @@ import {
   Sparkles,
   Target,
   Trash2,
+  Trophy,
   UploadCloud,
   Users,
   Wrench,
@@ -59,20 +57,17 @@ import {
   type DataStructureOperation,
 } from '../data/visualizers';
 import { getStoredToken, getStoredUser, updateStoredUser } from '../utils/auth';
-import { getCanonicalTopicSlug } from '../utils/topics';
 import {
   checkR2Status,
   replaceAdminVisualizerFile,
-  fetchVisualizerCategories,
   createAdminVisualizerCategory,
   deleteAdminVisualizerCategory,
-  fetchAdminMinimalProblems,
   type R2StatusResponse,
   type VisualizerCategoryItem,
 } from '../utils/visualizerApi';
 
 
-type AdminTab = 'overview' | 'topics' | 'problems' | 'visualizers' | 'users' | 'potd' | 'audit';
+type AdminTab = 'overview' | 'topics' | 'problems' | 'visualizers' | 'users' | 'potd' | 'leaderboard' | 'audit';
 
 interface AdminProblem {
   id: string;
@@ -245,6 +240,50 @@ const defaultVisualizerForm: VisualizerFormState = {
   order: '0',
 };
 
+interface LeaderboardConfigState {
+  isLeaderboardEnabled: boolean;
+  isPodiumEnabled: boolean;
+  isSummaryStatsEnabled: boolean;
+  showStatActiveLearners: boolean;
+  showStatTotalSolved: boolean;
+  showStatTopStreak: boolean;
+  showStatLastUpdated: boolean;
+  showWeeklyFilter: boolean;
+  showMonthlyFilter: boolean;
+  showStreakColumn: boolean;
+  showThisWeekColumn: boolean;
+  showLastSolvedColumn: boolean;
+  showLevelBadge: boolean;
+  isSearchEnabled: boolean;
+  rowsPerPage: number;
+  defaultPeriod: 'all' | 'weekly' | 'monthly';
+  showZeroSolves: boolean;
+  tieBreaker: 'earliest_solve' | 'account_age' | 'alphabetical';
+  cacheDurationSeconds: number;
+}
+
+const defaultLeaderboardConfig: LeaderboardConfigState = {
+  isLeaderboardEnabled: true,
+  isPodiumEnabled: true,
+  isSummaryStatsEnabled: true,
+  showStatActiveLearners: true,
+  showStatTotalSolved: true,
+  showStatTopStreak: true,
+  showStatLastUpdated: true,
+  showWeeklyFilter: true,
+  showMonthlyFilter: true,
+  showStreakColumn: true,
+  showThisWeekColumn: true,
+  showLastSolvedColumn: true,
+  showLevelBadge: true,
+  isSearchEnabled: true,
+  rowsPerPage: 25,
+  defaultPeriod: 'all',
+  showZeroSolves: true,
+  tieBreaker: 'earliest_solve',
+  cacheDurationSeconds: 30,
+};
+
 const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
   { id: 'topics', label: 'Topics', icon: <FolderTree size={16} /> },
@@ -252,6 +291,7 @@ const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
   { id: 'visualizers', label: 'Visualizers', icon: <PlayCircle size={16} /> },
   { id: 'users', label: 'Users', icon: <Users size={16} /> },
   { id: 'potd', label: 'POTD', icon: <Sparkles size={16} /> },
+  { id: 'leaderboard', label: 'Leaderboard', icon: <Trophy size={16} /> },
   { id: 'audit', label: 'Audit', icon: <Shield size={16} /> },
 ];
 
@@ -279,6 +319,10 @@ const AdminPage: React.FC = () => {
   const [potdCustomEstimatedTime, setPotdCustomEstimatedTime] = useState('');
   const [potdCustomFocusArea, setPotdCustomFocusArea] = useState('');
   const [potdScheduledDate, setPotdScheduledDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [leaderboardConfig, setLeaderboardConfig] = useState<LeaderboardConfigState>(defaultLeaderboardConfig);
+  const [leaderboardSummary, setLeaderboardSummary] = useState<{ totalLearners: number; totalSolved: number; topStreak: number; lastUpdated?: string } | null>(null);
+  const [leaderboardLastCache, setLeaderboardLastCache] = useState<string | null>(null);
+  const [refreshingLeaderboard, setRefreshingLeaderboard] = useState(false);
   const [topicSearch, setTopicSearch] = useState('');
   const [topicStatusFilter, setTopicStatusFilter] = useState<'all' | 'active' | 'hidden' | 'deleted'>('all');
   const [isReorderingTopics, setIsReorderingTopics] = useState(false);
@@ -297,13 +341,13 @@ const AdminPage: React.FC = () => {
     const filteredTopics = useMemo(() => {
       const q = topicSearch.toLowerCase();
       if (!q) return topics;
-      return topics.filter(t => t.name.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q));
+      return topics.filter(t => (t.name || '').toLowerCase().includes(q) || (t.slug || '').toLowerCase().includes(q));
     }, [topics, topicSearch]);
 
     const filteredProblems = useMemo(() => {
       return problems.filter(p => {
         const q = problemSearch.toLowerCase().trim();
-        if (q && !p.title.toLowerCase().includes(q) && !String(p.problemNumber).includes(q)) return false;
+        if (q && !(p.title || '').toLowerCase().includes(q) && !String(p.problemNumber || '').includes(q)) return false;
         if (problemDifficultyFilter && p.difficulty !== problemDifficultyFilter) return false;
         return true;
       });
@@ -312,7 +356,7 @@ const AdminPage: React.FC = () => {
     const filteredUsers = useMemo(() => {
       return users.filter(u => {
         const q = userSearch.toLowerCase();
-        if (q && !u.username.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+        if (q && !(u.username || '').toLowerCase().includes(q) && !(u.email || '').toLowerCase().includes(q)) return false;
         if (userRoleFilter && u.role !== userRoleFilter) return false;
         if (userStatusFilter === 'active' && !u.isActive) return false;
         if (userStatusFilter === 'disabled' && u.isActive) return false;
@@ -1268,6 +1312,72 @@ const AdminPage: React.FC = () => {
     }, 'Problem of the day updated successfully');
   };
 
+  const loadLeaderboardSettings = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl('/api/admin/leaderboard/settings'), { headers: authHeaders });
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.settings) {
+          setLeaderboardConfig({ ...defaultLeaderboardConfig, ...payload.settings });
+        }
+        if (payload.summary) {
+          setLeaderboardSummary(payload.summary);
+        }
+        if (payload.lastCacheTime) {
+          setLeaderboardLastCache(payload.lastCacheTime);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load leaderboard settings:', e);
+    }
+  }, [authHeaders]);
+
+  useEffect(() => {
+    if (activeTab === 'leaderboard') {
+      loadLeaderboardSettings();
+    }
+  }, [activeTab, loadLeaderboardSettings]);
+
+  const saveLeaderboardConfig = async () => {
+    await withNotice(async () => {
+      const res = await fetch(apiUrl('/api/admin/leaderboard/settings'), {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(leaderboardConfig),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.msg || 'Failed to update leaderboard settings');
+      }
+      if (payload.settings) {
+        setLeaderboardConfig({ ...defaultLeaderboardConfig, ...payload.settings });
+      }
+    }, 'Leaderboard settings saved successfully');
+  };
+
+  const handleRefreshLeaderboardCache = async () => {
+    try {
+      setRefreshingLeaderboard(true);
+      const res = await fetch(apiUrl('/api/admin/leaderboard/refresh'), {
+        method: 'POST',
+        headers: authHeaders,
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.msg || 'Failed to refresh cache');
+      if (payload.summary) setLeaderboardSummary(payload.summary);
+      if (payload.lastCacheTime) setLeaderboardLastCache(payload.lastCacheTime);
+      setNotice('Leaderboard cache refreshed & recalculated successfully');
+    } catch (e: any) {
+      setError(e.message || 'Failed to refresh leaderboard cache');
+    } finally {
+      setRefreshingLeaderboard(false);
+    }
+  };
+
+  const resetLeaderboardConfigToDefaults = () => {
+    setLeaderboardConfig(defaultLeaderboardConfig);
+  };
+
   const editVisualizer = (vis: VisualizerAlgorithm) => {
     setEditingVisualizerId(vis.id);
     setVisualizerForm({
@@ -1775,7 +1885,7 @@ const AdminPage: React.FC = () => {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">New Users (7d)</p>
                     <div className="mt-3 flex items-end gap-1">
-                      {overview.trends.newUsersByDay.map((item) => (
+                      {(overview.trends.newUsersByDay || []).map((item) => (
                         <div key={item.date} className="flex-1 rounded-t bg-teal-500/80" style={{ height: `${Math.max(item.value * 12, 6)}px` }} title={`${item.date}: ${item.value}`} />
                       ))}
                     </div>
@@ -1783,7 +1893,7 @@ const AdminPage: React.FC = () => {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Solves (7d)</p>
                     <div className="mt-3 flex items-end gap-1">
-                      {overview.trends.solvesByDay.map((item) => (
+                      {(overview.trends.solvesByDay || []).map((item) => (
                         <div key={item.date} className="flex-1 rounded-t bg-emerald-500/80" style={{ height: `${Math.max(item.value * 8, 6)}px` }} title={`${item.date}: ${item.value}`} />
                       ))}
                     </div>
@@ -1791,7 +1901,7 @@ const AdminPage: React.FC = () => {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Top Solved Topics</p>
                     <div className="mt-3 space-y-2 text-sm">
-                      {overview.trends.topTopics.length > 0 ? overview.trends.topTopics.map((topic) => (
+                      {(overview.trends.topTopics || []).length > 0 ? (overview.trends.topTopics || []).map((topic) => (
                         <div key={topic.slug} className="flex items-center justify-between rounded-lg bg-[#dceee9]/50 px-3 py-1.5 dark:bg-teal-400/5">
                           <span className="text-slate-700 dark:text-slate-200">{topic.name}</span>
                           <span className="font-semibold text-slate-900 dark:text-white">{topic.solves}</span>
@@ -1803,6 +1913,13 @@ const AdminPage: React.FC = () => {
               </div>
             )}
           </section>
+        )}
+
+        {activeTab === 'overview' && !overview && (
+          <div className="surface rounded-3xl p-8 text-center text-slate-500">
+            <p className="text-base font-medium">Unable to load overview metrics.</p>
+            <p className="mt-1 text-xs text-slate-400">Please check your connection or click &ldquo;Refresh data&rdquo; above.</p>
+          </div>
         )}
 
         {activeTab === 'topics' && (
@@ -2981,6 +3098,421 @@ const AdminPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'leaderboard' && (
+          <section className="space-y-6">
+            {/* Header with Title & Quick Links */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <Trophy className="text-amber-500" size={24} />
+                  Leaderboard Control &amp; Settings
+                </h1>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Manage platform-wide leaderboard visibility, podium display, column metrics, deterministic ranking rules, and cache performance.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleRefreshLeaderboardCache}
+                  disabled={refreshingLeaderboard}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#101614] px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition shadow-sm disabled:opacity-60"
+                >
+                  <RefreshCw size={14} className={refreshingLeaderboard ? 'animate-spin' : ''} />
+                  <span>{refreshingLeaderboard ? 'Recalculating...' : 'Force Refresh Cache'}</span>
+                </button>
+                <a
+                  href="/leaderboard"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#101614] px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition shadow-sm"
+                >
+                  <Eye size={15} />
+                  <span>View Public Leaderboard</span>
+                  <ExternalLink size={13} className="text-slate-400" />
+                </a>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] items-start">
+              {/* Left Column: Settings Configuration Forms */}
+              <div className="space-y-6">
+                {/* 1. Display Settings */}
+                <div className="surface rounded-3xl p-6 space-y-5">
+                  <div className="border-b border-slate-100 dark:border-white/10 pb-4">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <LayoutDashboard size={18} className="text-teal-500" />
+                      Display &amp; Visibility Settings
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Toggle student-facing sections, filters, podium, and table columns.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    <ToggleRow
+                      label="Enable Community Leaderboard Page"
+                      checked={leaderboardConfig.isLeaderboardEnabled}
+                      onChange={(checked) =>
+                        setLeaderboardConfig((c) => ({ ...c, isLeaderboardEnabled: checked }))
+                      }
+                    />
+
+                    <ToggleRow
+                      label="Show Top-3 Podium Showcase"
+                      checked={leaderboardConfig.isPodiumEnabled}
+                      onChange={(checked) =>
+                        setLeaderboardConfig((c) => ({ ...c, isPodiumEnabled: checked }))
+                      }
+                    />
+
+                    <ToggleRow
+                      label="Show Summary Statistics Header Cards"
+                      checked={leaderboardConfig.isSummaryStatsEnabled}
+                      onChange={(checked) =>
+                        setLeaderboardConfig((c) => ({ ...c, isSummaryStatsEnabled: checked }))
+                      }
+                    />
+
+                    {leaderboardConfig.isSummaryStatsEnabled && (
+                      <div className="ml-4 pl-4 border-l-2 border-slate-200 dark:border-white/10 space-y-2.5 pt-1">
+                        <ToggleRow
+                          label="Show Active Learners Count"
+                          checked={leaderboardConfig.showStatActiveLearners}
+                          onChange={(checked) =>
+                            setLeaderboardConfig((c) => ({ ...c, showStatActiveLearners: checked }))
+                          }
+                        />
+                        <ToggleRow
+                          label="Show Total Problems Solved"
+                          checked={leaderboardConfig.showStatTotalSolved}
+                          onChange={(checked) =>
+                            setLeaderboardConfig((c) => ({ ...c, showStatTotalSolved: checked }))
+                          }
+                        />
+                        <ToggleRow
+                          label="Show Day Streak (Top)"
+                          checked={leaderboardConfig.showStatTopStreak}
+                          onChange={(checked) =>
+                            setLeaderboardConfig((c) => ({ ...c, showStatTopStreak: checked }))
+                          }
+                        />
+                        <ToggleRow
+                          label="Show Last Updated Timestamp"
+                          checked={leaderboardConfig.showStatLastUpdated}
+                          onChange={(checked) =>
+                            setLeaderboardConfig((c) => ({ ...c, showStatLastUpdated: checked }))
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-white/10 space-y-3">
+                      <ToggleRow
+                        label="Show 'This Week' Filter Tab"
+                        checked={leaderboardConfig.showWeeklyFilter}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, showWeeklyFilter: checked }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="Show 'This Month' Filter Tab"
+                        checked={leaderboardConfig.showMonthlyFilter}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, showMonthlyFilter: checked }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="Show 'Max Streak' Table Column"
+                        checked={leaderboardConfig.showStreakColumn}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, showStreakColumn: checked }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="Show 'This Week' Solves Table Column"
+                        checked={leaderboardConfig.showThisWeekColumn}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, showThisWeekColumn: checked }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="Show 'Last Solved' Timestamp Column"
+                        checked={leaderboardConfig.showLastSolvedColumn}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, showLastSolvedColumn: checked }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="Show Gamified Level Badges (Lv. X)"
+                        checked={leaderboardConfig.showLevelBadge}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, showLevelBadge: checked }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="Enable Username Search Filter"
+                        checked={leaderboardConfig.isSearchEnabled}
+                        onChange={(checked) =>
+                          setLeaderboardConfig((c) => ({ ...c, isSearchEnabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <Select
+                        label="Default Rows Per Page"
+                        value={String(leaderboardConfig.rowsPerPage)}
+                        onChange={(val) =>
+                          setLeaderboardConfig((c) => ({ ...c, rowsPerPage: Number(val) || 25 }))
+                        }
+                        options={[
+                          { value: '10', label: '10 Learners per page' },
+                          { value: '25', label: '25 Learners per page (Default)' },
+                          { value: '50', label: '50 Learners per page' },
+                          { value: '100', label: '100 Learners per page' },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Ranking & Calculation Rules */}
+                <div className="surface rounded-3xl p-6 space-y-5">
+                  <div className="border-b border-slate-100 dark:border-white/10 pb-4">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Target size={18} className="text-amber-500" />
+                      Ranking &amp; Tie-Breaker Rules
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Define deterministic ranking calculations and tie-breaking algorithms.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Select
+                      label="Default Ranking Period"
+                      value={leaderboardConfig.defaultPeriod}
+                      onChange={(val) =>
+                        setLeaderboardConfig((c) => ({
+                          ...c,
+                          defaultPeriod: val as 'all' | 'weekly' | 'monthly',
+                        }))
+                      }
+                      options={[
+                        { value: 'all', label: 'All Time Solves (Default)' },
+                        { value: 'weekly', label: 'This Week Solves' },
+                        { value: 'monthly', label: 'This Month Solves' },
+                      ]}
+                      helperText="Which time period is active when a student first visits /leaderboard."
+                    />
+
+                    <Select
+                      label="Deterministic Tie-Breaker Rule"
+                      value={leaderboardConfig.tieBreaker}
+                      onChange={(val) =>
+                        setLeaderboardConfig((c) => ({
+                          ...c,
+                          tieBreaker: val as 'earliest_solve' | 'account_age' | 'alphabetical',
+                        }))
+                      }
+                      options={[
+                        {
+                          value: 'earliest_solve',
+                          label: 'Earliest Solve Timestamp (Fastest Solver First - Recommended)',
+                        },
+                        {
+                          value: 'account_age',
+                          label: 'Account Creation Date (Seniority First)',
+                        },
+                        {
+                          value: 'alphabetical',
+                          label: 'Alphabetical by Username (A to Z)',
+                        },
+                      ]}
+                      helperText="Used when multiple learners have solved the exact same number of problems."
+                    />
+
+                    <ToggleRow
+                      label="Display Zero-Solve Learners"
+                      checked={leaderboardConfig.showZeroSolves}
+                      onChange={(checked) =>
+                        setLeaderboardConfig((c) => ({ ...c, showZeroSolves: checked }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Cache & Performance Settings */}
+                <div className="surface rounded-3xl p-6 space-y-5">
+                  <div className="border-b border-slate-100 dark:border-white/10 pb-4">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Zap size={18} className="text-sky-500" />
+                      Cache &amp; Performance
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Configure in-memory caching to optimize database aggregation throughput.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Input
+                      label="Cache TTL Duration (Seconds)"
+                      type="number"
+                      value={String(leaderboardConfig.cacheDurationSeconds)}
+                      onChange={(val) =>
+                        setLeaderboardConfig((c) => ({
+                          ...c,
+                          cacheDurationSeconds: Math.max(5, Math.min(3600, Number(val) || 30)),
+                        }))
+                      }
+                      helperText="Controls how long user scores and streaks are cached in memory (minimum 5s, default 30s)."
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={saveLeaderboardConfig}
+                    disabled={saving}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#123b36] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0b2d29] disabled:opacity-60 dark:bg-teal-400 dark:text-[#08241f] dark:hover:bg-teal-300"
+                  >
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    Save Leaderboard Settings
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={resetLeaderboardConfigToDefaults}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                  >
+                    Reset to Defaults
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Live Status & Cache Monitor */}
+              <div className="space-y-6">
+                <div className="surface rounded-3xl p-6 space-y-4">
+                  <div className="border-b border-slate-100 dark:border-white/10 pb-3 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Sparkles size={18} className="text-amber-500" />
+                        Live Platform Summary
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Current data aggregated from MongoDB
+                      </p>
+                    </div>
+
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                        leaderboardConfig.isLeaderboardEnabled
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                          : 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+                      }`}
+                    >
+                      {leaderboardConfig.isLeaderboardEnabled ? 'Active' : 'Disabled'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-slate-200/80 dark:border-white/10 p-3.5 bg-slate-50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Total Learners
+                      </p>
+                      <p className="mt-1 font-mono text-xl font-black text-slate-900 dark:text-white">
+                        {leaderboardSummary?.totalLearners ?? '—'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/80 dark:border-white/10 p-3.5 bg-slate-50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Total Solves
+                      </p>
+                      <p className="mt-1 font-mono text-xl font-black text-slate-900 dark:text-white">
+                        {leaderboardSummary?.totalSolved ?? '—'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/80 dark:border-white/10 p-3.5 bg-slate-50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Top Day Streak
+                      </p>
+                      <p className="mt-1 font-mono text-xl font-black text-amber-500">
+                        {leaderboardSummary?.topStreak ?? '—'} days
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/80 dark:border-white/10 p-3.5 bg-slate-50 dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Cache TTL
+                      </p>
+                      <p className="mt-1 font-mono text-xl font-black text-slate-900 dark:text-white">
+                        {leaderboardConfig.cacheDurationSeconds}s
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/10 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                    <p className="flex items-center justify-between">
+                      <span>Last Cache Recalculation:</span>
+                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                        {leaderboardLastCache ? new Date(leaderboardLastCache).toLocaleTimeString() : 'Fresh'}
+                      </span>
+                    </p>
+                    <p className="flex items-center justify-between">
+                      <span>Active Tie-Breaker:</span>
+                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 capitalize">
+                        {leaderboardConfig.tieBreaker.replace('_', ' ')}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={handleRefreshLeaderboardCache}
+                      disabled={refreshingLeaderboard}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-white text-xs font-bold py-2.5 px-4 transition disabled:opacity-60"
+                    >
+                      <RefreshCw size={13} className={refreshingLeaderboard ? 'animate-spin' : ''} />
+                      <span>{refreshingLeaderboard ? 'Recalculating...' : 'Force Refresh Cache Now'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Configuration Impact Guide */}
+                <div className="surface rounded-3xl p-6 text-xs text-slate-500 dark:text-slate-400 space-y-3">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                    <Shield size={16} className="text-teal-500" />
+                    Administrative Guardrails
+                  </h3>
+                  <ul className="space-y-2 list-disc pl-4 text-[11px] leading-relaxed">
+                    <li>
+                      <strong>Derived Integrity:</strong> Scores and streaks are derived from actual solve histories in MongoDB. Administrators configure display and ranking parameters without manually forging scores.
+                    </li>
+                    <li>
+                      <strong>Dynamic Tie-Breakers:</strong> The selected tie-breaker rule applies deterministically across both the podium and table.
+                    </li>
+                    <li>
+                      <strong>Real-Time Sync:</strong> Saving settings automatically invalidates the leaderboard cache so changes propagate to users instantly.
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </section>

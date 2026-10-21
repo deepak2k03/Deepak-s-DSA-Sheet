@@ -10,6 +10,7 @@ const {
   setCachedLeaderboard,
   clearLeaderboardCache,
 } = require('../utils/leaderboardCache');
+const { queryLeaderboard } = require('../utils/leaderboardService');
 const { createPlainToken, hashToken } = require('../utils/tokenSecurity');
 const { sendPasswordResetEmail } = require('../utils/email');
 const { writeAuditLog } = require('../utils/audit');
@@ -348,27 +349,33 @@ router.get('/me', auth, async (req, res) => {
 
 router.get('/leaderboard', async (req, res) => {
   try {
-    const cached = getCachedLeaderboard();
-    if (cached) {
-      return res.json(cached);
+    let currentUsername = req.query.username || null;
+    const token = req.header('x-auth-token');
+    if (token && !currentUsername) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.userId) {
+          const u = await User.findById(decoded.userId).select('username');
+          if (u) currentUsername = u.username;
+        }
+      } catch {}
     }
 
-    const users = await User.find({ isActive: { $ne: false } }).select('username solvedProblems');
+    const result = await queryLeaderboard({
+      period: req.query.period,
+      search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
+      currentUsername,
+    });
 
-    const leaderboard = users
-      .map((user) => ({
-        username: user.username,
-        solvedCount: user.solvedProblems ? user.solvedProblems.length : 0,
-      }))
-      .sort((a, b) => b.solvedCount - a.solvedCount)
-      .slice(0, 50)
-      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+    if (req.query.format === 'legacy') {
+      return res.json(result.users);
+    }
 
-    setCachedLeaderboard(leaderboard);
-
-    return res.json(leaderboard);
+    return res.json(result);
   } catch (err) {
-    console.error(err.message);
+    console.error('Leaderboard route error:', err.message);
     return res.status(500).send('Server Error');
   }
 });

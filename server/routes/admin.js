@@ -14,6 +14,13 @@ const auth = require('../middleware/auth');
 const adminOnly = require('../middleware/admin');
 const { clearProblemsCache } = require('../utils/problemCache');
 const { clearLeaderboardCache } = require('../utils/leaderboardCache');
+const {
+  getLeaderboardSettings,
+  updateLeaderboardSettings,
+  clearLeaderboardDataCache,
+  getLastCacheTime,
+  queryLeaderboard,
+} = require('../utils/leaderboardService');
 const { getCanonicalTopicSlug, slugifyTopic } = require('../utils/topics');
 const { sanitizeUser } = require('../utils/userAccess');
 const { writeAuditLog } = require('../utils/audit');
@@ -1886,6 +1893,72 @@ router.delete('/visualizers/:id', async (req, res) => {
     return res.json({ msg: 'Visualizer deleted successfully' });
   } catch (error) {
     console.error('Admin delete visualizer error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// ==============================================
+// LEADERBOARD SETTINGS & MANAGEMENT ROUTES
+// ==============================================
+
+// GET /api/admin/leaderboard/settings
+router.get('/leaderboard/settings', async (req, res) => {
+  try {
+    const settings = await getLeaderboardSettings();
+    const preview = await queryLeaderboard({ isAdminPreview: true, limit: 5 });
+    return res.json({
+      settings,
+      summary: preview.summary,
+      lastCacheTime: getLastCacheTime() ? new Date(getLastCacheTime()).toISOString() : null,
+    });
+  } catch (error) {
+    console.error('Admin get leaderboard settings error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// PUT /api/admin/leaderboard/settings
+router.put('/leaderboard/settings', async (req, res) => {
+  try {
+    const updated = await updateLeaderboardSettings(req.body);
+
+    await writeAuditLog(req, {
+      action: 'admin.leaderboard.settings.update',
+      entityType: 'settings',
+      entityId: 'leaderboard',
+      metadata: { settings: updated },
+    });
+
+    return res.json({
+      msg: 'Leaderboard settings updated successfully',
+      settings: updated,
+    });
+  } catch (error) {
+    console.error('Admin update leaderboard settings error:', error);
+    return res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// POST /api/admin/leaderboard/refresh
+router.post('/leaderboard/refresh', async (req, res) => {
+  try {
+    clearLeaderboardDataCache();
+    const preview = await queryLeaderboard({ isAdminPreview: true, limit: 5 });
+
+    await writeAuditLog(req, {
+      action: 'admin.leaderboard.cache.refresh',
+      entityType: 'cache',
+      entityId: 'leaderboard',
+      metadata: { summary: preview.summary },
+    });
+
+    return res.json({
+      msg: 'Leaderboard cache refreshed and recalculated successfully',
+      summary: preview.summary,
+      lastCacheTime: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Admin refresh leaderboard error:', error);
     return res.status(500).json({ msg: 'Server Error' });
   }
 });

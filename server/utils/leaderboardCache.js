@@ -18,6 +18,10 @@ const setCachedLeaderboard = (data) => {
 const clearLeaderboardCache = () => {
   leaderboardCache = [];
   lastCacheTime = 0;
+  try {
+    const { clearLeaderboardDataCache } = require('./leaderboardService');
+    clearLeaderboardDataCache();
+  } catch {}
 };
 
 module.exports = {
