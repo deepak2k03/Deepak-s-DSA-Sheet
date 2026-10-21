@@ -29,9 +29,9 @@ import { apiUrl } from '../config';
 import { getStoredToken } from '../utils/auth';
 
 const difficultyBadgeStyle: Record<string, string> = {
-  Easy: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
-  Medium: 'text-amber-400 bg-amber-950/40 border-amber-500/30',
-  Hard: 'text-rose-400 bg-rose-950/40 border-rose-500/30',
+  Easy: 'text-emerald-700 bg-emerald-50 border-emerald-200/60 dark:text-emerald-400 dark:bg-emerald-950/40 dark:border-emerald-500/30',
+  Medium: 'text-amber-700 bg-amber-50 border-amber-200/60 dark:text-amber-400 dark:bg-amber-950/40 dark:border-amber-500/30',
+  Hard: 'text-rose-700 bg-rose-50 border-rose-200/60 dark:text-rose-400 dark:bg-rose-950/40 dark:border-rose-500/30',
 };
 
 const VisualizerDetailPage: React.FC = () => {
@@ -141,10 +141,10 @@ const VisualizerDetailPage: React.FC = () => {
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                   isDataStructure
-                    ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-400 dark:border-indigo-500/30'
                     : isProblem
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                    : 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30'
+                    : 'bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-500/15 dark:text-teal-400 dark:border-teal-500/30'
                 }`}
               >
                 {isDataStructure ? <Boxes size={12} /> : isProblem ? <Lightbulb size={12} /> : <Zap size={12} />}
@@ -170,12 +170,12 @@ const VisualizerDetailPage: React.FC = () => {
               </span>
 
               {algorithm.status === 'available' ? (
-                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400">
                   <CheckCircle2 size={11} />
                   Ready
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-950/40 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-400">
                   <AlertCircle size={11} />
                   Awaiting Upload
                 </span>
@@ -255,7 +255,7 @@ const VisualizerDetailPage: React.FC = () => {
                     Supported Operations Matrix
                   </h2>
                 </div>
-                <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">
+                <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 dark:text-indigo-400 dark:bg-indigo-500/10 dark:border-indigo-500/20">
                   {operations.length} Core Actions
                 </span>
               </div>
@@ -276,7 +276,7 @@ const VisualizerDetailPage: React.FC = () => {
                           <span className="font-bold text-sm text-[var(--text-primary)]">
                             {op.name}
                           </span>
-                          <span className="font-mono text-xs font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 rounded">
+                          <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 dark:text-indigo-400 dark:bg-indigo-500/15 dark:border-indigo-500/30 px-2 py-0.5 rounded">
                             {op.timeComplexity}
                           </span>
                         </div>
@@ -334,7 +334,7 @@ const VisualizerDetailPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-xl bg-[var(--bg-surface-muted)] p-3 border border-[var(--border-subtle)]">
                   <span className="text-xs text-[var(--text-muted)] font-medium">Sheet Problem ID</span>
-                  <span className="font-mono text-xs font-bold text-amber-400">
+                  <span className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     #{algorithm.problemId || 'N/A'}
                   </span>
                 </div>
@@ -352,7 +352,7 @@ const VisualizerDetailPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-[var(--bg-surface-muted)] p-3 border border-[var(--border-subtle)]">
                   <span className="text-xs text-[var(--text-muted)] font-medium">Expected Time</span>
-                  <span className="font-mono text-xs font-bold text-emerald-400">
+                  <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {algorithm.timeComplexity?.average || 'O(n)'}
                   </span>
                 </div>
@@ -412,25 +412,25 @@ const VisualizerDetailPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-xl bg-[var(--bg-surface-muted)] p-3 border border-[var(--border-subtle)]">
                   <span className="text-xs text-[var(--text-muted)] font-medium">Best Time</span>
-                  <span className="font-mono text-xs font-bold text-emerald-400">
+                  <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {algorithm.timeComplexity?.best || 'O(1)'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-[var(--bg-surface-muted)] p-3 border border-[var(--border-subtle)]">
                   <span className="text-xs text-[var(--text-muted)] font-medium">Average Time</span>
-                  <span className="font-mono text-xs font-bold text-amber-400">
+                  <span className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {algorithm.timeComplexity?.average || 'O(n)'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-[var(--bg-surface-muted)] p-3 border border-[var(--border-subtle)]">
                   <span className="text-xs text-[var(--text-muted)] font-medium">Worst Time</span>
-                  <span className="font-mono text-xs font-bold text-rose-400">
+                  <span className="font-mono text-xs font-bold text-rose-700 dark:text-rose-400">
                     {algorithm.timeComplexity?.worst || 'O(n)'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-[var(--bg-surface-muted)] p-3 border border-[var(--border-subtle)]">
                   <span className="text-xs text-[var(--text-muted)] font-medium">Space Complexity</span>
-                  <span className="font-mono text-xs font-bold text-teal-400">
+                  <span className="font-mono text-xs font-bold text-teal-700 dark:text-teal-400">
                     {algorithm.spaceComplexity || 'O(1)'}
                   </span>
                 </div>

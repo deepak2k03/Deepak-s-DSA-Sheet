@@ -45,9 +45,9 @@ import {
 } from '../utils/visualizerApi';
 
 const difficultyBadgeStyle: Record<string, string> = {
-  Easy: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
-  Medium: 'text-amber-400 bg-amber-950/40 border-amber-500/30',
-  Hard: 'text-rose-400 bg-rose-950/40 border-rose-500/30',
+  Easy: 'text-emerald-700 bg-emerald-50 border-emerald-200/60 dark:text-emerald-400 dark:bg-emerald-950/40 dark:border-emerald-500/30',
+  Medium: 'text-amber-700 bg-amber-50 border-amber-200/60 dark:text-amber-400 dark:bg-amber-950/40 dark:border-amber-500/30',
+  Hard: 'text-rose-700 bg-rose-50 border-rose-200/60 dark:text-rose-400 dark:bg-rose-950/40 dark:border-rose-500/30',
 };
 
 const getCategoryIcon = (category: string) => {
@@ -233,11 +233,11 @@ const VisualizersPage: React.FC = () => {
                   {currentPillarItems.length}
                 </p>
               </div>
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 px-4 py-2.5 text-center shadow-xs">
-                <p className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-wider">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 dark:bg-emerald-950/20 px-4 py-2.5 text-center shadow-xs">
+                <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400/80 uppercase tracking-wider">
                   Live Animations
                 </p>
-                <p className="text-xl font-extrabold text-emerald-400">
+                <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
                   {activeLiveCount}
                 </p>
               </div>
@@ -255,14 +255,14 @@ const VisualizersPage: React.FC = () => {
               }}
               className={`relative flex items-center gap-3.5 rounded-2xl border p-4 text-left transition-all ${
                 activePillar === 'algorithm'
-                  ? 'border-teal-500/60 bg-gradient-to-br from-teal-950/40 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-lg shadow-teal-950/20 ring-1 ring-teal-500/40'
+                  ? 'border-teal-500/60 bg-gradient-to-br from-teal-500/10 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-lg shadow-teal-950/5 ring-1 ring-teal-500/40'
                   : 'border-[var(--border-strong)] bg-[var(--bg-surface)] hover:border-teal-500/30 hover:bg-[var(--bg-surface-hover)]'
               }`}
             >
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
                   activePillar === 'algorithm'
-                    ? 'border-teal-500/40 bg-teal-500/20 text-teal-300'
+                    ? 'border-teal-500/40 bg-teal-500/15 text-teal-600 dark:text-teal-300'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-muted)]'
                 }`}
               >
@@ -273,7 +273,7 @@ const VisualizersPage: React.FC = () => {
                   <h2 className="text-sm font-bold text-[var(--text-primary)] truncate">
                     1. Algorithms
                   </h2>
-                  <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] font-bold text-teal-400 border border-teal-500/20">
+                  <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] font-bold text-teal-600 dark:text-teal-400 border border-teal-500/20">
                     {algorithmItems.length}
                   </span>
                 </div>
@@ -292,14 +292,14 @@ const VisualizersPage: React.FC = () => {
               }}
               className={`relative flex items-center gap-3.5 rounded-2xl border p-4 text-left transition-all ${
                 activePillar === 'data-structure'
-                  ? 'border-indigo-500/60 bg-gradient-to-br from-indigo-950/40 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-lg shadow-indigo-950/20 ring-1 ring-indigo-500/40'
+                  ? 'border-indigo-500/60 bg-gradient-to-br from-indigo-500/10 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-lg shadow-indigo-950/5 ring-1 ring-indigo-500/40'
                   : 'border-[var(--border-strong)] bg-[var(--bg-surface)] hover:border-indigo-500/30 hover:bg-[var(--bg-surface-hover)]'
               }`}
             >
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
                   activePillar === 'data-structure'
-                    ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
+                    ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-muted)]'
                 }`}
               >
@@ -310,7 +310,7 @@ const VisualizersPage: React.FC = () => {
                   <h2 className="text-sm font-bold text-[var(--text-primary)] truncate">
                     2. Data Structures
                   </h2>
-                  <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[11px] font-bold text-indigo-400 border border-indigo-500/20">
+                  <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                     {dataStructureItems.length}
                   </span>
                 </div>
@@ -329,14 +329,14 @@ const VisualizersPage: React.FC = () => {
               }}
               className={`relative flex items-center gap-3.5 rounded-2xl border p-4 text-left transition-all ${
                 activePillar === 'problem'
-                  ? 'border-amber-500/60 bg-gradient-to-br from-amber-950/40 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-lg shadow-amber-950/20 ring-1 ring-amber-500/40'
+                  ? 'border-amber-500/60 bg-gradient-to-br from-amber-500/10 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-lg shadow-amber-950/5 ring-1 ring-amber-500/40'
                   : 'border-[var(--border-strong)] bg-[var(--bg-surface)] hover:border-amber-500/30 hover:bg-[var(--bg-surface-hover)]'
               }`}
             >
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
                   activePillar === 'problem'
-                    ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-300'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-muted)]'
                 }`}
               >
@@ -347,7 +347,7 @@ const VisualizersPage: React.FC = () => {
                   <h2 className="text-sm font-bold text-[var(--text-primary)] truncate">
                     3. Sheet Problems
                   </h2>
-                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-400 border border-amber-500/20">
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
                     {problemItems.length}
                   </span>
                 </div>
@@ -401,8 +401,8 @@ const VisualizersPage: React.FC = () => {
                 onClick={() => setStatusFilter('available')}
                 className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === 'available'
-                    ? 'bg-emerald-500/20 text-emerald-300 shadow-xs'
-                    : 'text-[var(--text-muted)] hover:text-emerald-400'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                    : 'text-[var(--text-muted)] hover:text-emerald-600 dark:hover:text-emerald-400'
                 }`}
               >
                 <CheckCircle2 size={12} />
@@ -413,8 +413,8 @@ const VisualizersPage: React.FC = () => {
                 onClick={() => setStatusFilter('unavailable')}
                 className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === 'unavailable'
-                    ? 'bg-amber-500/20 text-amber-300 shadow-xs'
-                    : 'text-[var(--text-muted)] hover:text-amber-400'
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-xs'
+                    : 'text-[var(--text-muted)] hover:text-amber-600 dark:hover:text-amber-400'
                 }`}
               >
                 <AlertCircle size={12} />
@@ -444,7 +444,7 @@ const VisualizersPage: React.FC = () => {
                   onClick={() => setSelectedCategory(cat)}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
                     selectedCategory === cat
-                      ? 'border-teal-500/50 bg-teal-950/40 text-teal-300'
+                      ? 'border-teal-500/50 bg-teal-500/10 text-teal-700 dark:text-teal-300'
                       : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
                   }`}
                 >
@@ -464,11 +464,11 @@ const VisualizersPage: React.FC = () => {
                   onClick={() => setSelectedFamily(family)}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
                     selectedFamily === family
-                      ? 'border-indigo-500/50 bg-indigo-950/40 text-indigo-300'
+                      ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
                       : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
                   }`}
                 >
-                  <Boxes size={13} className={selectedFamily === family ? 'text-indigo-300' : 'text-[var(--text-muted)]'} />
+                  <Boxes size={13} className={selectedFamily === family ? 'text-indigo-600 dark:text-indigo-300' : 'text-[var(--text-muted)]'} />
                   {family === 'All' ? 'All Structure Types' : family}
                 </button>
               ))}
@@ -482,7 +482,7 @@ const VisualizersPage: React.FC = () => {
                 onClick={() => setSelectedTopic('All')}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
                   selectedTopic === 'All'
-                    ? 'border-amber-500/50 bg-amber-950/40 text-amber-300'
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                     : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
                 }`}
               >
@@ -495,11 +495,11 @@ const VisualizersPage: React.FC = () => {
                   onClick={() => setSelectedTopic(topic)}
                   className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
                     selectedTopic === topic
-                      ? 'border-amber-500/50 bg-amber-950/40 text-amber-300'
+                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                       : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
                   }`}
                 >
-                  <Lightbulb size={12} className={selectedTopic === topic ? 'text-amber-300' : 'text-[var(--text-muted)]'} />
+                  <Lightbulb size={12} className={selectedTopic === topic ? 'text-amber-600 dark:text-amber-300' : 'text-[var(--text-muted)]'} />
                   {topic}
                 </button>
               ))}
@@ -596,12 +596,12 @@ const AlgorithmCard: React.FC<{ algorithm: VisualizerAlgorithm }> = ({ algorithm
               {algorithm.difficulty}
             </span>
             {isReady ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
                 <CheckCircle2 size={10} />
                 Ready
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-950/40 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-0.5 text-[10px] font-semibold">
                 <AlertCircle size={10} />
                 Awaiting Upload
               </span>
@@ -665,12 +665,12 @@ const DataStructureCard: React.FC<{ visualizer: VisualizerAlgorithm }> = ({ visu
               {visualizer.difficulty || 'Medium'}
             </span>
             {isReady ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
                 <CheckCircle2 size={10} />
                 Ready
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-950/40 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-0.5 text-[10px] font-semibold">
                 <AlertCircle size={10} />
                 Awaiting Upload
               </span>
@@ -726,12 +726,12 @@ const ProblemVisualizerCard: React.FC<{ visualizer: VisualizerAlgorithm }> = ({ 
               {visualizer.problemDifficulty || visualizer.difficulty}
             </span>
             {isReady ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
                 <CheckCircle2 size={10} />
                 Ready
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-950/40 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-0.5 text-[10px] font-semibold">
                 <AlertCircle size={10} />
                 Awaiting Upload
               </span>

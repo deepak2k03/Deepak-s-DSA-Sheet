@@ -81,12 +81,12 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`group relative flex flex-col rounded-2xl border border-[var(--border-strong)] bg-[#0d0d0f] shadow-2xl overflow-hidden transition-all ${
+      className={`group relative flex flex-col rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] shadow-2xl overflow-hidden transition-all ${
         isFullscreen ? 'h-screen w-screen rounded-none border-none p-0' : ''
       } ${className}`}
     >
       {/* Frame Header Bar */}
-      <div className="flex items-center justify-between border-b border-[var(--border-default)] bg-[#121214] px-4 py-2.5 sm:px-6">
+      <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-4 py-2.5 sm:px-6">
         <div className="flex items-center gap-3">
           {/* Simulated Browser Dot Indicators */}
           <div className="flex items-center gap-1.5">
@@ -103,12 +103,12 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
               {title}
             </span>
             {status === 'available' ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
                 <CheckCircle2 size={11} />
                 Live
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400 border border-amber-500/20">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
                 <AlertCircle size={11} />
                 Awaiting Code
               </span>
@@ -123,7 +123,7 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
             onClick={handleReload}
             title="Reload Animation"
             aria-label="Reload Animation"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[#1f1f23] hover:text-[var(--text-primary)] active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] active:scale-95"
           >
             <RotateCcw size={15} />
           </button>
@@ -136,7 +136,7 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
               rel="noopener noreferrer"
               title="Open HTML in new tab"
               aria-label="Open HTML in new tab"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[#1f1f23] hover:text-[var(--text-primary)] active:scale-95"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] active:scale-95"
             >
               <ExternalLink size={15} />
             </a>
@@ -147,7 +147,7 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
             onClick={handleToggleFullscreen}
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[#1f1f23] hover:text-[var(--text-primary)] active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] active:scale-95"
           >
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>
@@ -155,10 +155,10 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
       </div>
 
       {/* Frame Body / Iframe Area */}
-      <div className={`relative w-full flex-1 bg-[#09090b] ${isFullscreen ? 'h-[calc(100vh-48px)]' : aspectClass}`}>
+      <div className={`relative w-full flex-1 bg-[var(--bg-base)] ${isFullscreen ? 'h-[calc(100vh-48px)]' : aspectClass}`}>
         {/* Loading Spinner */}
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#09090b]/90 backdrop-blur-sm transition-opacity">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--bg-base)]/90 backdrop-blur-sm transition-opacity">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/20 border-t-emerald-400" />
             <span className="mt-3 text-xs font-medium text-[var(--text-muted)]">
               Loading visualizer runtime...
@@ -179,23 +179,23 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
 
         {/* Developer Guidance Banner when marked as unavailable */}
         {status === 'unavailable' && (
-          <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-[#16120b]/90 p-3.5 backdrop-blur-md shadow-lg">
+          <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/95 p-3.5 backdrop-blur-md shadow-lg dark:border-amber-500/30 dark:bg-[#16120b]/90">
             <div className="flex items-start gap-2.5">
-              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">
+              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400">
                 <Code2 size={13} />
               </div>
               <div className="text-xs">
-                <p className="font-semibold text-amber-300">
+                <p className="font-semibold text-amber-800 dark:text-amber-300">
                   Animation draft awaiting code
                 </p>
-                <p className="text-amber-200/70 mt-0.5">
+                <p className="text-amber-700/80 dark:text-amber-200/70 mt-0.5">
                   Upload HTML animation file to Cloudflare R2 via Admin Panel or paste into code editor.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 text-[11px]">
               <span className="text-[var(--text-muted)]">
-                Then set <code className="text-emerald-400 font-mono">status: 'Live'</code> to publish
+                Then set <code className="text-emerald-700 dark:text-emerald-400 font-mono font-semibold">status: 'Live'</code> to publish
               </span>
             </div>
           </div>

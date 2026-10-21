@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Code2, ArrowLeft, PlayCircle, Clock, Database, ChevronRight, Loader2, AlertCircle, Github } from 'lucide-react';
 import AnimatedBackground from '../components/AnimatedBackground';
+import Footer from '../components/Footer';
 import { apiUrl } from '../config';
 
 type Language = 'C++' | 'Java' | 'Python' | 'JavaScript' | string;
@@ -98,25 +99,29 @@ const SolutionPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      <div className="page-shell flex flex-col items-center justify-center min-h-[60vh]">
         <AnimatedBackground />
-        <Loader2 className="animate-spin h-8 w-8 text-teal-500 z-10" />
+        <Loader2 className="animate-spin h-8 w-8 text-teal-500 mb-3" />
+        <p className="text-sm text-[var(--text-muted)]">Loading solution...</p>
       </div>
     );
   }
 
   if (error || !problem) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      <div className="page-shell">
         <AnimatedBackground />
-        <div className="z-10 text-center">
+        <div className="page-wrap py-20 text-center">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-rose-500" />
-          <h1 className="text-2xl font-bold mb-2">Oops!</h1>
+          <h1 className="text-2xl font-bold mb-2 text-[var(--text-primary)]">Oops!</h1>
           <p className="text-[var(--text-secondary)] mb-6">{error}</p>
-          <Link to="/" className="inline-flex items-center text-sm font-medium text-blue-500 hover:underline">
-            <ArrowLeft size={16} className="mr-1" /> Return Home
-          </Link>
+          <div>
+            <Link to="/" className="button-primary text-xs font-semibold">
+              <ArrowLeft size={16} /> Return Home
+            </Link>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -125,13 +130,13 @@ const SolutionPage: React.FC = () => {
   const hasApproaches = approaches.length > 0;
 
   return (
-    <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+    <div className="page-shell">
       <AnimatedBackground />
       
-      <div className="z-10 w-full max-w-5xl mx-auto relative">
+      <main className="page-wrap py-8 sm:py-12">
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <Link to="/" className="inline-flex items-center text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2">
+            <Link to="/" className="inline-flex items-center text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-2 transition-colors">
               <ArrowLeft size={16} className="mr-1" /> Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">Solution: {problem.title}</h1>
@@ -140,9 +145,9 @@ const SolutionPage: React.FC = () => {
             {problem.visualizerSlug && (
               <Link
                 to={`/visualizers/${problem.visualizerSlug}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-teal-500/20 to-teal-500/10 border border-amber-500/30 px-3.5 py-2.5 text-xs font-bold text-amber-300 hover:border-amber-400 hover:text-amber-200 transition-all shadow-sm"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100 dark:bg-gradient-to-r dark:from-amber-500/20 dark:via-teal-500/20 dark:to-teal-500/10 dark:border-amber-500/30 dark:text-amber-300 dark:hover:border-amber-400 dark:hover:text-amber-200 px-3.5 py-2.5 text-xs font-bold transition-all shadow-sm"
               >
-                <PlayCircle size={16} className="text-amber-400 animate-pulse" />
+                <PlayCircle size={16} className="text-amber-600 dark:text-amber-400 animate-pulse" />
                 <span>Interactive Visual Solution</span>
               </Link>
             )}
@@ -210,7 +215,7 @@ const SolutionPage: React.FC = () => {
                               onClick={() => setTab(approach.id, snippet.language)}
                               className={`px-4 py-2.5 text-sm whitespace-nowrap font-medium transition-colors ${
                                 activeTabs[approach.id] === snippet.language
-                                  ? 'bg-[var(--bg-surface)] text-blue-500 border-b-2 border-blue-500'
+                                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-b-2 border-teal-500 font-semibold'
                                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
                               }`}
                             >
@@ -302,7 +307,9 @@ const SolutionPage: React.FC = () => {
           )}
           
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 };

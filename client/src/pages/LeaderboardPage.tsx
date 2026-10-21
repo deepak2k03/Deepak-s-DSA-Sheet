@@ -300,16 +300,14 @@ const PodiumCard: React.FC<{
 
   const cardBorderClass =
     rank === 1
-      ? 'border-amber-400/60 bg-gradient-to-b from-amber-50/90 to-amber-100/40 shadow-sm ring-1 ring-amber-400/30 dark:border-amber-400/50 dark:bg-[#0d120f]/95 dark:shadow-[0_0_25px_rgba(245,158,11,0.18)] dark:ring-amber-400/30'
-      : rank === 2
-      ? 'border-slate-200 bg-white/95 shadow-sm ring-1 ring-slate-200/80 dark:border-slate-500/40 dark:bg-[#0c1012]/95 dark:shadow-[0_0_18px_rgba(148,163,184,0.08)] dark:ring-slate-400/20'
-      : 'border-amber-200 bg-white/95 shadow-sm ring-1 ring-amber-200/60 dark:border-amber-800/40 dark:bg-[#120e0c]/95 dark:shadow-[0_0_18px_rgba(180,83,9,0.08)] dark:ring-amber-700/20';
+      ? 'border-amber-400/50 bg-gradient-to-b from-amber-500/10 via-[var(--bg-surface)] to-[var(--bg-surface)] shadow-[var(--shadow-sm)] ring-1 ring-amber-400/30'
+      : 'border-[var(--border-strong)] bg-[var(--bg-surface)] shadow-[var(--shadow-sm)]';
 
   const avatarBgClass =
     rank === 1
       ? 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-50 dark:text-slate-900'
       : rank === 2
-      ? 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-100 dark:text-slate-900'
+      ? 'bg-slate-200 text-slate-900 border-slate-300 dark:bg-slate-100 dark:text-slate-900'
       : 'bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-100/90 dark:text-amber-950';
 
   return (
@@ -326,14 +324,14 @@ const PodiumCard: React.FC<{
 
             {/* Avatar Initial */}
             <div
-              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-extrabold text-xs sm:text-sm border shrink-0 shadow-sm ${avatarBgClass}`}
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-extrabold text-xs sm:text-sm border shrink-0 shadow-xs ${avatarBgClass}`}
             >
               {(user.username || 'U').charAt(0).toUpperCase()}
             </div>
 
             {/* Username & Level */}
             <div className="min-w-0">
-              <h3 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate leading-tight">
+              <h3 className="font-bold text-[var(--text-primary)] text-xs sm:text-sm truncate leading-tight">
                 {user.username || 'Anonymous'}
               </h3>
               {showLevel && (
@@ -348,39 +346,39 @@ const PodiumCard: React.FC<{
 
           {/* Solved Score */}
           <div className="text-right shrink-0">
-            <p className="font-mono text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none">
+            <p className="font-mono text-sm sm:text-base font-black text-[var(--text-primary)] leading-none">
               {user.solvedCount}{' '}
               <span className="text-[9px] sm:text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">QS</span>
             </p>
-            <p className="text-[8px] sm:text-[9px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 uppercase tracking-wide">
+            <p className="text-[8px] sm:text-[9px] font-semibold text-[var(--text-muted)] mt-0.5 uppercase tracking-wide">
               {periodLabel}
             </p>
           </div>
         </div>
 
         {/* Bottom Sub-stats Row - Compact single line */}
-        <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-white/[0.08] grid grid-cols-3 gap-1 text-center">
-          <div className="rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] py-1 px-1 flex items-center justify-center gap-1">
+        <div className="mt-2.5 pt-2 border-t border-[var(--border-subtle)] grid grid-cols-3 gap-1 text-center">
+          <div className="rounded-lg bg-[var(--bg-surface-muted)] border border-[var(--border-subtle)] py-1 px-1 flex items-center justify-center gap-1">
             <Flame size={11} className="text-amber-500 fill-amber-500 dark:text-amber-400 dark:fill-amber-400 shrink-0" />
             <div className="text-left leading-tight">
-              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block">{user.maxStreak}</span>
-              <span className="text-[8px] text-slate-500 dark:text-slate-400 uppercase tracking-tight block">Streak</span>
+              <span className="font-mono font-bold text-[var(--text-primary)] text-xs block">{user.maxStreak}</span>
+              <span className="text-[8px] text-[var(--text-muted)] uppercase tracking-tight block">Streak</span>
             </div>
           </div>
 
-          <div className="rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] py-1 px-1 flex items-center justify-center gap-1">
+          <div className="rounded-lg bg-[var(--bg-surface-muted)] border border-[var(--border-subtle)] py-1 px-1 flex items-center justify-center gap-1">
             <Target size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div className="text-left leading-tight">
-              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block">{user.totalSolved}</span>
-              <span className="text-[8px] text-slate-500 dark:text-slate-400 uppercase tracking-tight block">Total</span>
+              <span className="font-mono font-bold text-[var(--text-primary)] text-xs block">{user.totalSolved}</span>
+              <span className="text-[8px] text-[var(--text-muted)] uppercase tracking-tight block">Total</span>
             </div>
           </div>
 
-          <div className="rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] py-1 px-1 flex items-center justify-center gap-1">
+          <div className="rounded-lg bg-[var(--bg-surface-muted)] border border-[var(--border-subtle)] py-1 px-1 flex items-center justify-center gap-1">
             <Calendar size={11} className="text-sky-600 dark:text-sky-400 shrink-0" />
             <div className="text-left leading-tight">
-              <span className="font-mono font-bold text-slate-900 dark:text-white text-xs block">{user.solvedThisWeek}</span>
-              <span className="text-[8px] text-slate-500 dark:text-slate-400 uppercase tracking-tight block">Week</span>
+              <span className="font-mono font-bold text-[var(--text-primary)] text-xs block">{user.solvedThisWeek}</span>
+              <span className="text-[8px] text-[var(--text-muted)] uppercase tracking-tight block">Week</span>
             </div>
           </div>
         </div>
@@ -569,14 +567,14 @@ const LeaderboardPage: React.FC = () => {
             {/* ========================================================= */}
             <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               {/* Segmented Filter Pills */}
-              <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#0c100e] p-1 shadow-inner">
+              <div className="inline-flex items-center rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface-muted)] p-1 shadow-inner">
                 <button
                   type="button"
                   onClick={() => handlePeriodChange('all')}
                   className={`rounded-lg px-3.5 py-1 text-xs font-bold transition-all ${
                     period === 'all'
-                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200 dark:bg-white/10 dark:text-white dark:border-white/15'
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      ? 'border border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--text-inverted)] shadow-[var(--shadow-xs)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   All Time
@@ -588,8 +586,8 @@ const LeaderboardPage: React.FC = () => {
                     onClick={() => handlePeriodChange('weekly')}
                     className={`rounded-lg px-3.5 py-1 text-xs font-bold transition-all ${
                       period === 'weekly'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200 dark:bg-white/10 dark:text-white dark:border-white/15'
-                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                        ? 'border border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--text-inverted)] shadow-[var(--shadow-xs)]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     This Week
@@ -602,8 +600,8 @@ const LeaderboardPage: React.FC = () => {
                     onClick={() => handlePeriodChange('monthly')}
                     className={`rounded-lg px-3.5 py-1 text-xs font-bold transition-all ${
                       period === 'monthly'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200 dark:bg-white/10 dark:text-white dark:border-white/15'
-                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                        ? 'border border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--text-inverted)] shadow-[var(--shadow-xs)]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     This Month
@@ -617,20 +615,20 @@ const LeaderboardPage: React.FC = () => {
                   <div className="relative w-full sm:w-64">
                     <Search
                       size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"
                     />
                     <input
                       type="text"
                       value={search}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       placeholder="Search by username..."
-                      className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c100e] py-1.5 pl-8 pr-7 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                      className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] py-1.5 pl-8 pr-7 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--text-primary)] focus:ring-1 focus:ring-[var(--text-primary)]"
                     />
                     {search && (
                       <button
                         type="button"
                         onClick={() => handleSearchChange('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                       >
                         <X size={13} />
                       </button>
@@ -638,11 +636,11 @@ const LeaderboardPage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c100e] px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 shrink-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <div className="hidden sm:flex items-center gap-2 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs text-[var(--text-secondary)] shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     Total
                   </span>
-                  <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                  <span className="font-mono text-xs font-bold text-[var(--text-primary)]">
                     {effectiveTotal.toLocaleString()}
                   </span>
                 </div>
@@ -652,16 +650,16 @@ const LeaderboardPage: React.FC = () => {
             {/* ========================================================= */}
             {/* LEADERBOARD TABLE - Compact Rows & Clean View */}
             {/* ========================================================= */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#090d0b] shadow-sm dark:shadow-xl relative">
+            <section className="overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] shadow-[var(--shadow-sm)] relative">
               {loading ? (
                 <div className="flex min-h-[220px] items-center justify-center">
                   <Loader2 className="h-7 w-7 animate-spin text-emerald-500" />
                 </div>
               ) : displayTableUsers.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
-                  <Trophy size={28} className="mx-auto text-slate-400 dark:text-slate-600" />
-                  <p className="font-bold text-slate-700 dark:text-slate-400">No learners found</p>
-                  <p className="text-xs text-slate-500">
+                  <Trophy size={28} className="mx-auto text-[var(--text-muted)]" />
+                  <p className="font-bold text-[var(--text-primary)]">No learners found</p>
+                  <p className="text-xs text-[var(--text-muted)]">
                     {search ? `No results matching "${search}"` : 'Be the first to solve a problem!'}
                   </p>
                 </div>
@@ -669,7 +667,7 @@ const LeaderboardPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
                     {/* Table Header */}
-                    <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c100e] text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <thead className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                       <tr>
                         <th className="py-2.5 pl-4 pr-2 w-14 text-center">#</th>
                         <th className="py-2.5 px-3">User</th>
@@ -678,7 +676,7 @@ const LeaderboardPage: React.FC = () => {
                         )}
                         <th className="py-2.5 px-3">
                           <span className="inline-flex items-center gap-1">
-                            Solved <ArrowUpDown size={11} className="text-slate-400 dark:text-slate-500" />
+                            Solved <ArrowUpDown size={11} className="text-[var(--text-muted)]" />
                           </span>
                         </th>
                         {settings?.showStreakColumn !== false && (
@@ -695,7 +693,7 @@ const LeaderboardPage: React.FC = () => {
                     </thead>
 
                     {/* Table Body */}
-                    <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+                    <tbody className="divide-y divide-[var(--border-subtle)]">
                       {displayTableUsers.map((user) => {
                         const isCurrent =
                           currentUser && user.username && user.username.toLowerCase() === currentUser.toLowerCase();
@@ -711,8 +709,8 @@ const LeaderboardPage: React.FC = () => {
                             key={user.username || user.rank}
                             className={`group transition-colors ${
                               isCurrent
-                                ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.14] border-y border-amber-500/30'
-                                : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'
+                                ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.12] border-y border-amber-500/30'
+                                : 'hover:bg-[var(--bg-surface-hover)]'
                             }`}
                           >
                             {/* Rank Column */}
@@ -733,7 +731,7 @@ const LeaderboardPage: React.FC = () => {
                                   <span className="font-mono text-xs font-black">3</span>
                                 </div>
                               ) : (
-                                <span className="font-mono text-xs font-semibold text-slate-400 dark:text-slate-500">
+                                <span className="font-mono text-xs font-semibold text-[var(--text-muted)]">
                                   #{user.rank}
                                 </span>
                               )}
@@ -750,7 +748,7 @@ const LeaderboardPage: React.FC = () => {
                                       ? 'bg-slate-200 text-slate-900 font-black'
                                       : user.rank === 3
                                       ? 'bg-amber-100 text-amber-900 font-black'
-                                      : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white'
+                                      : 'bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)]'
                                   }`}
                                 >
                                   {(user.username || 'U').charAt(0).toUpperCase()}
@@ -759,7 +757,7 @@ const LeaderboardPage: React.FC = () => {
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <span
                                     className={`font-semibold text-xs sm:text-sm truncate ${
-                                      isCurrent ? 'text-amber-600 dark:text-amber-300' : 'text-slate-900 dark:text-white'
+                                      isCurrent ? 'text-amber-600 dark:text-amber-300' : 'text-[var(--text-primary)]'
                                     }`}
                                   >
                                     {user.username || 'Anonymous'}
@@ -777,7 +775,7 @@ const LeaderboardPage: React.FC = () => {
                             {/* Level Column */}
                             {settings?.showLevelBadge !== false && (
                               <td className="py-2.5 px-3 text-center">
-                                <span className="inline-flex items-center rounded border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+                                <span className="inline-flex items-center rounded border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
                                   Lv. {user.level}
                                 </span>
                               </td>
@@ -786,10 +784,10 @@ const LeaderboardPage: React.FC = () => {
                             {/* Solved Count + Mini Progress Bar */}
                             <td className="py-2.5 px-3">
                               <div className="space-y-0.5">
-                                <span className="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                <span className="font-mono text-xs sm:text-sm font-bold text-[var(--text-primary)]">
                                   {user.solvedCount}
                                 </span>
-                                <div className="w-16 sm:w-20 h-1 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
+                                <div className="w-16 sm:w-20 h-1 rounded-full bg-[var(--bg-surface-muted)] overflow-hidden">
                                   <div
                                     className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-all duration-500"
                                     style={{ width: `${progressPercent}%` }}
@@ -801,9 +799,9 @@ const LeaderboardPage: React.FC = () => {
                             {/* Max Streak Column */}
                             {settings?.showStreakColumn !== false && (
                               <td className="py-2.5 px-3 hidden sm:table-cell">
-                                <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                                <div className="flex items-center gap-1 text-[var(--text-secondary)]">
                                   <Flame size={13} className="text-amber-500 fill-amber-500 dark:text-amber-400 dark:fill-amber-400 shrink-0" />
-                                  <span className="font-mono font-bold text-xs">{user.maxStreak}</span>
+                                  <span className="font-mono font-bold text-xs text-[var(--text-primary)]">{user.maxStreak}</span>
                                 </div>
                               </td>
                             )}
@@ -811,9 +809,9 @@ const LeaderboardPage: React.FC = () => {
                             {/* This Week Column */}
                             {settings?.showThisWeekColumn !== false && (
                               <td className="py-2.5 px-3 hidden md:table-cell">
-                                <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                                <div className="flex items-center gap-1 text-[var(--text-secondary)]">
                                   <BarChart2 size={13} className="text-sky-500 dark:text-sky-400 shrink-0" />
-                                  <span className="font-mono font-bold text-xs">
+                                  <span className="font-mono font-bold text-xs text-[var(--text-primary)]">
                                     {user.solvedThisWeek}
                                   </span>
                                 </div>
@@ -822,7 +820,7 @@ const LeaderboardPage: React.FC = () => {
 
                             {/* Last Solved Column */}
                             {settings?.showLastSolvedColumn !== false && (
-                              <td className="py-2.5 px-3 hidden lg:table-cell text-slate-500 dark:text-slate-400 text-xs">
+                              <td className="py-2.5 px-3 hidden lg:table-cell text-[var(--text-muted)] text-xs">
                                 {formatRelativeTime(user.lastSolvedAt)}
                               </td>
                             )}
@@ -831,7 +829,7 @@ const LeaderboardPage: React.FC = () => {
                             <td className="py-2.5 pr-4 pl-2 text-right">
                               <ChevronRight
                                 size={14}
-                                className="text-slate-300 group-hover:text-slate-600 dark:text-slate-600 dark:group-hover:text-slate-300 transition-colors"
+                                className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
                               />
                             </td>
                           </tr>
@@ -844,7 +842,7 @@ const LeaderboardPage: React.FC = () => {
 
               {/* Table Footer with Pagination */}
               {effectivePages > 1 && (
-                <div className="border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c100e] px-4 py-2.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-4 py-2.5 flex items-center justify-between text-xs text-[var(--text-secondary)]">
                   <span>
                     Showing {displayTableUsers.length} of {effectiveTotal.toLocaleString()} learners
                   </span>
@@ -854,18 +852,18 @@ const LeaderboardPage: React.FC = () => {
                       type="button"
                       disabled={page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-1 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      className="rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface)] p-1 text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                       <ChevronLeft size={15} />
                     </button>
-                    <span className="font-mono text-xs text-slate-900 dark:text-white px-2">
+                    <span className="font-mono text-xs text-[var(--text-primary)] px-2">
                       {page} / {effectivePages}
                     </span>
                     <button
                       type="button"
                       disabled={page >= effectivePages}
                       onClick={() => setPage((p) => Math.min(effectivePages, p + 1))}
-                      className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-1 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      className="rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface)] p-1 text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                       <ChevronRight size={15} />
                     </button>
