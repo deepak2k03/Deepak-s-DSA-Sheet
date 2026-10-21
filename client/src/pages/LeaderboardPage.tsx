@@ -78,6 +78,7 @@ interface LeaderboardResponse {
     pages: number;
   };
   settings: LeaderboardSettings;
+  isServerPaginated?: boolean;
 }
 
 const DEFAULT_LEADERBOARD_SETTINGS: LeaderboardSettings = {
@@ -173,6 +174,11 @@ function normalizeLeaderboardResponse(
         pages: Math.max(1, Math.ceil(rawUsers.length / 15)),
       },
       settings: { ...DEFAULT_LEADERBOARD_SETTINGS, ...(raw.settings || {}) },
+      isServerPaginated: Boolean(
+        raw.pagination &&
+        typeof raw.pagination === 'object' &&
+        typeof raw.pagination.pages === 'number'
+      ),
     };
   }
 
@@ -226,6 +232,7 @@ function normalizeLeaderboardResponse(
         pages: Math.max(1, Math.ceil(users.length / 15)),
       },
       settings: DEFAULT_LEADERBOARD_SETTINGS,
+      isServerPaginated: false,
     };
   }
 
@@ -404,6 +411,13 @@ const LeaderboardPage: React.FC = () => {
     }
   }, []);
 
+  const settings = data?.settings || DEFAULT_LEADERBOARD_SETTINGS;
+  const isEnabled = data?.isEnabled !== false;
+  const podiumUsers = data?.podium || [];
+  const tableUsers = data?.users || [];
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 15, pages: 1 };
+  const pageSize = settings?.rowsPerPage || 15;
+
   // Fetch leaderboard data
   const fetchLeaderboard = useCallback(async () => {
     try {
@@ -416,7 +430,7 @@ const LeaderboardPage: React.FC = () => {
       const params = new URLSearchParams({
         period,
         page: String(page),
-        limit: '15',
+        limit: String(pageSize),
       });
       if (search.trim()) params.set('search', search.trim());
       if (currentUser) params.set('username', currentUser);
@@ -435,7 +449,7 @@ const LeaderboardPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [period, page, search, currentUser]);
+  }, [period, page, search, currentUser, pageSize]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -453,12 +467,6 @@ const LeaderboardPage: React.FC = () => {
     setPage(1);
   };
 
-  const settings = data?.settings || DEFAULT_LEADERBOARD_SETTINGS;
-  const isEnabled = data?.isEnabled !== false;
-  const podiumUsers = data?.podium || [];
-  const tableUsers = data?.users || [];
-  const pagination = data?.pagination || { total: 0, page: 1, limit: 15, pages: 1 };
-
   // Filter table users by search query
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return tableUsers;
@@ -470,22 +478,33 @@ const LeaderboardPage: React.FC = () => {
     );
   }, [tableUsers, search]);
 
-  const pageSize = settings?.rowsPerPage || 15;
+  // If server already returned paginated slice, display as-is
+  const isServerPaginated = Boolean(data?.isServerPaginated && tableUsers.length <= pageSize);
 
-  // Slicing for client-side pagination when all users are in memory (legacy backend or client search)
-  const isClientPaginated = filteredUsers.length > pageSize || !data?.pagination;
-  const effectiveTotal = search.trim() ? filteredUsers.length : (pagination.total || filteredUsers.length);
-  const effectivePages = isClientPaginated
-    ? Math.max(1, Math.ceil(effectiveTotal / pageSize))
-    : (pagination.pages || Math.max(1, Math.ceil(effectiveTotal / pageSize)));
+  const effectiveTotal = search.trim()
+    ? (isServerPaginated ? pagination.total : filteredUsers.length)
+    : (pagination.total || filteredUsers.length);
+
+  const effectivePages = isServerPaginated
+    ? Math.max(1, pagination.pages || 1)
+    : Math.max(1, Math.ceil(effectiveTotal / pageSize));
+
+  // Ensure current page does not exceed effectivePages
+  useEffect(() => {
+    if (page > effectivePages && effectivePages > 0) {
+      setPage(effectivePages);
+    }
+  }, [page, effectivePages]);
 
   const displayTableUsers = useMemo(() => {
-    if (filteredUsers.length > pageSize) {
+    // If backend returned all users in a single payload (legacy backend), paginate on client.
+    if (!isServerPaginated && filteredUsers.length > pageSize) {
       const start = (page - 1) * pageSize;
       return filteredUsers.slice(start, start + pageSize);
     }
+    // Server already returned current page's slice
     return filteredUsers;
-  }, [filteredUsers, page, pageSize]);
+  }, [filteredUsers, isServerPaginated, page, pageSize]);
 
   // Reorder podium into: 2nd place (left), 1st place (center), 3rd place (right)
   const orderedPodium = useMemo(() => {
