@@ -160,42 +160,60 @@ export const DSAConquestAnimation: React.FC = () => {
         coreGlow: 'rgba(16, 185, 129, 0.6)',
         cellBg: 'rgba(6, 26, 19, 0.75)',
         cellBorder: 'rgba(52, 211, 153, 0.35)',
+        nodeBg: '#042318',
+        nodeBgSubtle: '#03150f',
+        nodeBorder: '#10b981',
+        barStep1: '#042318',
+        barStep2: '#063222',
+        barStep3: '#09452f',
+        barStep4: '#0d5a3d',
+        actionText: '#34d399',
+        actionBg: 'rgba(16, 185, 129, 0.16)',
       };
     }
-    // Light mode palette
+    // Light mode palette - high contrast, crisp separation, rich slate & emerald
     return {
-      cardBg: 'rgba(255, 255, 255, 0.96)',
-      cardBorder: '#d1fae5',
-      cardBorderActive: '#10b981',
+      cardBg: '#ffffff',
+      cardBorder: '#a7f3d0',
+      cardBorderActive: '#059669',
       cardText: '#0f172a',
-      cardTextMuted: '#64748b',
-      pedestalBg: 'rgba(16, 185, 129, 0.08)',
-      pedestalBorder: 'rgba(16, 185, 129, 0.25)',
-      beamIdle: 'rgba(16, 185, 129, 0.3)',
+      cardTextMuted: '#475569',
+      pedestalBg: 'rgba(16, 185, 129, 0.12)',
+      pedestalBorder: 'rgba(16, 185, 129, 0.35)',
+      beamIdle: 'rgba(5, 150, 105, 0.32)',
       beamActive: '#059669',
-      circuitGrid: 'rgba(16, 185, 129, 0.18)',
-      circuitGridSubtle: 'rgba(16, 185, 129, 0.09)',
-      coreBaseTop: '#e6f4ea',
+      circuitGrid: 'rgba(5, 150, 105, 0.22)',
+      circuitGridSubtle: 'rgba(5, 150, 105, 0.12)',
+      coreBaseTop: '#f0fdf4',
       coreBaseSides: '#cbd5e1',
-      coreRim: '#10b981',
+      coreRim: '#059669',
       corePlate: '#ffffff',
-      coreGlow: 'rgba(16, 185, 129, 0.35)',
+      coreGlow: 'rgba(16, 185, 129, 0.4)',
       cellBg: '#f8fafc',
       cellBorder: '#cbd5e1',
+      nodeBg: '#f1f5f9',
+      nodeBgSubtle: '#f8fafc',
+      nodeBorder: '#059669',
+      barStep1: '#f1f5f9',
+      barStep2: '#e2e8f0',
+      barStep3: '#cbd5e1',
+      barStep4: '#a7f3d0',
+      actionText: '#047857',
+      actionBg: 'rgba(16, 185, 129, 0.14)',
     };
   }, [isDark]);
 
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-visible bg-transparent select-none px-0 pt-0 pb-2">
-      {/* ── Ambient Radial Atmosphere Volumetric Glows (Utilizing Page Space) ── */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[680px] w-[680px] rounded-full bg-emerald-500/18 blur-[160px] dark:bg-emerald-500/14" />
-      <div className="pointer-events-none absolute right-4 top-10 h-[400px] w-[400px] rounded-full bg-teal-500/14 blur-[140px] dark:bg-teal-500/10" />
-      <div className="pointer-events-none absolute left-4 bottom-10 h-[380px] w-[380px] rounded-full bg-emerald-600/14 blur-[140px] dark:bg-emerald-600/10" />
+      {/* ── Ambient Radial Atmosphere Volumetric Glows (Subtle, focused) ── */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[420px] w-[420px] rounded-full bg-emerald-500/10 blur-[90px] dark:bg-emerald-500/08" />
+      <div className="pointer-events-none absolute right-8 top-16 h-[260px] w-[260px] rounded-full bg-teal-500/08 blur-[80px] dark:bg-teal-500/05" />
+      <div className="pointer-events-none absolute left-8 bottom-16 h-[240px] w-[240px] rounded-full bg-emerald-600/08 blur-[80px] dark:bg-emerald-600/05" />
 
-      <div className="relative z-10 w-full max-w-[1360px] overflow-visible">
+      <div className="relative z-10 w-full max-w-[1360px] overflow-hidden sm:overflow-visible">
         <svg
           viewBox="0 0 1200 700"
-          className="h-auto w-full overflow-visible"
+          className="h-auto w-full overflow-hidden sm:overflow-visible"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
           aria-label="Futuristic DSA Mastery Core: Interactive central engine and connected DSA topic universe"
@@ -226,6 +244,12 @@ export const DSAConquestAnimation: React.FC = () => {
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
+            </filter>
+
+            {/* Light Mode Card Drop Shadow (gives tangible elevation) */}
+            <filter id="cardLightShadow" x="-20%" y="-20%" width="140%" height="150%">
+              <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#0f172a" floodOpacity="0.08" />
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#0f172a" floodOpacity="0.05" />
             </filter>
 
             {/* Central Platform Radial Light Pool */}
@@ -470,7 +494,7 @@ export const DSAConquestAnimation: React.FC = () => {
               <path
                 d="M 600,320 C 612,320 655,335 660,342 C 665,349 612,367 600,367 C 588,367 535,349 540,342 C 545,335 588,320 600,320 Z"
                 fill={isDark ? '#020d08' : '#ffffff'}
-                stroke="#34d399"
+                stroke={isDark ? '#34d399' : '#059669'}
                 strokeWidth="2.2"
               />
 
@@ -478,13 +502,15 @@ export const DSAConquestAnimation: React.FC = () => {
               <text
                 x="600"
                 y="349"
-                fill="#ffffff"
+                fill={isDark ? '#ffffff' : '#047857'}
                 fontFamily="DM Mono, monospace, system-ui"
                 fontSize="22"
                 fontWeight="900"
                 textAnchor="middle"
                 style={{
-                  filter: 'drop-shadow(0 0 10px #34d399) drop-shadow(0 0 20px #10b981)',
+                  filter: isDark
+                    ? 'drop-shadow(0 0 10px #34d399) drop-shadow(0 0 20px #10b981)'
+                    : 'drop-shadow(0 1px 2px rgba(4,120,87,0.3))',
                 }}
               >
                 &lt;/&gt;
@@ -512,6 +538,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 0 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 0 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header Icon + Label */}
@@ -560,6 +587,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 1 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 1 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -587,14 +615,14 @@ export const DSAConquestAnimation: React.FC = () => {
               <text x="73" y="11" fill="#ffffff" fontFamily="monospace" fontSize="8" fontWeight="800" textAnchor="middle">1</text>
 
               {/* Level 1 nodes */}
-              <circle cx="45" cy="25" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
-              <circle cx="101" cy="25" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
+              <circle cx="45" cy="25" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <circle cx="101" cy="25" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
 
               {/* Level 2 leaf nodes */}
-              <circle cx="31" cy="42" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
-              <circle cx="59" cy="42" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
-              <circle cx="87" cy="42" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
-              <circle cx="115" cy="42" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
+              <circle cx="31" cy="42" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
+              <circle cx="59" cy="42" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
+              <circle cx="87" cy="42" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
+              <circle cx="115" cy="42" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
             </g>
           </g>
 
@@ -614,6 +642,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 2 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 2 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -629,31 +658,31 @@ export const DSAConquestAnimation: React.FC = () => {
             {/* Memoization Matrix Table (4 rows x 5 columns) */}
             <g transform="translate(822, 120)">
               {/* Row 0 */}
-              <rect x="0" y="0" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="21" y="0" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="42" y="0" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="63" y="0" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="84" y="0" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
+              <rect x="0" y="0" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="21" y="0" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="42" y="0" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="63" y="0" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="84" y="0" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
 
               {/* Row 1 */}
-              <rect x="0" y="11" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
+              <rect x="0" y="11" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
               <rect x="21" y="11" width="18" height="9" rx="2" fill="#10b981" stroke="#34d399" strokeWidth="1" />
-              <rect x="42" y="11" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="63" y="11" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="84" y="11" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
+              <rect x="42" y="11" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="63" y="11" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="84" y="11" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
 
               {/* Row 2 */}
-              <rect x="0" y="22" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="21" y="22" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
+              <rect x="0" y="22" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="21" y="22" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
               <rect x="42" y="22" width="18" height="9" rx="2" fill="#10b981" stroke="#34d399" strokeWidth="1" />
               <rect x="63" y="22" width="18" height="9" rx="2" fill="#10b981" stroke="#34d399" strokeWidth="1" />
-              <rect x="84" y="22" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
+              <rect x="84" y="22" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
 
               {/* Row 3 - Highlighted optimal result cell */}
-              <rect x="0" y="33" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="21" y="33" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="42" y="33" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
-              <rect x="63" y="33" width="18" height="9" rx="2" fill="#062217" stroke="#10b981" strokeWidth="0.8" />
+              <rect x="0" y="33" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="21" y="33" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="42" y="33" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
+              <rect x="63" y="33" width="18" height="9" rx="2" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="0.8" />
               <rect x="84" y="33" width="18" height="9" rx="2" fill="#34d399" stroke="#ffffff" strokeWidth="1.2" filter="url(#neonCoreGlow)" />
             </g>
           </g>
@@ -674,6 +703,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 3 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 3 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -695,9 +725,9 @@ export const DSAConquestAnimation: React.FC = () => {
               <line x1="52" y1="10" x2="52" y2="38" stroke="#34d399" strokeWidth="1.4" strokeDasharray="3 2" />
 
               {/* Vertices */}
-              <circle cx="20" cy="22" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
-              <circle cx="90" cy="20" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
-              <circle cx="52" cy="38" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
+              <circle cx="20" cy="22" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <circle cx="90" cy="20" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <circle cx="52" cy="38" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
 
               {/* Central highlighted vertex */}
               <circle cx="52" cy="10" r="7" fill="#10b981" stroke="#34d399" strokeWidth="1.5" filter="url(#neonCoreGlow)" />
@@ -721,6 +751,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 4 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 4 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -732,10 +763,10 @@ export const DSAConquestAnimation: React.FC = () => {
 
             {/* Ascending Greedy Bars with Upward Optimization Trajectory */}
             <g transform="translate(895, 404)">
-              <rect x="0" y="26" width="13" height="12" rx="3" fill="#042318" stroke="#10b981" strokeWidth="1" />
-              <rect x="18" y="20" width="13" height="18" rx="3" fill="#063222" stroke="#10b981" strokeWidth="1" />
-              <rect x="36" y="13" width="13" height="25" rx="3" fill="#09452f" stroke="#10b981" strokeWidth="1" />
-              <rect x="54" y="6" width="13" height="32" rx="3" fill="#0d5a3d" stroke="#34d399" strokeWidth="1.2" />
+              <rect x="0" y="26" width="13" height="12" rx="3" fill={colors.barStep1} stroke={colors.nodeBorder} strokeWidth="1" />
+              <rect x="18" y="20" width="13" height="18" rx="3" fill={colors.barStep2} stroke={colors.nodeBorder} strokeWidth="1" />
+              <rect x="36" y="13" width="13" height="25" rx="3" fill={colors.barStep3} stroke={colors.nodeBorder} strokeWidth="1" />
+              <rect x="54" y="6" width="13" height="32" rx="3" fill={colors.barStep4} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1.2" />
               {/* Max Greedy choice bar (radiant neon) */}
               <rect x="72" y="0" width="13" height="38" rx="3" fill="#10b981" stroke="#6ee7b7" strokeWidth="1.5" filter="url(#neonCoreGlow)" />
 
@@ -761,6 +792,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 5 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 5 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -774,9 +806,9 @@ export const DSAConquestAnimation: React.FC = () => {
 
             {/* Stepped Sorted Bars */}
             <g transform="translate(767, 529)">
-              <rect x="0" y="24" width="18" height="13" rx="4" fill="#042318" stroke="#10b981" strokeWidth="1" />
-              <rect x="24" y="17" width="18" height="20" rx="4" fill="#063222" stroke="#10b981" strokeWidth="1" />
-              <rect x="48" y="9" width="18" height="28" rx="4" fill="#09452f" stroke="#10b981" strokeWidth="1" />
+              <rect x="0" y="24" width="18" height="13" rx="4" fill={colors.barStep1} stroke={colors.nodeBorder} strokeWidth="1" />
+              <rect x="24" y="17" width="18" height="20" rx="4" fill={colors.barStep2} stroke={colors.nodeBorder} strokeWidth="1" />
+              <rect x="48" y="9" width="18" height="28" rx="4" fill={colors.barStep3} stroke={colors.nodeBorder} strokeWidth="1" />
               {/* Highlighted sorted pinnacle */}
               <rect x="72" y="0" width="18" height="37" rx="4" fill="#10b981" stroke="#6ee7b7" strokeWidth="1.5" filter="url(#neonCoreGlow)" />
             </g>
@@ -798,6 +830,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 6 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 6 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -820,13 +853,13 @@ export const DSAConquestAnimation: React.FC = () => {
               <circle cx="88" cy="8" r="7" fill="#10b981" stroke="#34d399" strokeWidth="1.5" filter="url(#neonCoreGlow)" />
               <text x="88" y="11.5" fill="#ffffff" fontFamily="monospace" fontSize="8.5" fontWeight="900" textAnchor="middle">1</text>
 
-              <circle cx="56" cy="26" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
-              <circle cx="120" cy="26" r="5" fill="#042318" stroke="#10b981" strokeWidth="1.2" />
+              <circle cx="56" cy="26" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <circle cx="120" cy="26" r="5" fill={colors.nodeBg} stroke={colors.nodeBorder} strokeWidth="1.2" />
 
-              <circle cx="40" cy="44" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
-              <circle cx="72" cy="44" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
-              <circle cx="104" cy="44" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
-              <circle cx="136" cy="44" r="4" fill="#03150f" stroke="#34d399" strokeWidth="1" />
+              <circle cx="40" cy="44" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
+              <circle cx="72" cy="44" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
+              <circle cx="104" cy="44" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
+              <circle cx="136" cy="44" r="4" fill={colors.nodeBgSubtle} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1" />
             </g>
           </g>
 
@@ -846,6 +879,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 7 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 7 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -902,6 +936,7 @@ export const DSAConquestAnimation: React.FC = () => {
               fill={colors.cardBg}
               stroke={activeStep === 8 ? colors.cardBorderActive : colors.cardBorder}
               strokeWidth={activeStep === 8 ? 2 : 1}
+              filter={!isDark ? 'url(#cardLightShadow)' : undefined}
               className="transition-colors duration-300"
             />
             {/* Header */}
@@ -914,30 +949,30 @@ export const DSAConquestAnimation: React.FC = () => {
 
             {/* Body: Left side 3D Stack */}
             <g transform="translate(205, 332)">
-              <ellipse cx="22" cy="46" rx="18" ry="6" fill="#042318" stroke="#059669" strokeWidth="1.2" />
-              <path d="M 4,40 v 6 c 0,3.5 8,6 18,6 s 18,-2.5 18,-6 v -6" fill="#042318" stroke="#059669" strokeWidth="1.2" />
-              <ellipse cx="22" cy="40" rx="18" ry="6" fill="#063222" stroke="#10b981" strokeWidth="1.2" />
+              <ellipse cx="22" cy="46" rx="18" ry="6" fill={colors.barStep1} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <path d="M 4,40 v 6 c 0,3.5 8,6 18,6 s 18,-2.5 18,-6 v -6" fill={colors.barStep1} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <ellipse cx="22" cy="40" rx="18" ry="6" fill={colors.barStep2} stroke={colors.nodeBorder} strokeWidth="1.2" />
 
-              <path d="M 4,28 v 6 c 0,3.5 8,6 18,6 s 18,-2.5 18,-6 v -6" fill="#08422d" stroke="#10b981" strokeWidth="1.2" />
-              <ellipse cx="22" cy="28" rx="18" ry="6" fill="#0a5238" stroke="#34d399" strokeWidth="1.2" />
+              <path d="M 4,28 v 6 c 0,3.5 8,6 18,6 s 18,-2.5 18,-6 v -6" fill={colors.barStep2} stroke={colors.nodeBorder} strokeWidth="1.2" />
+              <ellipse cx="22" cy="28" rx="18" ry="6" fill={colors.barStep3} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1.2" />
 
-              <path d="M 4,16 v 6 c 0,3.5 8,6 18,6 s 18,-2.5 18,-6 v -6" fill="#0d6545" stroke="#34d399" strokeWidth="1.2" />
+              <path d="M 4,16 v 6 c 0,3.5 8,6 18,6 s 18,-2.5 18,-6 v -6" fill={colors.barStep3} stroke={isDark ? '#34d399' : '#059669'} strokeWidth="1.2" />
               <ellipse cx="22" cy="16" rx="18" ry="6" fill="#10b981" stroke="#6ee7b7" strokeWidth="1.5" filter="url(#neonCoreGlow)" />
             </g>
 
             {/* Body: Right side 4 Micro Action Pills */}
             <g transform="translate(295, 335)">
-              <rect x="0" y="0" width="56" height="11.5" rx="3.5" fill="rgba(16, 185, 129, 0.16)" stroke="#10b981" strokeWidth="0.9" />
-              <text x="28" y="9" fill="#34d399" fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Push</text>
+              <rect x="0" y="0" width="56" height="11.5" rx="3.5" fill={colors.actionBg} stroke={colors.nodeBorder} strokeWidth="0.9" />
+              <text x="28" y="9" fill={colors.actionText} fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Push</text>
 
-              <rect x="0" y="14.5" width="56" height="11.5" rx="3.5" fill="rgba(16, 185, 129, 0.16)" stroke="#10b981" strokeWidth="0.9" />
-              <text x="28" y="23.5" fill="#34d399" fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Pop</text>
+              <rect x="0" y="14.5" width="56" height="11.5" rx="3.5" fill={colors.actionBg} stroke={colors.nodeBorder} strokeWidth="0.9" />
+              <text x="28" y="23.5" fill={colors.actionText} fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Pop</text>
 
-              <rect x="0" y="29" width="56" height="11.5" rx="3.5" fill="rgba(16, 185, 129, 0.16)" stroke="#10b981" strokeWidth="0.9" />
-              <text x="28" y="38" fill="#34d399" fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Front</text>
+              <rect x="0" y="29" width="56" height="11.5" rx="3.5" fill={colors.actionBg} stroke={colors.nodeBorder} strokeWidth="0.9" />
+              <text x="28" y="38" fill={colors.actionText} fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Front</text>
 
-              <rect x="0" y="43.5" width="56" height="11.5" rx="3.5" fill="rgba(16, 185, 129, 0.16)" stroke="#10b981" strokeWidth="0.9" />
-              <text x="28" y="52.5" fill="#34d399" fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Back</text>
+              <rect x="0" y="43.5" width="56" height="11.5" rx="3.5" fill={colors.actionBg} stroke={colors.nodeBorder} strokeWidth="0.9" />
+              <text x="28" y="52.5" fill={colors.actionText} fontFamily="Manrope, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">Back</text>
             </g>
           </g>
         </svg>

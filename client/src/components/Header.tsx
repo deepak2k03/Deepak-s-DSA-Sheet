@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Code2,
-  Github,
   Shield,
   LayoutGrid,
   BookMarked,
@@ -173,24 +172,6 @@ const Header: React.FC = () => {
 
           {/* RIGHT: Actions */}
           <div className="flex items-center gap-3">
-            <a
-              href="https://github.com/deepak2k03/Deepak-s-DSA-Sheet"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--accent-surface)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
-            >
-              <Github size={20} />
-            </a>
-
             <ThemeToggle />
 
             <div
@@ -399,16 +380,6 @@ const Header: React.FC = () => {
 
             {/* Divider */}
             <div className="border-t border-[var(--border-subtle)] pt-2 space-y-1">
-              <a
-                href="https://github.com/deepak2k03/Deepak-s-DSA-Sheet"
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                <Github size={18} className="text-[var(--text-muted)]" />
-                <span>GitHub Repository</span>
-              </a>
 
               {isAuthenticated ? (
                 <>

@@ -172,24 +172,50 @@ const TopicPage: React.FC = () => {
       <AnimatedBackground />
       
       {/* Sticky Header */}
-      <header className="sticky top-[64px] z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/80 backdrop-blur-md">
-        <div className="page-wrap py-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Link to="/topics" className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]">
-              <ArrowLeft size={16} />
-            </Link>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Learning track</p>
-              <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--text-primary)] capitalize">
-                {topic && <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)]">{getTopicIcon(topic.iconKey, 18)}</span>}
-                {topic?.name || normalizedSlug.replace(/-/g, ' ')}
-              </h1>
+      <header className="sticky top-[64px] z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/85 backdrop-blur-md">
+        <div className="page-wrap py-4 sm:py-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+            {/* Left: Topic Title & Navigation */}
+            <div className="flex items-center gap-3.5 sm:gap-4 shrink-0">
+              <Link 
+                to="/topics" 
+                className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] shrink-0 shadow-[var(--shadow-xs)]"
+                title="Back to all topics"
+              >
+                <ArrowLeft size={16} />
+              </Link>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Learning track</p>
+                <h1 className="mt-0.5 flex items-center gap-2 text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)] capitalize truncate">
+                  {topic && (
+                    <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shrink-0">
+                      {getTopicIcon(topic.iconKey, 18)}
+                    </span>
+                  )}
+                  <span className="truncate">{topic?.name || normalizedSlug.replace(/-/g, ' ')}</span>
+                </h1>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {Object.entries(stats).map(([label, value], index) => (
-              <StatBadge key={label} label={label} {...value} color={index === 0 ? 'bg-[var(--text-primary)]' : index === 1 ? 'bg-emerald-500' : index === 2 ? 'bg-amber-500' : 'bg-rose-500'} />
-            ))}
+
+            {/* Right: Total, Easy, Medium, Hard stat cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 w-full lg:w-auto lg:min-w-[480px] xl:min-w-[560px]">
+              {Object.entries(stats).map(([label, value], index) => (
+                <StatBadge 
+                  key={label} 
+                  label={label} 
+                  {...value} 
+                  color={
+                    index === 0 
+                      ? 'bg-[var(--text-primary)]' 
+                      : index === 1 
+                      ? 'bg-emerald-500' 
+                      : index === 2 
+                      ? 'bg-amber-500' 
+                      : 'bg-rose-500'
+                  } 
+                />
+              ))}
+            </div>
           </div>
         </div>
       </header>
@@ -403,7 +429,7 @@ const Resource = ({ href, label, Icon, highlight }: { href: string; label: strin
     title={label} 
     className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
       highlight
-        ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-300'
+        ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-700 dark:hover:text-amber-300'
         : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]'
     }`}
   >
@@ -412,17 +438,17 @@ const Resource = ({ href, label, Icon, highlight }: { href: string; label: strin
 );
 
 const StatBadge = ({ label, solved, total, color }: { label: string; solved: number; total: number; color: string }) => (
-  <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 shadow-[var(--shadow-xs)]">
-    <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+  <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-[var(--shadow-xs)] transition-all">
+    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
       <span>{label}</span>
       <i className={`h-1.5 w-1.5 rounded-full ${color}`} />
     </div>
-    <p className="mt-1 flex items-baseline gap-1 text-xl font-bold text-[var(--text-primary)]">
+    <p className="mt-1 flex items-baseline gap-1 text-base sm:text-lg xl:text-xl font-extrabold text-[var(--text-primary)] leading-tight">
       {solved}
-      <span className="text-sm font-medium text-[var(--text-muted)]">/ {total}</span>
+      <span className="text-xs sm:text-sm font-semibold text-[var(--text-muted)]">/ {total}</span>
     </p>
-    <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[var(--bg-surface-muted)]">
-      <div className={`h-full rounded-full ${color}`} style={{ width: `${total ? (solved / total) * 100 : 0}%` }} />
+    <div className="mt-1.5 sm:mt-2 h-1 overflow-hidden rounded-full bg-[var(--bg-surface-muted)]">
+      <div className={`h-full rounded-full ${color} transition-all duration-300`} style={{ width: `${total ? (solved / total) * 100 : 0}%` }} />
     </div>
   </div>
 );

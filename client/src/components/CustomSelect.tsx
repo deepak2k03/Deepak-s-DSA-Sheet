@@ -337,7 +337,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         } ${
           disabled
             ? 'cursor-not-allowed bg-slate-100/60 opacity-60 dark:bg-white/[0.02]'
-            : 'cursor-pointer border border-slate-200/80 bg-[#fbfcfa] hover:border-slate-300 dark:border-white/10 dark:bg-[#101614] dark:hover:border-white/20'
+            : 'cursor-pointer border border-slate-300 bg-white hover:border-slate-400 dark:border-white/10 dark:bg-[#101614] dark:hover:border-white/20'
         } ${
           isOpen
             ? 'border-teal-500 ring-2 ring-teal-500/20 dark:border-teal-400 dark:ring-teal-400/20 shadow-xs'
@@ -391,7 +391,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           ref={listRef}
           role="listbox"
           tabIndex={-1}
-          className={`absolute left-0 w-full min-w-[210px] rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-teal-500/20 dark:bg-[#101614]/95 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 z-[140] ${
+          className={`absolute left-0 w-full min-w-[210px] rounded-2xl border border-slate-300 bg-white p-1.5 shadow-2xl shadow-slate-900/15 backdrop-blur-xl dark:border-teal-500/20 dark:bg-[#101614]/95 dark:shadow-black/70 animate-in fade-in-0 zoom-in-95 duration-150 z-[140] ${
             actualPlacement === 'top'
               ? 'bottom-full mb-1.5 origin-bottom'
               : 'top-full mt-1.5 origin-top'

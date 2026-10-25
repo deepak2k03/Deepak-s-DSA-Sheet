@@ -7,9 +7,9 @@ import { defaultTopics, getTopicIcon, type TopicDefinition } from '../data/topic
 import { fetchPublicTopics } from '../utils/topicApi';
 
 const difficultyStyle: Record<string, string> = { 
-  Easy: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30', 
-  Medium: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30', 
-  Hard: 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-950/30' 
+  Easy: 'text-emerald-700 bg-emerald-50 border border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-900/30', 
+  Medium: 'text-amber-700 bg-amber-50 border border-amber-200 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-900/30', 
+  Hard: 'text-rose-700 bg-rose-50 border border-rose-200 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-900/30' 
 };
 
 const TopicsPage: React.FC = () => {
@@ -79,7 +79,7 @@ const TopicsPage: React.FC = () => {
                 <Link 
                   key={topic.id || topic.slug} 
                   to={`/topic/${topic.slug}`} 
-                  className="group flex flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 transition-all hover:border-[var(--text-primary)] hover:shadow-[var(--shadow-sm)]"
+                  className="group flex flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 shadow-[var(--shadow-sm)] transition-all hover:border-[var(--text-primary)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--bg-surface-muted)] text-[var(--text-primary)]">

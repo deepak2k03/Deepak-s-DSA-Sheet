@@ -8,7 +8,7 @@ import {
   FileText,
   Loader2,
   Play,
-  Sparkles,
+  PlayCircle,
   Target,
 } from "lucide-react";
 import AnimatedBackground from "../components/AnimatedBackground";
@@ -29,12 +29,13 @@ interface Problem {
   solutionLink?: string;
   githubLink?: string;
   videoSolutionUrl?: string;
+  visualizerSlug?: string;
 }
 
 const difficultyBadges: Record<string, string> = {
-  Easy: "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-900/30",
-  Medium: "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-900/30",
-  Hard: "text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-900/30",
+  Easy: "text-emerald-700 bg-emerald-500/15 border-emerald-500/30 dark:text-emerald-400",
+  Medium: "text-amber-700 bg-amber-500/15 border-amber-500/30 dark:text-amber-400",
+  Hard: "text-rose-700 bg-rose-500/15 border-rose-500/30 dark:text-rose-400",
 };
 
 const difficultyTextColors: Record<string, string> = {
@@ -42,39 +43,6 @@ const difficultyTextColors: Record<string, string> = {
   Medium: "text-amber-600 dark:text-amber-400",
   Hard: "text-rose-600 dark:text-rose-400",
 };
-
-const POTDHeaderIllustration: React.FC = () => (
-  <div className="relative hidden lg:block w-[170px] h-[135px] shrink-0 select-none pointer-events-none">
-    {/* Ambient Glow */}
-    <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full transform -translate-y-1 translate-x-2" />
-
-    {/* Main Code Window */}
-    <div className="relative w-[138px] h-[112px] rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] backdrop-blur-md shadow-[var(--shadow-sm)] p-2.5 transform rotate-[-4deg]">
-      {/* Window Controls */}
-      <div className="flex items-center gap-1.5 mb-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" />
-        <div className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" />
-        <div className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" />
-      </div>
-
-      {/* Code icon */}
-      <div className="flex items-center justify-center h-[50px] text-emerald-600 dark:text-emerald-400">
-        <Code2 size={34} className="drop-shadow-[0_0_12px_rgba(52,211,153,0.5)]" />
-      </div>
-
-      {/* Code skeleton lines */}
-      <div className="space-y-1 mt-0.5 px-1">
-        <div className="h-1 w-14 bg-[var(--border-subtle)] rounded-full" />
-        <div className="h-1 w-8 bg-[var(--border-subtle)] rounded-full" />
-      </div>
-    </div>
-
-    {/* Floating Calendar Widget */}
-    <div className="absolute -bottom-1 -right-1 w-[58px] h-[54px] rounded-xl border border-emerald-500/30 bg-emerald-50/95 dark:bg-[#091410]/95 backdrop-blur-md shadow-xl p-1.5 transform rotate-[5deg] flex flex-col items-center justify-center">
-      <Calendar size={22} className="text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.45)]" />
-    </div>
-  </div>
-);
 
 const POTDPage: React.FC = () => {
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -150,20 +118,16 @@ const POTDPage: React.FC = () => {
     <div className="page-shell min-h-screen">
       <AnimatedBackground />
 
-      <main className="page-wrap max-w-5xl mx-auto py-10 sm:py-14">
+      <main className="page-wrap max-w-6xl mx-auto py-10 sm:py-14">
         {/* Header Section */}
         <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-10">
           {/* Left Title and Subtitle */}
           <div className="flex-1 max-w-xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] shadow-[var(--shadow-xs)]">
-              <Sparkles size={14} className="text-emerald-500 dark:text-emerald-400" />
-              <span>Daily practice</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.15]">
-              One meaningful problem,
+            <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.15]">
+              One meaningful
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">
+              problem,{" "}
+              <span className="text-emerald-600 dark:text-emerald-400">
                 every day.
               </span>
             </h1>
@@ -175,65 +139,70 @@ const POTDPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Right Header Controls: Countdown Box + 3D Illustration */}
-          <div className="flex items-center gap-5 shrink-0 self-start lg:self-center">
-            {/* Countdown Box */}
-            <div className="rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-sm)] min-w-[210px]">
+          {/* Right Header: Sleek Unified Countdown Card */}
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-emerald-950/20 dark:bg-[#061410]/90 backdrop-blur-md p-5 sm:p-6 shadow-[var(--shadow-sm)] flex items-center justify-between gap-5 sm:gap-8 min-w-[320px] sm:min-w-[420px] shrink-0 self-start lg:self-center">
+            {/* Subtle Ambient Radial Glow */}
+            <div className="pointer-events-none absolute -right-6 -bottom-6 h-36 w-36 rounded-full bg-emerald-500/10 blur-2xl" />
+
+            {/* Left: Timer details */}
+            <div className="relative z-10 flex flex-col justify-between">
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                <Clock size={16} className="text-emerald-500 dark:text-emerald-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   REFRESHES IN
                 </span>
               </div>
 
-              <p className="mt-2 font-mono text-xl sm:text-2xl font-extrabold text-[var(--text-primary)] tracking-wide">
-                {timeLeft || "08h : 29m : 19s"}
+              <p className="my-2 sm:my-2.5 font-mono text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-wide">
+                {timeLeft || "03h : 56m : 09s"}
               </p>
 
-              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-3 pt-2.5 border-t border-[var(--border-subtle)]">
+              <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                 <Calendar size={13} className="shrink-0" />
-                <span className="truncate">A new problem arrives every day</span>
+                <span>A new problem arrives every day</span>
               </div>
             </div>
 
-            {/* 3D Coding Graphic */}
-            <POTDHeaderIllustration />
+            {/* Right: Calendar Square Badge */}
+            <div className="relative z-10 flex h-20 w-20 sm:h-22 sm:w-22 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 shadow-inner">
+              <Calendar size={38} strokeWidth={1.8} className="drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]" />
+            </div>
           </div>
         </header>
 
         {/* Content Body: Problem Card */}
         {loading ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)]">
+          <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-[var(--border-strong)] bg-[var(--bg-surface)]">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
           </div>
         ) : problem ? (
-          <section className="overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 sm:p-8 shadow-[var(--shadow-sm)] relative">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_270px] gap-8 items-stretch">
-              {/* Left Column: Problem Details */}
-              <div className="flex flex-col justify-between">
+          <section className="overflow-hidden rounded-3xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-6 sm:p-8 lg:p-9 shadow-[var(--shadow-sm)] relative">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] xl:grid-cols-[1fr_310px] gap-8 xl:gap-10 items-stretch">
+              {/* Left Column: Problem Details & Action Buttons */}
+              <div className="flex flex-col justify-between gap-6">
                 <div>
                   {/* Badges Row */}
-                  <div className="mb-6 flex flex-wrap items-center gap-2.5">
+                  <div className="mb-4 sm:mb-5 flex flex-wrap items-center gap-2.5 sm:gap-3">
                     <span
-                      className={`inline-flex items-center justify-center rounded-lg border px-3 py-1 text-xs font-semibold ${
+                      className={`inline-flex items-center justify-center rounded-xl border px-3.5 py-1.5 text-xs font-bold ${
                         difficultyBadges[problem.difficulty] || difficultyBadges.Easy
                       }`}
                     >
                       {problem.difficulty}
                     </span>
 
-                    <span className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
+                    <span className="flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                       <Calendar size={13} className="text-[var(--text-muted)]" />
                       {getFormattedDate(problem.potdDate)}
                     </span>
 
-                    <span className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1 text-xs font-semibold tracking-wider text-[var(--text-secondary)] uppercase">
+                    <span className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3.5 py-1.5 text-xs font-bold tracking-wider text-[var(--text-secondary)] uppercase">
                       {formatTopicBadge(problem.focusArea || problem.topic)}
                     </span>
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight text-[var(--text-primary)] mb-3">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[var(--text-primary)] mb-3">
                     {problem.title}
                   </h2>
 
@@ -244,15 +213,15 @@ const POTDPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Horizontal Divider & Action Buttons */}
-                <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center gap-3">
+                {/* Bottom Action Buttons */}
+                <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-3.5">
                   <a
                     href={tutorial(problem)}
                     target="_blank"
                     rel="noreferrer"
-                    className="button-secondary text-xs sm:text-sm !py-2.5 !px-4 inline-flex items-center gap-2 group"
+                    className="inline-flex items-center gap-2.5 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-5 py-3 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] shadow-[var(--shadow-xs)] transition-all group active:scale-[0.98]"
                   >
-                    <Play size={13} className="fill-current transition-transform group-hover:scale-110" />
+                    <Play size={14} className="fill-current transition-transform group-hover:scale-110" />
                     <span>Tutorial</span>
                   </a>
 
@@ -260,9 +229,9 @@ const POTDPage: React.FC = () => {
                     href={`/problem/${problem.id}/solution`}
                     target="_blank"
                     rel="noreferrer"
-                    className="button-secondary text-xs sm:text-sm !py-2.5 !px-4 inline-flex items-center gap-2 group"
+                    className="inline-flex items-center gap-2.5 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-5 py-3 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] shadow-[var(--shadow-xs)] transition-all group active:scale-[0.98]"
                   >
-                    <Code2 size={15} className="transition-transform group-hover:scale-110" />
+                    <Code2 size={16} className="transition-transform group-hover:scale-110" />
                     <span>Code</span>
                   </a>
 
@@ -270,71 +239,79 @@ const POTDPage: React.FC = () => {
                     href={problem.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="button-primary text-xs sm:text-sm !py-2.5 !px-4 inline-flex items-center gap-2 group"
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 px-6 py-3 text-sm font-extrabold shadow-sm transition-all group active:scale-[0.98]"
                   >
                     <span>Solve on platform</span>
-                    <ExternalLink size={14} className="transition-transform group-hover:translate-x-0.5" />
+                    <ExternalLink size={15} className="transition-transform group-hover:translate-x-0.5" />
                   </a>
+
+                  {problem.visualizerSlug && (
+                    <a
+                      href={`/visualizers/${problem.visualizerSlug}`}
+                      className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all shadow-[var(--shadow-xs)]"
+                    >
+                      <PlayCircle size={16} className="text-amber-500 animate-pulse" />
+                      <span>Interactive Visualizer</span>
+                    </a>
+                  )}
                 </div>
               </div>
 
-              {/* Right Column: Metadata Sidebar */}
-              <div className="border-t lg:border-t-0 lg:border-l border-[var(--border-subtle)] pt-6 lg:pt-0 lg:pl-8 flex flex-col justify-start gap-4">
-                <div className="space-y-4">
-                  {/* Focus Area */}
-                  <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-surface)] border border-[var(--border-strong)] text-[var(--text-primary)]">
-                      <Target size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                        FOCUS AREA
-                      </p>
-                      <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5 truncate">
-                        {problem.focusArea || formatTopicName(problem.topic)}
-                      </p>
-                    </div>
+              {/* Right Column: 3 Stacked Metadata Cards */}
+              <div className="flex flex-col justify-center gap-3.5 sm:gap-4">
+                {/* Focus Area */}
+                <div className="flex items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5 sm:p-4 transition-colors">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-surface)] border border-[var(--border-strong)] text-[var(--text-primary)] shadow-[var(--shadow-xs)]">
+                    <Target size={20} />
                   </div>
-
-                  {/* Difficulty */}
-                  <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-surface)] border border-[var(--border-strong)] text-[var(--text-primary)]">
-                      <BarChart2 size={18} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                        DIFFICULTY
-                      </p>
-                      <p
-                        className={`text-sm font-bold mt-0.5 ${
-                          difficultyTextColors[problem.difficulty] || "text-emerald-500"
-                        }`}
-                      >
-                        {problem.difficulty}
-                      </p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      FOCUS AREA
+                    </p>
+                    <p className="text-sm sm:text-base font-bold text-[var(--text-primary)] mt-0.5 truncate">
+                      {problem.focusArea || formatTopicName(problem.topic)}
+                    </p>
                   </div>
+                </div>
 
-                  {/* Estimated Time */}
-                  <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-surface)] border border-[var(--border-strong)] text-[var(--text-primary)]">
-                      <FileText size={18} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                        ESTIMATED TIME
-                      </p>
-                      <p className="text-sm font-bold text-[var(--text-primary)] mt-0.5">
-                        {problem.estimatedTime || getEstimatedTime(problem.difficulty)}
-                      </p>
-                    </div>
+                {/* Difficulty */}
+                <div className="flex items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5 sm:p-4 transition-colors">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-surface)] border border-[var(--border-strong)] text-[var(--text-primary)] shadow-[var(--shadow-xs)]">
+                    <BarChart2 size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      DIFFICULTY
+                    </p>
+                    <p
+                      className={`text-sm sm:text-base font-bold mt-0.5 ${
+                        difficultyTextColors[problem.difficulty] || "text-emerald-500"
+                      }`}
+                    >
+                      {problem.difficulty}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Estimated Time */}
+                <div className="flex items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5 sm:p-4 transition-colors">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-surface)] border border-[var(--border-strong)] text-[var(--text-primary)] shadow-[var(--shadow-xs)]">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      ESTIMATED TIME
+                    </p>
+                    <p className="text-sm sm:text-base font-bold text-[var(--text-primary)] mt-0.5">
+                      {problem.estimatedTime || getEstimatedTime(problem.difficulty)}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
           </section>
         ) : (
-          <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-surface)]">
+          <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-[var(--border-strong)] bg-[var(--bg-surface)]">
             <p className="font-semibold text-[var(--text-muted)]">No problem of the day found.</p>
           </div>
         )}
