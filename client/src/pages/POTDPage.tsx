@@ -244,8 +244,8 @@ const POTDPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Horizontal Divider & Left Buttons */}
-                <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] flex flex-wrap gap-3">
+                {/* Horizontal Divider & Action Buttons */}
+                <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center gap-3">
                   <a
                     href={tutorial(problem)}
                     target="_blank"
@@ -265,11 +265,21 @@ const POTDPage: React.FC = () => {
                     <Code2 size={15} className="transition-transform group-hover:scale-110" />
                     <span>Code</span>
                   </a>
+
+                  <a
+                    href={problem.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="button-primary text-xs sm:text-sm !py-2.5 !px-4 inline-flex items-center gap-2 group"
+                  >
+                    <span>Solve on platform</span>
+                    <ExternalLink size={14} className="transition-transform group-hover:translate-x-0.5" />
+                  </a>
                 </div>
               </div>
 
-              {/* Right Column: Metadata Sidebar + Solve Button */}
-              <div className="border-t lg:border-t-0 lg:border-l border-[var(--border-subtle)] pt-6 lg:pt-0 lg:pl-8 flex flex-col justify-between gap-6">
+              {/* Right Column: Metadata Sidebar */}
+              <div className="border-t lg:border-t-0 lg:border-l border-[var(--border-subtle)] pt-6 lg:pt-0 lg:pl-8 flex flex-col justify-start gap-4">
                 <div className="space-y-4">
                   {/* Focus Area */}
                   <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
@@ -319,19 +329,6 @@ const POTDPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                </div>
-
-                {/* Primary Solve Button */}
-                <div className="pt-2">
-                  <a
-                    href={problem.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="button-primary w-full text-xs sm:text-sm !py-2.5 !px-4 inline-flex items-center justify-center gap-2 group"
-                  >
-                    <span>Solve on platform</span>
-                    <ExternalLink size={14} className="transition-transform group-hover:translate-x-0.5" />
-                  </a>
                 </div>
               </div>
             </div>
