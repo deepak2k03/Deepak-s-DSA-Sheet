@@ -1,109 +1,109 @@
 /* ══════════════════════════════════════════════════════════════════
-   CINEMATIC DSA CONQUEST ANIMATION STYLING
-   Cleaned & Streamlined for Mountain Summit & Twinkling Star
+   FUTURISTIC DSA MASTERY CORE ANIMATION STYLING
+   Central isometric code engine, radial beams, and 9 topic panels
    ══════════════════════════════════════════════════════════════════ */
 
-@keyframes conquestPulse {
+@keyframes coreFloatAnim {
   0%, 100% {
-    opacity: 0.35;
-    transform: scale(1);
+    transform: translateY(0px);
   }
   50% {
-    opacity: 0.75;
-    transform: scale(1.05);
+    transform: translateY(-6px);
   }
 }
 
-@keyframes goldenStarBlink {
-  0%, 100% {
+@keyframes corePulseRingAnim {
+  0% {
     transform: scale(0.92);
-    opacity: 0.75;
-    filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.35));
+    opacity: 0.9;
+    filter: drop-shadow(0 0 15px rgba(52, 211, 153, 0.7));
   }
   50% {
     transform: scale(1.08);
     opacity: 1;
-    filter: drop-shadow(0 0 7px rgba(251, 191, 36, 0.6));
-  }
-}
-
-@keyframes goldenRayRotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes mountainGlow {
-  0%, 100% {
-    filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.45));
-  }
-  50% {
-    filter: drop-shadow(0 0 16px rgba(52, 211, 153, 0.8));
-  }
-}
-
-@keyframes starSparkle {
-  0% {
-    transform: translateY(0) scale(0.3);
-    opacity: 0;
-  }
-  40% {
-    opacity: 0.9;
+    filter: drop-shadow(0 0 35px rgba(52, 211, 153, 0.95)) drop-shadow(0 0 60px rgba(16, 185, 129, 0.6));
   }
   100% {
-    transform: translateY(-28px) scale(1);
-    opacity: 0;
+    transform: scale(0.92);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 15px rgba(52, 211, 153, 0.7));
   }
 }
 
-.animate-conquest-pulse {
-  animation: conquestPulse 3s ease-in-out infinite;
+@keyframes beamDashFlow {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
-.animate-golden-star-blink {
-  animation: goldenStarBlink 2.2s ease-in-out infinite;
-  transform-origin: center;
+@keyframes photonPulseGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 10px #34d399);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px #ffffff) drop-shadow(0 0 18px #10b981);
+  }
 }
 
-.animate-golden-ray-rotate {
-  animation: goldenRayRotate 20s linear infinite;
-  transform-origin: center;
+@keyframes particleShimmer {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.25);
+  }
 }
 
-.animate-mountain-glow {
-  animation: mountainGlow 3.5s ease-in-out infinite;
+@keyframes cardActivePulse {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5));
+  }
+  50% {
+    transform: translateY(-4px);
+    filter: drop-shadow(0 0 22px rgba(52, 211, 153, 0.95)) drop-shadow(0 0 36px rgba(16, 185, 129, 0.5));
+  }
 }
 
-.animate-star-sparkle-1 {
-  animation: starSparkle 2.6s ease-out infinite;
+.animate-core-float {
+  animation: coreFloatAnim 4s ease-in-out infinite;
+  transform-origin: 600px 350px;
 }
 
-.animate-star-sparkle-2 {
-  animation: starSparkle 3.1s ease-out infinite 0.9s;
+.animate-core-pulse-ring {
+  animation: corePulseRingAnim 3.2s ease-in-out infinite;
+  transform-origin: 600px 350px;
 }
 
-.animate-star-sparkle-3 {
-  animation: starSparkle 2.8s ease-out infinite 1.7s;
+.animate-beam-flow {
+  animation: beamDashFlow 2s linear infinite;
 }
 
-.conquest-text-gradient {
-  background: linear-gradient(135deg, #ffffff 20%, #a7f3d0 60%, #34d399 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.animate-photon-glow {
+  animation: photonPulseGlow 1.6s ease-in-out infinite;
 }
 
-/* Accessibility */
+.animate-particle-shimmer {
+  animation: particleShimmer 3s ease-in-out infinite;
+}
+
+.animate-card-active {
+  animation: cardActivePulse 2.4s ease-in-out infinite;
+}
+
+/* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
-  .animate-conquest-pulse,
-  .animate-golden-star-blink,
-  .animate-golden-ray-rotate,
-  .animate-mountain-glow,
-  .animate-star-sparkle-1,
-  .animate-star-sparkle-2,
-  .animate-star-sparkle-3 {
+  .animate-core-float,
+  .animate-core-pulse-ring,
+  .animate-beam-flow,
+  .animate-photon-glow,
+  .animate-particle-shimmer,
+  .animate-card-active {
     animation: none !important;
   }
 }

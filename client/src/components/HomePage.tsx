@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, BookOpen, Flame, Heart, Sparkles, TrendingUp, Trophy, Code2, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, BarChart3, BookOpen, Flame, Heart, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiUrl } from '../config';
 import { defaultTopics } from '../data/topics';
@@ -42,15 +42,10 @@ const HomePage: React.FC = () => {
       <AnimatedBackground />
       <main>
         {/* HERO SECTION */}
-        <section className="page-wrap relative grid min-h-[70vh] items-center gap-12 xl:gap-20 pt-8 pb-20 lg:grid-cols-[1.1fr_1fr] lg:pt-12 lg:pb-28">
+        <section className="page-wrap relative grid items-center gap-8 xl:gap-12 pt-1 sm:pt-2 lg:pt-3 pb-8 lg:pb-12 lg:grid-cols-[0.8fr_1.35fr] xl:grid-cols-[0.76fr_1.42fr]">
           
           {/* Left Column (Content) */}
-          <div className="relative z-10 flex flex-col items-start text-left">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] shadow-[var(--shadow-xs)] transition-colors hover:border-[var(--text-primary)]">
-              <Sparkles size={14} className="text-emerald-500 dark:text-emerald-400" />
-              <span>A better way to practice DSA</span>
-            </div>
-            
+          <div className="relative z-10 flex flex-col items-start text-left pt-6 sm:pt-8 lg:pt-10 xl:pt-12">
             <h1 className="text-5xl font-extrabold leading-[1.1] tracking-tight text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
               Practice with direction. <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300">
@@ -92,14 +87,12 @@ const HomePage: React.FC = () => {
           </div>
           
           {/* Right Column (Visual) */}
-          <div className="relative w-full">
-             <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 blur-3xl opacity-50 dark:opacity-30 rounded-[40px] z-0"></div>
+          <div className="relative w-full lg:pl-4 xl:pl-8 lg:translate-x-2 xl:translate-x-5">
+             <div className="absolute -inset-6 bg-gradient-to-tr from-emerald-500/25 to-teal-500/20 blur-3xl opacity-60 dark:opacity-35 rounded-[50px] z-0 pointer-events-none"></div>
              
-             <div className="relative z-10 w-full flex items-center justify-center overflow-visible min-h-[400px] lg:min-h-[460px] xl:min-h-[500px]">
+             <div className="relative z-10 w-full flex items-center justify-center overflow-visible">
                 <DSAConquestAnimation />
              </div>
-             
-
           </div>
           
         </section>
