@@ -171,12 +171,12 @@ const TopicPage: React.FC = () => {
     <div className="page-shell">
       <AnimatedBackground />
       
-      {/* Sticky Header */}
+      {/* Topic Header & Progress Cards */}
       <header className="sticky top-[64px] z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/85 backdrop-blur-md">
-        <div className="page-wrap py-4 sm:py-5">
+        <div className="page-wrap py-3.5 sm:py-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
-            {/* Left: Topic Title & Navigation */}
-            <div className="flex items-center gap-3.5 sm:gap-4 shrink-0">
+            {/* Left: Back button + Title ("Learning track") */}
+            <div className="flex items-center gap-3 sm:gap-4 shrink-0">
               <Link 
                 to="/topics" 
                 className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] shrink-0 shadow-[var(--shadow-xs)]"
@@ -185,7 +185,14 @@ const TopicPage: React.FC = () => {
                 <ArrowLeft size={16} />
               </Link>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Learning track</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Learning track</p>
+                  {topic?.difficulty && (
+                    <span className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">
+                      {topic.difficulty}
+                    </span>
+                  )}
+                </div>
                 <h1 className="mt-0.5 flex items-center gap-2 text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)] capitalize truncate">
                   {topic && (
                     <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-[var(--bg-surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] shrink-0">
@@ -197,24 +204,12 @@ const TopicPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Total, Easy, Medium, Hard stat cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 w-full lg:w-auto lg:min-w-[480px] xl:min-w-[560px]">
-              {Object.entries(stats).map(([label, value], index) => (
-                <StatBadge 
-                  key={label} 
-                  label={label} 
-                  {...value} 
-                  color={
-                    index === 0 
-                      ? 'bg-[var(--text-primary)]' 
-                      : index === 1 
-                      ? 'bg-emerald-500' 
-                      : index === 2 
-                      ? 'bg-amber-500' 
-                      : 'bg-rose-500'
-                  } 
-                />
-              ))}
+            {/* In Front of "Learning track": 4 Redesigned Stat Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 w-full lg:w-auto lg:flex-1 lg:max-w-[620px] xl:max-w-[700px] 2xl:max-w-[760px] lg:ml-auto">
+              <StatCard label="TOTAL" solved={stats.Total.solved} total={stats.Total.total} variant="total" />
+              <StatCard label="EASY" solved={stats.Easy.solved} total={stats.Easy.total} variant="easy" />
+              <StatCard label="MEDIUM" solved={stats.Medium.solved} total={stats.Medium.total} variant="medium" />
+              <StatCard label="HARD" solved={stats.Hard.solved} total={stats.Hard.total} variant="hard" />
             </div>
           </div>
         </div>
@@ -429,20 +424,76 @@ const Resource = ({ href, label, Icon, highlight }: { href: string; label: strin
   </a>
 );
 
-const StatBadge = ({ label, solved, total, color }: { label: string; solved: number; total: number; color: string }) => (
-  <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-2 sm:px-3.5 sm:py-2.5 shadow-[var(--shadow-xs)] transition-all">
-    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-      <span>{label}</span>
-      <i className={`h-1.5 w-1.5 rounded-full ${color}`} />
+interface StatCardProps {
+  label: string;
+  solved: number;
+  total: number;
+  variant: 'total' | 'easy' | 'medium' | 'hard';
+}
+
+const variantConfig: Record<
+  StatCardProps['variant'],
+  { pillClass: string; barClass: string }
+> = {
+  total: {
+    pillClass:
+      'text-amber-600 bg-amber-500/10 border-amber-500/30 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/30',
+    barClass: 'bg-amber-500',
+  },
+  easy: {
+    pillClass:
+      'text-emerald-600 bg-emerald-500/10 border-emerald-500/30 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/30',
+    barClass: 'bg-emerald-500',
+  },
+  medium: {
+    pillClass:
+      'text-amber-600 bg-amber-500/10 border-amber-500/30 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/30',
+    barClass: 'bg-amber-500',
+  },
+  hard: {
+    pillClass:
+      'text-rose-600 bg-rose-500/10 border-rose-500/30 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/30',
+    barClass: 'bg-rose-500',
+  },
+};
+
+const StatCard: React.FC<StatCardProps> = ({ label, solved, total, variant }) => {
+  const percentage = total > 0 ? Math.round((solved / total) * 100) : 0;
+  const config = variantConfig[variant];
+
+  return (
+    <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 py-2 sm:px-3 sm:py-2.5 shadow-[var(--shadow-xs)] transition-all hover:border-[var(--border-default)]">
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+        {/* Left: Label and Count (TOTAL 0 / 31) */}
+        <div className="flex items-baseline gap-1.5 sm:gap-2 min-w-0">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] shrink-0">
+            {label}
+          </span>
+          <div className="flex items-baseline gap-0.5 sm:gap-1 text-[var(--text-primary)] leading-none shrink-0">
+            <span className="text-base sm:text-lg font-black tracking-tight">
+              {solved}
+            </span>
+            <span className="text-[10px] sm:text-xs font-semibold text-[var(--text-muted)]">
+              / {total}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Rounded Pill Badge with Percentage (0%) */}
+        <div className={`rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-bold border shrink-0 ${config.pillClass}`}>
+          {percentage}%
+        </div>
+      </div>
+
+      {/* Full-width horizontal progress bar */}
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-800/90">
+        <div
+          className={`h-full rounded-full ${config.barClass} transition-all duration-500 ease-out`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
     </div>
-    <p className="mt-1 flex items-baseline gap-1 text-base sm:text-lg xl:text-xl font-extrabold text-[var(--text-primary)] leading-tight">
-      {solved}
-      <span className="text-xs sm:text-sm font-semibold text-[var(--text-muted)]">/ {total}</span>
-    </p>
-    <div className="mt-1.5 sm:mt-2 h-1 overflow-hidden rounded-full bg-[var(--bg-surface-muted)]">
-      <div className={`h-full rounded-full ${color} transition-all duration-300`} style={{ width: `${total ? (solved / total) * 100 : 0}%` }} />
-    </div>
-  </div>
-);
+  );
+};
 
 export default TopicPage;
