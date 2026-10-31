@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, CheckCircle2, Code2, ExternalLink, Filter, Globe, Lock, Youtube, Star, FileText, X, PlayCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, Code2, ExternalLink, Filter, Globe, Lock, Youtube, Star, FileText, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
 import AnimatedBackground from '../components/AnimatedBackground';
@@ -405,14 +405,6 @@ const ProblemRow = ({ problem, index, complete, isRevision, hasNote, authenticat
       </td>
       <td className="px-5 py-4 text-center">
         <div className="inline-flex w-full justify-center gap-1">
-          {problem.visualizerSlug && (
-            <Resource
-              href={`/visualizers/${problem.visualizerSlug}`}
-              label="Interactive Visual Animation"
-              Icon={PlayCircle}
-              highlight
-            />
-          )}
           <Resource href={problem.videoSolutionUrl || problem.tutorialLink || `https://www.google.com/search?q=${encodeURIComponent(`${problem.title} tutorial`)}`} label="Tutorial" Icon={Youtube} />
           <Resource href={`/problem/${problem.id}/solution`} label="Code" Icon={Code2} />
         </div>
