@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import HomePage from "./components/HomePage"; // Ensure this points to your new Home
 import Header from "./components/Header";
 import AdminRoute from "./components/AdminRoute";
@@ -31,27 +32,29 @@ function App() {
         }}
       >
         <Header />
-        <div key={location.pathname} className="page-transition">
-        <Routes>
-          {/* Main Landing Page */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          <Route path="/topics" element={<Topics />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
-          <Route path="/topic/:slug" element={<TopicPage />} />
-          <Route path="/problem/:id/solution" element={<SolutionPage />} />
-          <Route path="/potd" element={<POTDPage />} />
-          <Route path="/visualizers" element={<VisualizersPage />} />
-          <Route path="/visualizers/:slug" element={<VisualizerDetailPage />} />
-          <Route path="/visualizer" element={<Navigate to="/visualizers" replace />} />
-          <Route path="/support" element={<SupportCreatorPage />} />
-          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-        </Routes>
-        </div>
+        <ErrorBoundary>
+          <div key={location.pathname} className="page-transition">
+            <Routes>
+              {/* Main Landing Page */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              <Route path="/topics" element={<Topics />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/topic/:slug" element={<TopicPage />} />
+              <Route path="/problem/:id/solution" element={<SolutionPage />} />
+              <Route path="/potd" element={<POTDPage />} />
+              <Route path="/visualizers" element={<VisualizersPage />} />
+              <Route path="/visualizers/:slug" element={<VisualizerDetailPage />} />
+              <Route path="/visualizer" element={<Navigate to="/visualizers" replace />} />
+              <Route path="/support" element={<SupportCreatorPage />} />
+              <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+            </Routes>
+          </div>
+        </ErrorBoundary>
       </div>
     </ThemeProvider>
   );

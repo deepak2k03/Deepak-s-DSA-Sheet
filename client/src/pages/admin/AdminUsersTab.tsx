@@ -16,6 +16,7 @@ export interface PaginationData {
   page: number;
   limit: number;
   pages: number;
+  totalPages: number;
 }
 
 interface AdminUsersTabProps {
@@ -27,6 +28,8 @@ interface AdminUsersTabProps {
   setUserRoleFilter: (r: string) => void;
   userStatusFilter: string;
   setUserStatusFilter: (s: string) => void;
+  userPageSize: number | 'all';
+  setUserPageSize: (size: number | 'all') => void;
   usersPagination: PaginationData;
   setUsersPagination: React.Dispatch<React.SetStateAction<PaginationData>>;
   updateUserAccess: (
@@ -45,6 +48,8 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
   setUserRoleFilter,
   userStatusFilter,
   setUserStatusFilter,
+  userPageSize,
+  setUserPageSize,
   usersPagination,
   setUsersPagination,
   updateUserAccess,
@@ -56,21 +61,89 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
             User Access{' '}
             <span className="ml-1 text-sm font-normal text-slate-400">
-              ({filteredUsers.length}/{users.length})
+              ({usersPagination.total})
             </span>
           </h2>
-          <SearchBox value={userSearch} onChange={setUserSearch} placeholder="Search by name or email…" />
+          <SearchBox
+            value={userSearch}
+            onChange={(val) => {
+              setUserSearch(val);
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+            placeholder="Search by name or email…"
+          />
         </div>
         <div className="flex flex-wrap gap-2">
-          <FilterChip label="All Roles" active={userRoleFilter === ''} onClick={() => setUserRoleFilter('')} />
-          <FilterChip label="Admin" active={userRoleFilter === 'admin'} onClick={() => setUserRoleFilter('admin')} color="blue" />
-          <FilterChip label="Moderator" active={userRoleFilter === 'moderator'} onClick={() => setUserRoleFilter('moderator')} color="amber" />
-          <FilterChip label="Content" active={userRoleFilter === 'content_manager'} onClick={() => setUserRoleFilter('content_manager')} color="emerald" />
-          <FilterChip label="User" active={userRoleFilter === 'user'} onClick={() => setUserRoleFilter('user')} />
+          <FilterChip
+            label="All Roles"
+            active={!userRoleFilter || userRoleFilter === 'all'}
+            onClick={() => {
+              setUserRoleFilter('all');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+          />
+          <FilterChip
+            label="Admin"
+            active={userRoleFilter === 'admin'}
+            onClick={() => {
+              setUserRoleFilter('admin');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+            color="blue"
+          />
+          <FilterChip
+            label="Moderator"
+            active={userRoleFilter === 'moderator'}
+            onClick={() => {
+              setUserRoleFilter('moderator');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+            color="amber"
+          />
+          <FilterChip
+            label="Content"
+            active={userRoleFilter === 'content_manager'}
+            onClick={() => {
+              setUserRoleFilter('content_manager');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+            color="emerald"
+          />
+          <FilterChip
+            label="User"
+            active={userRoleFilter === 'user'}
+            onClick={() => {
+              setUserRoleFilter('user');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+          />
           <span className="mx-1 self-center border-l border-slate-200/80 dark:border-white/10 h-4" />
-          <FilterChip label="All Status" active={userStatusFilter === ''} onClick={() => setUserStatusFilter('')} />
-          <FilterChip label="Active" active={userStatusFilter === 'active'} onClick={() => setUserStatusFilter('active')} color="emerald" />
-          <FilterChip label="Disabled" active={userStatusFilter === 'disabled'} onClick={() => setUserStatusFilter('disabled')} color="rose" />
+          <FilterChip
+            label="All Status"
+            active={!userStatusFilter || userStatusFilter === 'all'}
+            onClick={() => {
+              setUserStatusFilter('all');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+          />
+          <FilterChip
+            label="Active"
+            active={userStatusFilter === 'active'}
+            onClick={() => {
+              setUserStatusFilter('active');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+            color="emerald"
+          />
+          <FilterChip
+            label="Disabled"
+            active={userStatusFilter === 'disabled'}
+            onClick={() => {
+              setUserStatusFilter('disabled');
+              setUsersPagination((p) => ({ ...p, page: 1 }));
+            }}
+            color="rose"
+          />
         </div>
       </div>
       <div className="space-y-3">
@@ -158,14 +231,43 @@ export const AdminUsersTab: React.FC<AdminUsersTabProps> = ({
           </div>
         ))}
       </div>
-      <PaginationBar
-        page={usersPagination.page}
-        totalPages={usersPagination.pages}
-        onPrev={() => setUsersPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
-        onNext={() =>
-          setUsersPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))
-        }
-      />
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span>Per page:</span>
+          {([10, 25, 50, 100, 'all'] as const).map((size) => (
+            <button
+              key={String(size)}
+              type="button"
+              onClick={() => {
+                setUserPageSize(size);
+                setUsersPagination((p) => ({
+                  ...p,
+                  page: 1,
+                  limit: size === 'all' ? 5000 : size,
+                }));
+              }}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                userPageSize === size
+                  ? 'bg-[#123b36] text-white dark:bg-teal-400 dark:text-[#08241f]'
+                  : 'border border-slate-200/80 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5'
+              }`}
+            >
+              {size === 'all' ? 'All' : size}
+            </button>
+          ))}
+        </div>
+
+        {userPageSize !== 'all' && (
+          <PaginationBar
+            page={usersPagination.page}
+            totalPages={usersPagination.pages}
+            onPrev={() => setUsersPagination((p) => ({ ...p, page: Math.max(p.page - 1, 1) }))}
+            onNext={() =>
+              setUsersPagination((p) => ({ ...p, page: Math.min(p.page + 1, Math.max(p.pages, 1)) }))
+            }
+          />
+        )}
+      </div>
     </section>
   );
 };

@@ -23,7 +23,7 @@ const getAuthHeaders = () => {
   const token = getStoredToken();
   return {
     'Content-Type': 'application/json',
-    ...(token ? { 'x-auth-token': token } : {}),
+    ...(token ? { 'x-auth-token': token, Authorization: `Bearer ${token}` } : {}),
   };
 };
 
@@ -302,6 +302,7 @@ export interface VisualizerCategoryItem {
   order: number;
   isDefault: boolean;
   count: number;
+  pillar?: string;
 }
 
 export async function fetchVisualizerCategories(): Promise<VisualizerCategoryItem[]> {

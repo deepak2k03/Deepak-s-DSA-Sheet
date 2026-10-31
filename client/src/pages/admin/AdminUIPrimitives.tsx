@@ -157,27 +157,32 @@ export const PaginationBar = ({
   totalPages: number;
   onPrev: () => void;
   onNext: () => void;
-}) => (
-  <div className="mt-4 flex items-center justify-end gap-2">
-    <button
-      type="button"
-      onClick={onPrev}
-      disabled={page <= 1}
-      className="rounded-lg border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
-    >
-      Prev
-    </button>
-    <span className="text-xs text-slate-500 dark:text-slate-400">
-      Page {page} / {Math.max(totalPages, 1)}
-    </span>
-    <button
-      type="button"
-      onClick={onNext}
-      disabled={page >= Math.max(totalPages, 1)}
-      className="rounded-lg border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
-    >
-      Next
-    </button>
-  </div>
-);
+}) => {
+  const safeTotal = Math.max(Number.isFinite(totalPages) && totalPages > 0 ? Math.floor(totalPages) : 1, 1);
+  const safePage = Math.max(Number.isFinite(page) && page > 0 ? Math.floor(page) : 1, 1);
+
+  return (
+    <div className="mt-4 flex items-center justify-end gap-2">
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={safePage <= 1}
+        className="rounded-lg border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+      >
+        Prev
+      </button>
+      <span className="text-xs text-slate-500 dark:text-slate-400">
+        Page {safePage} / {safeTotal}
+      </span>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={safePage >= safeTotal}
+        className="rounded-lg border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+      >
+        Next
+      </button>
+    </div>
+  );
+};
 

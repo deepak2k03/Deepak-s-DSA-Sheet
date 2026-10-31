@@ -2,7 +2,16 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const auth = async (req, res, next) => {
-  const token = req.header('x-auth-token');
+  let token = req.header('x-auth-token');
+
+  if (!token && req.header('authorization')) {
+    const authHeader = req.header('authorization').trim();
+    if (authHeader.toLowerCase().startsWith('bearer ')) {
+      token = authHeader.slice(7).trim();
+    } else {
+      token = authHeader;
+    }
+  }
 
   if (!token) {
     return res.status(401).json({ msg: 'No token, authorization denied' });
@@ -10,7 +19,13 @@ const auth = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('isActive tokenVersion tokensInvalidBefore');
+    const userId = decoded.userId || decoded.user?.id || decoded.id;
+
+    if (!userId) {
+      return res.status(401).json({ msg: 'Invalid token payload' });
+    }
+
+    const user = await User.findById(userId).select('isActive tokenVersion tokensInvalidBefore');
 
     if (!user || !user.isActive) {
       return res.status(401).json({ msg: 'Account access denied' });
@@ -27,7 +42,7 @@ const auth = async (req, res, next) => {
       }
     }
 
-    req.userId = decoded.userId;
+    req.userId = userId;
     next();
   } catch (error) {
     return res.status(401).json({ msg: 'Token is not valid' });

@@ -40,20 +40,36 @@ router.use(auth, adminOnly);
 const ALLOWED_ROLES = ['user', 'moderator', 'content_manager', 'admin'];
 
 const parsePaging = (query) => {
+  const isAll =
+    query.limit === 'all' ||
+    query.limit === '0' ||
+    query.limit === '-1' ||
+    query.all === 'true';
   const page = Math.max(Number.parseInt(query.page, 10) || 1, 1);
-  const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 20, 1), 500);
-  return { page, limit, skip: (page - 1) * limit };
+  const limit = isAll
+    ? 5000
+    : Math.min(Math.max(Number.parseInt(query.limit, 10) || 20, 1), 5000);
+  return { page, limit, skip: isAll ? 0 : (page - 1) * limit, isAll };
 };
 
-const paginate = (items, total, page, limit) => ({
-  items,
-  pagination: {
+const paginate = (items, total, page, limit) => {
+  const totalPages = Math.max(Math.ceil(total / Math.max(limit, 1)), 1);
+  return {
+    items,
     total,
     page,
     limit,
-    pages: Math.max(Math.ceil(total / limit), 1),
-  },
-});
+    totalPages,
+    pages: totalPages,
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: totalPages,
+      totalPages,
+    },
+  };
+};
 
 const serializeTopic = (topic, problemCount = 0) => ({
   id: String(topic._id),
@@ -82,6 +98,8 @@ const serializeProblem = (problem) => ({
   solutionLink: problem.solutionLink || '',
   githubLink: problem.githubLink || '',
   videoSolutionUrl: problem.videoSolutionUrl || '',
+  visualizerSlug: problem.visualizerSlug || '',
+  hasVisualizer: Boolean(problem.hasVisualizer || problem.visualizerSlug),
   approaches: problem.approaches || [],
   isDeleted: Boolean(problem.isDeleted),
   deletedAt: problem.deletedAt || null,
@@ -486,21 +504,32 @@ router.get('/problems', async (req, res) => {
       conditions.push({ isDeleted: { $ne: true } });
     }
 
-    if (difficulty) {
-      conditions.push({ difficulty });
+    if (difficulty && difficulty !== 'all') {
+      conditions.push({ difficulty: { $regex: new RegExp(`^${difficulty}$`, 'i') } });
     }
 
-    if (topic) {
+    if (topic && topic !== 'all') {
       const canonical = getCanonicalTopicSlug(topic);
-      const regexPattern = `^(${canonical}|${canonical.replace(/-/g, '[- ]?')}|${topic})$`;
-      conditions.push({
-        $or: [
-          { topic: { $regex: new RegExp(regexPattern, 'i') } },
-          { topic: canonical },
-          { topic },
-          { topic: canonical.replace(/-/g, ' ') },
-        ],
-      });
+      const escapeRegex = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const baseSlug = canonical || slugifyTopic(topic);
+      const flexiblePattern = baseSlug
+        .replace(/s\b/g, 's?')
+        .replace(/-/g, '[- &]+');
+
+      const topicConditions = [
+        { topic: { $regex: new RegExp(`^${flexiblePattern}$`, 'i') } },
+        { topic: { $regex: new RegExp(`^${escapeRegex(topic)}$`, 'i') } },
+        { topic: { $regex: new RegExp(`^${escapeRegex(canonical)}$`, 'i') } },
+        { topic: canonical },
+        { topic },
+        { topic: canonical.replace(/-/g, ' ') },
+      ];
+
+      if (canonical === 'dynamic-programming') {
+        topicConditions.push({ topic: { $regex: /^dp$/i } });
+      }
+
+      conditions.push({ $or: topicConditions });
     }
 
     if (q) {
@@ -527,7 +556,21 @@ router.get('/problems', async (req, res) => {
 });
 
 router.post('/problems', async (req, res) => {
-  const { title, link, difficulty, topic, tutorialLink, solutionLink, githubLink, problemNumber, videoSolutionUrl, approaches, order } = req.body;
+  const {
+    title,
+    link,
+    difficulty,
+    topic,
+    tutorialLink,
+    solutionLink,
+    githubLink,
+    problemNumber,
+    videoSolutionUrl,
+    approaches,
+    order,
+    hasVisualizer,
+    visualizerSlug,
+  } = req.body;
 
   try {
     if (!title || !link || !topic) {
@@ -570,6 +613,7 @@ router.post('/problems', async (req, res) => {
       problemOrder = maxOrder + 1;
     }
 
+    const effectiveVisSlug = (visualizerSlug || '').trim();
     const problem = await Problem.create({
       id: nextProblemNumber,
       title: title.trim(),
@@ -581,6 +625,8 @@ router.post('/problems', async (req, res) => {
       solutionLink: (solutionLink || '').trim(),
       githubLink: (githubLink || '').trim(),
       videoSolutionUrl: (videoSolutionUrl || '').trim(),
+      visualizerSlug: effectiveVisSlug,
+      hasVisualizer: Boolean(hasVisualizer || effectiveVisSlug),
       approaches: Array.isArray(approaches) ? approaches : [],
       isDeleted: false,
       deletedAt: null,
@@ -602,7 +648,20 @@ router.post('/problems', async (req, res) => {
 });
 
 router.put('/problems/:problemId', async (req, res) => {
-  const { title, link, difficulty, topic, tutorialLink, solutionLink, githubLink, problemNumber, videoSolutionUrl, approaches } = req.body;
+  const {
+    title,
+    link,
+    difficulty,
+    topic,
+    tutorialLink,
+    solutionLink,
+    githubLink,
+    problemNumber,
+    videoSolutionUrl,
+    approaches,
+    hasVisualizer,
+    visualizerSlug,
+  } = req.body;
 
   try {
     const problem = await Problem.findById(req.params.problemId);
@@ -656,6 +715,15 @@ router.put('/problems/:problemId', async (req, res) => {
     problem.videoSolutionUrl = videoSolutionUrl !== undefined ? String(videoSolutionUrl).trim() : problem.videoSolutionUrl;
     if (approaches !== undefined) {
       problem.approaches = Array.isArray(approaches) ? approaches : problem.approaches;
+    }
+
+    if (visualizerSlug !== undefined) {
+      problem.visualizerSlug = String(visualizerSlug).trim();
+    }
+    if (hasVisualizer !== undefined) {
+      problem.hasVisualizer = Boolean(hasVisualizer || problem.visualizerSlug);
+    } else if (problem.visualizerSlug) {
+      problem.hasVisualizer = true;
     }
 
     await problem.save();
