@@ -43,7 +43,8 @@ const TOPIC_ALIASES: Record<string, string> = {
 };
 
 const normalizeRawTopic = (topic: string) =>
-  topic
+  (topic || '')
+    .toString()
     .toLowerCase()
     .trim()
     .replace(/&/g, ' and ')

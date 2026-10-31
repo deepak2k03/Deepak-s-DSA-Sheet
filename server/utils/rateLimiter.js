@@ -1,5 +1,20 @@
 const windows = new Map();
 
+// Periodically purge expired rate-limiting windows to prevent memory leaks
+const CLEANUP_INTERVAL_MS = 60 * 1000;
+const cleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of windows.entries()) {
+    if (now > record.resetAt) {
+      windows.delete(key);
+    }
+  }
+}, CLEANUP_INTERVAL_MS);
+
+if (typeof cleanupTimer.unref === 'function') {
+  cleanupTimer.unref();
+}
+
 const createRateLimiter = ({ windowMs, maxRequests, keyBuilder }) => {
   return (req, res, next) => {
     const now = Date.now();

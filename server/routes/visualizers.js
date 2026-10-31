@@ -59,10 +59,22 @@ const verifyAdminAccess = async (req) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded || !decoded.user || !decoded.user.id) return false;
+    const userId = decoded.userId || decoded.user?.id || decoded.id;
+    if (!userId) return false;
 
-    const user = await User.findById(decoded.user.id).select('role isActive').lean();
+    const user = await User.findById(userId).select('role isActive tokenVersion tokensInvalidBefore').lean();
     if (!user || user.isActive === false) return false;
+
+    if (typeof decoded.tokenVersion === 'number' && decoded.tokenVersion !== (user.tokenVersion || 0)) {
+      return false;
+    }
+
+    if (user.tokensInvalidBefore && decoded.iat) {
+      const issuedAtMs = decoded.iat * 1000;
+      if (issuedAtMs < new Date(user.tokensInvalidBefore).getTime()) {
+        return false;
+      }
+    }
 
     return ['admin', 'moderator', 'content_manager'].includes(user.role);
   } catch (err) {

@@ -32,7 +32,8 @@ const TOPIC_ALIASES = {
 };
 
 const normalizeTopicText = (value = '') =>
-  value
+  (value || '')
+    .toString()
     .toLowerCase()
     .trim()
     .replace(/&/g, ' and ')
