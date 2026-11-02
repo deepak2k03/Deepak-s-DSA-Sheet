@@ -45,7 +45,8 @@ This document breaks down the major functional modules within the client and ser
 - **`routes/topics.js`**:
   - Public topic listings (`/api/topics`) with canonical slug resolution (`utils/topics.js`).
 - **`routes/visualizers.js`**:
-  - Visualizer indexing, view count increments, and asset proxying (`/api/visualizers/serve/:slug`).
+  - Visualizer catalog, categories, statistics, and secure sandboxed rendering (`/api/visualizers/render/:slug`).
+  - Supports streaming from Cloudflare R2, local file fallbacks (`client/public/visualizers/`), resilient problem-ID resolution, and built-in interactive animation generation.
 - **`routes/admin.js`**:
   - Privileged management endpoints. Protected by `middleware/auth.js` and `middleware/admin.js`.
   - Writes comprehensive audit logs via `utils/audit.js` on every mutating request.

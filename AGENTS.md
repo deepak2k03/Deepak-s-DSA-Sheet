@@ -115,6 +115,10 @@ graph TD
   2. Server verification: `npm --prefix server test`.
 - **Soft Deletes**: Topics, Problems, and Visualizers use soft deletion (`isDeleted: true`, `deletedAt: Date`). Never perform destructive hard deletes in production routes unless explicitly required.
 - **Cache Invalidation**: Whenever problems or leaderboard settings change, clear the appropriate in-memory caches using `clearProblemsCache()` and `clearLeaderboardCache()`.
+- **Mandatory Documentation Sync**: Before concluding any turn that modifies, adds, or deletes code, directories, configurations, or endpoints:
+  1. Inspect `docs/` (`api-reference.md`, `directory-structure.md`, `modules.md`, `architecture.md`, `database-schema.md`, `integrations.md`).
+  2. Update all affected documentation files to reflect the exact changes made.
+  3. Always verify that documentation stays accurate with zero hallucinated details.
 
 ---
 
@@ -158,6 +162,7 @@ For specialized guidelines and detailed specifications, consult the following re
   - [Security & Compliance](.agents/rules/security.md)
   - [Performance & Caching](.agents/rules/performance.md)
   - [Code Quality & Structure](.agents/rules/code-quality.md)
+  - [Documentation Synchronization](.agents/rules/documentation.md)
 
 - **Comprehensive Documentation**:
   - [System Architecture](docs/architecture.md)

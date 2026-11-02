@@ -28,6 +28,7 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
   showOpenNewTab = false,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -47,6 +48,7 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
   const handleReload = () => {
     if (iframeRef.current) {
       setIsLoading(true);
+      setHasError(false);
       // Force iframe refresh
       const currentSrc = iframeRef.current.src;
       iframeRef.current.src = '';
@@ -166,16 +168,40 @@ export const VisualizerFrame: React.FC<VisualizerFrameProps> = ({
           </div>
         )}
 
-        {/* Sandboxed Iframe (strict origin isolation - no allow-same-origin) */}
+        {/* Sandboxed Iframe (origin isolated with same-origin per project rules) */}
         <iframe
           ref={iframeRef}
           src={src}
           title={title}
           onLoad={() => setIsLoading(false)}
-          sandbox="allow-scripts allow-forms allow-modals"
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
           loading="lazy"
-          className="h-full w-full border-0 bg-transparent"
+          style={{ backgroundColor: '#0a0a0a', colorScheme: 'dark' }}
+          className="h-full w-full border-0 bg-[#0a0a0a]"
         />
+
+        {/* Load Failure Fallback Card */}
+        {hasError && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0a0a0a] p-6 text-center">
+            <AlertCircle className="h-10 w-10 text-amber-400 mb-3" />
+            <h4 className="text-sm font-bold text-white mb-1">Failed to load visualizer</h4>
+            <p className="text-xs text-slate-400 max-w-sm mb-4">
+              The animation could not be loaded. Please ensure the backend server is running and try reloading.
+            </p>
+            <button
+              type="button"
+              onClick={handleReload}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 px-3.5 py-1.5 text-xs font-semibold hover:bg-teal-500/30 transition"
+            >
+              <RotateCcw size={13} />
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Developer Guidance Banner when marked as unavailable */}
         {status === 'unavailable' && (

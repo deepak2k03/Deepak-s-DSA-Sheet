@@ -25,6 +25,7 @@ DSA Sheet/
 │
 ├── client/                     # Frontend SPA (React 18, Vite, TypeScript)
 │   ├── public/                 # Static web assets (favicons, icons)
+│   │   └── visualizers/        # Standalone HTML animation assets & local fallbacks
 │   ├── src/                    # Frontend source code
 │   │   ├── components/         # Reusable UI components (Navbar, Modal, VisualizerFrame)
 │   │   ├── contexts/           # React context providers (AuthContext.tsx)

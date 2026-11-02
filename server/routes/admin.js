@@ -984,6 +984,11 @@ const getVisualizersDir = () => {
   if (fs.existsSync(candidate1)) return candidate1;
   const candidate2 = path.resolve(process.cwd(), '../client/public/visualizers');
   if (fs.existsSync(candidate2)) return candidate2;
+  const candidate3 = path.resolve(process.cwd(), 'client/public/visualizers');
+  if (fs.existsSync(candidate3)) return candidate3;
+  try {
+    fs.mkdirSync(candidate1, { recursive: true });
+  } catch (e) {}
   return candidate1;
 };
 

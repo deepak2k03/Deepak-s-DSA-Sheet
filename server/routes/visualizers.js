@@ -4,6 +4,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const Visualizer = require('../models/Visualizer');
 const VisualizerCategory = require('../models/VisualizerCategory');
+const Problem = require('../models/Problem');
 const User = require('../models/User');
 const { isR2Configured, getObjectFromR2 } = require('../config/r2');
 
@@ -217,6 +218,385 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+const generateFallbackAnimationHtml = (visualizer) => {
+  const title = (visualizer.name || visualizer.problemTitle || 'Algorithm').replace(/[<>&"]/g, '');
+  const category = (visualizer.category || visualizer.problemTopic || 'DSA').replace(/[<>&"]/g, '');
+  const difficulty = (visualizer.difficulty || visualizer.problemDifficulty || 'Medium').replace(/[<>&"]/g, '');
+  const isPattern = title.toLowerCase().includes('pattern') || (visualizer.problemTitle && visualizer.problemTitle.toLowerCase().includes('pattern'));
+
+  if (isPattern) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title} Visualizer</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --border: #1f293d;
+      --teal: #14b8a6;
+      --amber: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      background: rgba(20,184,166,0.15);
+      color: var(--teal);
+      border: 1px solid rgba(20,184,166,0.3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .controls {
+      background: rgba(17,24,39,0.7);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    button {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary { background: var(--teal); color: #042f2e; border-color: var(--teal); }
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .grid {
+      display: inline-grid;
+      gap: 8px;
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .cell {
+      width: 44px;
+      height: 44px;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: transparent;
+      transition: all 0.2s;
+    }
+    .cell.printed { background: rgba(20,184,166,0.15); border-color: rgba(20,184,166,0.4); color: var(--teal); }
+    .cell.active { background: rgba(245,158,11,0.25); border-color: var(--amber); color: var(--amber); transform: scale(1.1); }
+    .status-bar {
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="badge">Live</span>
+      <strong style="font-size:14px;">${title}</strong>
+    </div>
+    <span style="font-size:12px;color:var(--amber);font-family:monospace;">Time: O(N²) | Space: O(1)</span>
+  </header>
+  <div class="controls">
+    <div style="display:flex;gap:8px;">
+      <button id="btnPlay" class="primary" type="button">▶ Play</button>
+      <button id="btnStep" type="button">Step ⏭</button>
+      <button id="btnReset" type="button">Reset ↺</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-muted);">
+      <span>N =</span>
+      <input type="range" id="size" min="2" max="6" value="4" style="accent-color:var(--teal);" />
+      <span id="nVal" style="font-weight:700;color:var(--teal);">4</span>
+    </div>
+  </div>
+  <main class="workspace">
+    <div id="grid" class="grid"></div>
+    <div id="status" class="status-bar">Ready. Click Play or Step to visualize.</div>
+  </main>
+  <script>
+    let N = 4, r = 0, c = 0, timer = null;
+    const grid = document.getElementById('grid');
+    const status = document.getElementById('status');
+    const btnPlay = document.getElementById('btnPlay');
+    const nVal = document.getElementById('nVal');
+
+    function init() {
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = 'repeat(' + N + ', 44px)';
+      for (let i = 0; i < N * N; i++) {
+        const d = document.createElement('div');
+        d.className = 'cell';
+        d.id = 'c-' + Math.floor(i / N) + '-' + (i % N);
+        d.textContent = '★';
+        grid.appendChild(d);
+      }
+      reset();
+    }
+
+    function reset() {
+      if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; }
+      r = 0; c = 0;
+      document.querySelectorAll('.cell').forEach(el => el.className = 'cell');
+      status.textContent = 'Ready. Pattern grid size ' + N + '×' + N + '.';
+    }
+
+    function step() {
+      if (r >= N) {
+        if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; }
+        status.textContent = 'Pattern execution complete!';
+        return;
+      }
+      document.querySelectorAll('.cell.active').forEach(el => el.classList.remove('active'));
+      const el = document.getElementById('c-' + r + '-' + c);
+      if (el) el.classList.add('active', 'printed');
+      status.textContent = 'Row ' + r + ', Column ' + c + ': printing star "*".';
+      c++;
+      if (c >= N) { c = 0; r++; }
+    }
+
+    btnPlay.onclick = () => {
+      if (timer) {
+        clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play';
+      } else {
+        if (r >= N) reset();
+        btnPlay.textContent = '⏸ Pause';
+        timer = setInterval(() => { step(); if (r >= N && timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; } }, 250);
+      }
+    };
+    document.getElementById('btnStep').onclick = () => { if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; } step(); };
+    document.getElementById('btnReset').onclick = reset;
+    document.getElementById('size').oninput = (e) => { N = parseInt(e.target.value, 10); nVal.textContent = N; init(); };
+    init();
+  </script>
+</body>
+</html>`;
+  }
+
+  // General Interactive Algorithm Fallback
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title} Visualizer</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --border: #1f293d;
+      --teal: #14b8a6;
+      --amber: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      background: rgba(20,184,166,0.15);
+      color: var(--teal);
+      border: 1px solid rgba(20,184,166,0.3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .controls {
+      background: rgba(17,24,39,0.7);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    button {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary { background: var(--teal); color: #042f2e; border-color: var(--teal); }
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .array-bar-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 180px;
+      padding: 16px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .bar {
+      width: 40px;
+      background: rgba(20,184,166,0.3);
+      border: 1px solid var(--teal);
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+    .bar.active { background: rgba(245,158,11,0.5); border-color: var(--amber); }
+    .status-bar {
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="badge">Interactive Simulation</span>
+      <strong style="font-size:14px;">${title}</strong>
+    </div>
+    <span style="font-size:12px;color:var(--amber);font-family:monospace;">${category} • ${difficulty}</span>
+  </header>
+  <div class="controls">
+    <div style="display:flex;gap:8px;">
+      <button id="btnPlay" class="primary" type="button">▶ Play</button>
+      <button id="btnStep" type="button">Step ⏭</button>
+      <button id="btnReset" type="button">Reset ↺</button>
+    </div>
+    <span style="font-size:12px;color:var(--text-muted);">Step-by-step state tracker</span>
+  </div>
+  <main class="workspace">
+    <div id="container" class="array-bar-container"></div>
+    <div id="status" class="status-bar">Ready to step through algorithm.</div>
+  </main>
+  <script>
+    let arr = [42, 17, 89, 33, 56, 12, 70];
+    let stepIdx = 0, timer = null;
+    const container = document.getElementById('container');
+    const status = document.getElementById('status');
+    const btnPlay = document.getElementById('btnPlay');
+
+    function render() {
+      container.innerHTML = '';
+      arr.forEach((val, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'bar' + (i === stepIdx ? ' active' : '');
+        bar.style.height = (val * 1.6) + 'px';
+        bar.textContent = val;
+        container.appendChild(bar);
+      });
+    }
+
+    function step() {
+      if (stepIdx >= arr.length) {
+        if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; }
+        status.textContent = 'Algorithm traversal complete.';
+        return;
+      }
+      status.textContent = 'Inspecting element at index ' + stepIdx + ' with value ' + arr[stepIdx] + '.';
+      stepIdx++;
+      render();
+    }
+
+    btnPlay.onclick = () => {
+      if (timer) {
+        clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play';
+      } else {
+        if (stepIdx >= arr.length) { stepIdx = 0; }
+        btnPlay.textContent = '⏸ Pause';
+        timer = setInterval(() => { step(); if (stepIdx >= arr.length && timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; } }, 400);
+      }
+    };
+    document.getElementById('btnStep').onclick = () => { if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; } step(); };
+    document.getElementById('btnReset').onclick = () => { if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = '▶ Play'; } stepIdx = 0; render(); status.textContent = 'Reset to start.'; };
+    render();
+  </script>
+</body>
+</html>`;
+};
+
 // GET /api/visualizers/:slug - Get single visualizer by slug
 router.get('/:slug', async (req, res) => {
   try {
@@ -227,10 +607,46 @@ router.get('/:slug', async (req, res) => {
       return res.status(404).json({ message: 'Not found' });
     }
 
-    const visualizer = await Visualizer.findOne({
+    let visualizer = await Visualizer.findOne({
       slug,
       isDeleted: false,
     }).lean();
+
+    if (!visualizer) {
+      const problemMatch = slug.match(/^problem-(\d+)/i);
+      if (problemMatch) {
+        const pid = Number(problemMatch[1]);
+        visualizer = await Visualizer.findOne({
+          problemId: pid,
+          isDeleted: false,
+        }).lean();
+
+        if (!visualizer) {
+          const problem = await Problem.findOne({ id: pid, isDeleted: { $ne: true } }).lean();
+          if (problem) {
+            visualizer = {
+              _id: `problem-${problem.id}`,
+              name: `${problem.title} Solution`,
+              slug: problem.visualizerSlug || slug,
+              type: 'problem',
+              category: problem.topic || 'General',
+              difficulty: problem.difficulty || 'Easy',
+              description: `Interactive algorithm and step-by-step visualization for "${problem.title}".`,
+              status: 'available',
+              problemId: problem.id,
+              problemTitle: problem.title,
+              problemTopic: problem.topic,
+              problemDifficulty: problem.difficulty,
+              problemLink: problem.link,
+              timeComplexity: { best: 'O(n)', average: 'O(n)', worst: 'O(n)' },
+              spaceComplexity: 'O(1)',
+              tags: [problem.topic || 'DSA', 'Problem Solution'],
+              keyConcepts: ['Algorithm Execution', 'Step-by-step Tracing'],
+            };
+          }
+        }
+      }
+    }
 
     if (!visualizer) {
       return res.status(404).json({ message: 'Visualizer not found' });
@@ -258,10 +674,36 @@ router.get('/:slug', async (req, res) => {
 router.get('/render/:slug', async (req, res) => {
   try {
     const slug = req.params.slug.toLowerCase();
-    const visualizer = await Visualizer.findOne({
+    let visualizer = await Visualizer.findOne({
       slug,
       isDeleted: false,
     });
+
+    if (!visualizer) {
+      const problemMatch = slug.match(/^problem-(\d+)/i);
+      if (problemMatch) {
+        const pid = Number(problemMatch[1]);
+        visualizer = await Visualizer.findOne({
+          problemId: pid,
+          isDeleted: false,
+        });
+
+        if (!visualizer) {
+          const problem = await Problem.findOne({ id: pid, isDeleted: { $ne: true } }).lean();
+          if (problem) {
+            visualizer = {
+              name: `${problem.title} Solution`,
+              slug: problem.visualizerSlug || slug,
+              type: 'problem',
+              problemId: problem.id,
+              problemTitle: problem.title,
+              category: problem.topic || 'General',
+              status: 'available',
+            };
+          }
+        }
+      }
+    }
 
     if (!visualizer) {
       return res.status(404).send(`
@@ -302,7 +744,7 @@ router.get('/render/:slug', async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; sandbox allow-scripts allow-forms allow-modals;"
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; sandbox allow-scripts allow-same-origin allow-forms allow-modals;"
     );
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
@@ -325,36 +767,17 @@ router.get('/render/:slug', async (req, res) => {
     }
 
     // 2. Fallback to local file in client/public/visualizers/
-    const localPath = getLocalFilePath(slug);
+    let localPath = getLocalFilePath(slug);
+    if (!localPath && visualizer.slug && visualizer.slug !== slug) {
+      localPath = getLocalFilePath(visualizer.slug);
+    }
     if (localPath && fs.existsSync(localPath)) {
       return fs.createReadStream(localPath).pipe(res);
     }
 
-    // 3. Fallback: return minimal skeleton if file is missing
-    return res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${visualizer.name} Visualizer</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, sans-serif;
-      background-color: #0a0a0a;
-      color: #fafafa;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-  </style>
-</head>
-<body>
-  <div id="visualizer-container"></div>
-</body>
-</html>`);
+    // 3. Fallback: generate interactive visualizer animation
+    const dynamicHtml = generateFallbackAnimationHtml(visualizer);
+    return res.send(dynamicHtml);
   } catch (error) {
     console.error('Error rendering visualizer animation:', error);
     res.status(500).send('Internal Server Error rendering visualizer');

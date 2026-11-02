@@ -22,6 +22,7 @@ import Footer from '../components/Footer';
 import VisualizerFrame from '../components/VisualizerFrame';
 import CodeBlock from '../components/CodeBlock';
 import { apiUrl } from '../config';
+import { getStoredToken } from '../utils/auth';
 
 type Language = 'C++' | 'Java' | 'Python' | 'JavaScript' | string;
 
@@ -138,6 +139,30 @@ const SolutionPage: React.FC = () => {
   const embedVideoUrl = useMemo(() => getEmbedUrl(videoUrl), [videoUrl]);
   const hasVisualizer = Boolean(problem?.visualizerSlug || problem?.hasVisualizer);
   const hasVideo = Boolean(videoUrl);
+
+  const effectiveVisualizerSlug = useMemo(() => {
+    if (problem?.visualizerSlug && problem.visualizerSlug.trim()) {
+      return problem.visualizerSlug.trim();
+    }
+    if (problem?.id) {
+      const cleanTitle = (problem.title || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+      return `problem-${problem.id}-${cleanTitle}`;
+    }
+    return '';
+  }, [problem?.visualizerSlug, problem?.id, problem?.title]);
+
+  const visualizerRenderSrc = useMemo(() => {
+    if (!effectiveVisualizerSlug) return '';
+    const token = getStoredToken();
+    const rawRenderUrl = apiUrl(`/api/visualizers/render/${effectiveVisualizerSlug}`);
+    const cacheKey = problem?.updatedAt ? new Date(problem.updatedAt).getTime() : (problem?.id || '1');
+    const separator = rawRenderUrl.includes('?') ? '&' : '?';
+    const withCache = `${rawRenderUrl}${separator}v=${cacheKey}`;
+    return token ? `${withCache}&token=${encodeURIComponent(token)}` : withCache;
+  }, [effectiveVisualizerSlug, problem?.updatedAt, problem?.id]);
 
   if (loading) {
     return (
@@ -293,7 +318,7 @@ const SolutionPage: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <Link
-                  to={`/visualizers/${problem.visualizerSlug}`}
+                  to={`/visualizers/${effectiveVisualizerSlug}`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition"
@@ -313,7 +338,8 @@ const SolutionPage: React.FC = () => {
 
             <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0a0a0a] shadow-inner">
               <VisualizerFrame
-                src={`/api/visualizers/render/${problem.visualizerSlug}`}
+                key={visualizerRenderSrc}
+                src={visualizerRenderSrc}
                 title={problem.title}
                 aspectRatio="video"
                 status="available"

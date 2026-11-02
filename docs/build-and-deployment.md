@@ -27,7 +27,7 @@ Start both processes concurrently or in separate terminal sessions:
 # Terminal 1: Start backend server (port 5000)
 npm --prefix server run dev
 
-# Terminal 2: Start frontend Vite dev server (port 5173)
+# Terminal 2: Start frontend Vite dev server (port 5173, proxies /api -> http://localhost:5000)
 npm --prefix client run dev
 ```
 
