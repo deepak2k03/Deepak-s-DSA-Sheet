@@ -14,8 +14,8 @@ This document breaks down the major functional modules within the client and ser
 - **`TopicPage.tsx`**: Detailed list of problems under a selected topic with search, difficulty filtering, completion checkboxes, personal notes drawer, and direct links to code/video tutorials and interactive visualizers.
 - **`POTDPage.tsx`**: Daily challenge interface showing the Problem of the Day, streak counters, historical participation, and solution submission status.
 - **`VisualizersPage.tsx` & `VisualizerDetailPage.tsx`**: Interactive algorithm visualizer hub. Embeds standalone visualizers inside `components/VisualizerFrame.tsx` with iframe sandboxing.
-- **`LeaderboardPage.tsx`**: Global competitive rankings displaying user scores, solved counts, levels, streaks, and platform badges.
-- **`ProfilePage.tsx`**: User profile management, stats breakdown, solved problem history, and account settings.
+- **`LeaderboardPage.tsx`**: Global competitive rankings displaying user scores, solved counts, levels, streaks, and platform badges. Clicking any learner opens `components/UserSolvedProblemsModal.tsx` showing their detailed profile and compact 2-column topic-wise solved problems.
+- **`ProfilePage.tsx`**: User profile management supporting both personal view (`/profile`) and public profile views (`/profile/:username`). Features a balanced top dashboard (Solved Progress & Difficulty breakdown alongside a 52-week Activity Heatmap) and a dual-pane Master-Detail Curriculum & Solved Problems Explorer with topic navigation, responsive horizontal pill scrolling on mobile, live search, difficulty filters, compact 2-column problem cards, and pagination.
 - **`LoginPage.tsx`, `RegisterPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`**: Authentication screens supporting email/password and Google OAuth.
 - **`SupportCreatorPage.tsx`**: Platform donation and community support page.
 
@@ -36,7 +36,7 @@ This document breaks down the major functional modules within the client and ser
 
 ### 2.1 Route Handlers (`server/routes/`)
 - **`routes/auth.js`**:
-  - Handles `/api/auth/register`, `/api/auth/login`, `/api/auth/google`, `/api/auth/me`, `/api/auth/forgot-password`, `/api/auth/reset-password`.
+  - Handles `/api/auth/signup`, `/api/auth/login`, `/api/auth/google`, `/api/auth/me`, `/api/auth/profile/:username`, `/api/auth/leaderboard`, password reset, and email verification.
   - Enforces bcrypt hashing, rate limiting, and account lockout after repeated failures.
 - **`routes/problems.js`**:
   - Public problem querying (`/api/problems`), topic-filtered queries, and individual problem retrieval.

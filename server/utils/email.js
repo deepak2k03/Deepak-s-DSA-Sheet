@@ -1,8 +1,7 @@
 const { Resend } = require('resend');
 
-// Initialize Resend with the API key from environment variables
-// It's safe to instantiate it even if the key is missing (it will throw on send)
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend with the API key from environment variables if present
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /**
  * Generic function to send an email using Resend
@@ -16,7 +15,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const from = process.env.EMAIL_FROM || 'noreply@yourdomain.com';
     
-    if (!process.env.RESEND_API_KEY) {
+    if (!resend || !process.env.RESEND_API_KEY) {
       console.warn('RESEND_API_KEY is not configured. Email will not be sent.');
       return;
     }

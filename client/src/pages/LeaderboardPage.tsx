@@ -20,6 +20,7 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import Footer from '../components/Footer';
 import { apiUrl } from '../config';
 import { getStoredToken, getStoredUser } from '../utils/auth';
+import UserSolvedProblemsModal from '../components/UserSolvedProblemsModal';
 
 interface LeaderboardUser {
   rank: number;
@@ -302,7 +303,8 @@ const PodiumCard: React.FC<{
   rank: number;
   periodLabel: string;
   showLevel: boolean;
-}> = ({ user, rank, periodLabel, showLevel }) => {
+  onSelect?: (username: string) => void;
+}> = ({ user, rank, periodLabel, showLevel, onSelect }) => {
   const isFirst = rank === 1;
 
   const cardBorderClass =
@@ -321,7 +323,16 @@ const PodiumCard: React.FC<{
     <div className={`w-full ${isFirst ? 'md:-translate-y-1' : ''}`}>
       {/* Main Glass Card */}
       <div
-        className={`w-full h-full rounded-2xl border p-3 sm:p-3.5 transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between ${cardBorderClass}`}
+        onClick={() => onSelect?.(user.username)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect?.(user.username);
+          }
+        }}
+        className={`w-full h-full rounded-2xl border p-3 sm:p-3.5 transition-all duration-300 hover:scale-[1.02] active:scale-[0.99] cursor-pointer flex flex-col justify-between ${cardBorderClass}`}
       >
         {/* Top Row: Medal + Avatar & Username + Solved Score */}
         <div className="flex items-center justify-between gap-2">
@@ -402,6 +413,7 @@ const LeaderboardPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<{ username: string; rank?: number } | null>(null);
 
   // Load stored user on mount
   useEffect(() => {
@@ -575,6 +587,7 @@ const LeaderboardPage: React.FC = () => {
                       rank={rank}
                       periodLabel={periodLabel}
                       showLevel={settings?.showLevelBadge !== false}
+                      onSelect={(username) => setSelectedUser({ username, rank })}
                     />
                   ))}
                 </div>
@@ -726,9 +739,18 @@ const LeaderboardPage: React.FC = () => {
                         return (
                           <tr
                             key={user.username || user.rank}
-                            className={`group transition-colors ${
+                            onClick={() => setSelectedUser({ username: user.username, rank: user.rank })}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectedUser({ username: user.username, rank: user.rank });
+                              }
+                            }}
+                            className={`group transition-colors cursor-pointer ${
                               isCurrent
-                                ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.12] border-y border-amber-500/30'
+                                ? 'bg-amber-500/[0.08] hover:bg-amber-500/[0.14] border-y border-amber-500/30'
                                 : 'hover:bg-[var(--bg-surface-hover)]'
                             }`}
                           >
@@ -893,6 +915,13 @@ const LeaderboardPage: React.FC = () => {
           </>
         )}
       </main>
+
+      <UserSolvedProblemsModal
+        isOpen={Boolean(selectedUser)}
+        username={selectedUser?.username || null}
+        rank={selectedUser?.rank}
+        onClose={() => setSelectedUser(null)}
+      />
 
       <Footer />
     </div>

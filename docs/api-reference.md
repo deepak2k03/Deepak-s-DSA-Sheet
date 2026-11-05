@@ -18,6 +18,7 @@ All endpoints are prefixed with `/api`. Protected routes require an `Authorizati
 | `POST` | `/api/auth/request-email-verification`| Auth | Trigger email verification link. |
 | `POST` | `/api/auth/verify-email` | Auth | Verify user email address with code. |
 | `GET` | `/api/auth/me` | Auth | Fetch currently authenticated user profile and solved progress. |
+| `GET` | `/api/auth/profile/:username` | Public | Fetch public user profile and full topic-wise breakdown of solved problems. |
 | `GET` | `/api/auth/leaderboard` | Public | Retrieve cached global rankings, levels, and solved stats. |
 
 ---

@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Problem = require('../models/Problem');
+const Topic = require('../models/Topic');
 const auth = require('../middleware/auth');
 const { authRateLimiter } = require('../utils/rateLimiter');
 const { getRoleForEmail, sanitizeUser } = require('../utils/userAccess');
@@ -10,7 +12,12 @@ const {
   setCachedLeaderboard,
   clearLeaderboardCache,
 } = require('../utils/leaderboardCache');
-const { queryLeaderboard } = require('../utils/leaderboardService');
+const {
+  queryLeaderboard,
+  calculateLevel,
+  calculateStreaks,
+} = require('../utils/leaderboardService');
+const { getCanonicalTopicSlug } = require('../utils/topics');
 const { createPlainToken, hashToken } = require('../utils/tokenSecurity');
 const { sendPasswordResetEmail } = require('../utils/email');
 const { writeAuditLog } = require('../utils/audit');
@@ -377,6 +384,144 @@ router.get('/leaderboard', async (req, res) => {
   } catch (err) {
     console.error('Leaderboard route error:', err.message);
     return res.status(500).send('Server Error');
+  }
+});
+
+const escapeRegex = (str = '') => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+router.get('/profile/:username', async (req, res) => {
+  try {
+    const rawUsername = (req.params.username || '').trim();
+    if (!rawUsername) {
+      return res.status(400).json({ msg: 'Username is required' });
+    }
+
+    const user = await User.findOne({
+      username: { $regex: new RegExp(`^${escapeRegex(rawUsername)}$`, 'i') },
+      isActive: { $ne: false },
+    })
+      .select('username solvedProblems solvedHistory createdAt role')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    const solvedStrings = Array.isArray(user.solvedProblems) ? user.solvedProblems : [];
+    const solvedNumIds = solvedStrings
+      .map(Number)
+      .filter((n) => Number.isInteger(n) && n > 0);
+
+    const [solvedProblemsDocs, topics, allTopicCounts] = await Promise.all([
+      solvedNumIds.length > 0
+        ? Problem.find({
+            id: { $in: solvedNumIds },
+            isDeleted: { $ne: true },
+          })
+            .select('id title difficulty topic link solutionLink tutorialLink videoSolutionUrl visualizerSlug hasVisualizer order')
+            .sort({ order: 1, id: 1 })
+            .lean()
+        : Promise.resolve([]),
+      Topic.find({ isActive: true, isDeleted: { $ne: true } })
+        .select('name slug iconKey order difficulty description')
+        .sort({ order: 1, name: 1 })
+        .lean(),
+      Problem.find({ isDeleted: { $ne: true } })
+        .select('topic')
+        .lean(),
+    ]);
+
+    // Build map of total problems per canonical topic
+    const totalByTopic = {};
+    for (const p of allTopicCounts) {
+      const slug = getCanonicalTopicSlug(p.topic);
+      if (slug) {
+        totalByTopic[slug] = (totalByTopic[slug] || 0) + 1;
+      }
+    }
+
+    // Build solved history timestamp lookup
+    const solvedAtMap = {};
+    if (Array.isArray(user.solvedHistory)) {
+      for (const item of user.solvedHistory) {
+        if (item && item.problemId) {
+          solvedAtMap[String(item.problemId)] = item.solvedAt;
+        }
+      }
+    }
+
+    // Group solved problems by topic
+    const topicMap = new Map();
+    for (const t of topics) {
+      topicMap.set(t.slug, {
+        topicSlug: t.slug,
+        topicName: t.name,
+        iconKey: t.iconKey || 'book-open',
+        order: t.order || 0,
+        totalInTopic: totalByTopic[t.slug] || 0,
+        solvedCount: 0,
+        problems: [],
+      });
+    }
+
+    for (const p of solvedProblemsDocs) {
+      const topicSlug = getCanonicalTopicSlug(p.topic) || 'other';
+      if (!topicMap.has(topicSlug)) {
+        topicMap.set(topicSlug, {
+          topicSlug,
+          topicName: p.topic.charAt(0).toUpperCase() + p.topic.slice(1),
+          iconKey: 'book-open',
+          order: 999,
+          totalInTopic: totalByTopic[topicSlug] || 0,
+          solvedCount: 0,
+          problems: [],
+        });
+      }
+
+      const entry = topicMap.get(topicSlug);
+      entry.solvedCount += 1;
+      entry.problems.push({
+        id: p.id,
+        title: p.title,
+        difficulty: p.difficulty || 'Medium',
+        topic: p.topic,
+        link: p.link,
+        solutionLink: p.solutionLink || '',
+        tutorialLink: p.tutorialLink || '',
+        videoSolutionUrl: p.videoSolutionUrl || '',
+        visualizerSlug: p.visualizerSlug || '',
+        hasVisualizer: Boolean(p.hasVisualizer || p.visualizerSlug),
+        solvedAt: solvedAtMap[String(p.id)] || null,
+        order: p.order || 0,
+      });
+    }
+
+    const topicBreakdown = Array.from(topicMap.values()).sort((a, b) => {
+      if (a.order !== b.order) return a.order - b.order;
+      return a.topicName.localeCompare(b.topicName);
+    });
+
+    const level = calculateLevel(solvedStrings.length);
+    const streaks = calculateStreaks(user.solvedHistory);
+
+    return res.json({
+      user: {
+        username: user.username,
+        role: user.role,
+        createdAt: user.createdAt,
+        level,
+        totalSolved: solvedStrings.length,
+        currentStreak: streaks.currentStreak,
+        maxStreak: streaks.maxStreak,
+        solvedProblems: user.solvedProblems,
+        solvedHistory: user.solvedHistory,
+      },
+      topicBreakdown,
+      solvedCount: solvedProblemsDocs.length,
+    });
+  } catch (err) {
+    console.error('User profile route error:', err.message);
+    return res.status(500).json({ msg: 'Server Error' });
   }
 });
 

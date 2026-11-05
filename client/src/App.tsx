@@ -56,6 +56,7 @@ function App() {
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
                 <Route path="/topics" element={<Topics />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/topic/:slug" element={<TopicPage />} />
                 <Route path="/problem/:id/solution" element={<SolutionPage />} />
