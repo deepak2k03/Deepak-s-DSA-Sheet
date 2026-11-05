@@ -52,6 +52,11 @@ Contains all DSA curriculum problems and metadata.
 | `deletedAt` | Date | Timestamp of deletion or `null`. |
 | `timestamps` | Timestamps | Automatic `createdAt` and `updatedAt`. |
 
+**Indexes**:
+- `{ id: 1 }` (unique)
+- `{ isDeleted: 1, order: 1, id: 1 }` (optimized problem listing & ordering queries)
+- `{ topic: 1, isDeleted: 1, order: 1 }` (optimized topic-filtered queries)
+
 ---
 
 ## 3. Topic Model (`Topic.js`)
@@ -70,6 +75,10 @@ Defines the curriculum taxonomy and category groupings.
 | `isDeleted` | Boolean | Soft-deletion flag. Default: `false`. |
 | `deletedAt` | Date | Timestamp of deletion or `null`. |
 | `timestamps` | Timestamps | Automatic `createdAt` and `updatedAt`. |
+
+**Indexes**:
+- `{ slug: 1 }` (unique)
+- `{ isActive: 1, isDeleted: 1, order: 1 }` (optimized active topic catalog queries)
 
 ---
 

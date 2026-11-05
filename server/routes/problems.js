@@ -4,6 +4,7 @@ const Problem = require('../models/Problem');
 const User = require('../models/User');
 const POTD = require('../models/POTD');
 const auth = require('../middleware/auth');
+const adminOnly = require('../middleware/admin');
 const {
   clearProblemsCache,
   getCachedProblems,
@@ -15,7 +16,7 @@ const { getCanonicalTopicSlug } = require('../utils/topics');
 // ==============================================
 // ADD PROBLEM (Clears Cache)
 // ==============================================
-router.post('/add', async (req, res) => {
+router.post('/add', auth, adminOnly, async (req, res) => {
   const { id, title, link, difficulty, topic, tutorialLink, solutionLink } = req.body;
 
   try {

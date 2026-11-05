@@ -27,6 +27,7 @@ All endpoints are prefixed with `/api`. Protected routes require an `Authorizati
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/problems/all` | Public | Fetch all non-deleted problems. Uses in-memory caching. |
+| `POST` | `/api/problems/add` | Admin | Add a new problem to the catalog (clears problem cache). Requires `auth` and `adminOnly`. |
 | `GET` | `/api/problems/single/:id` | Public | Fetch a single problem by ID or problemNumber. |
 | `GET` | `/api/problems/potd` | Public | Fetch the active Problem of the Day challenge. |
 | `GET` | `/api/problems/:topic` | Public | Fetch problems belonging to a canonical topic slug. |

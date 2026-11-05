@@ -15,4 +15,6 @@ const topicSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+topicSchema.index({ isActive: 1, isDeleted: 1, order: 1 });
+
 module.exports = mongoose.model('Topic', topicSchema);

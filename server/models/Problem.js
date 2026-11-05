@@ -29,4 +29,7 @@ const problemSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
+problemSchema.index({ isDeleted: 1, order: 1, id: 1 });
+problemSchema.index({ topic: 1, isDeleted: 1, order: 1 });
+
 module.exports = mongoose.model('Problem', problemSchema);

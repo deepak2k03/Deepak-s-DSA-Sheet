@@ -58,7 +58,7 @@ graph TD
 ### 2.1 Presentation Tier (`client/`)
 - **Technology**: React 18, TypeScript, Tailwind CSS, Lucide icons, Vite.
 - **State Management**: React Context (`AuthContext.tsx`) for global user state; local component state and `useMemo` for tabular search and filter indexing.
-- **Routing**: `react-router-dom` with route guards (`ProtectedRoute.tsx`) separating public landing, authenticated user portal, and role-gated admin views (`/admin/*`).
+- **Routing & Code Splitting**: `react-router-dom` with route guards (`AdminRoute.tsx`), route-level dynamic code splitting (`React.lazy` and `Suspense`), separating public landing, authenticated user portal, and role-gated admin views (`/admin`).
 - **Resilience**: `ErrorBoundary.tsx` wrapping main views to catch unexpected rendering exceptions without crashing the user session.
 
 ### 2.2 Application Tier (`server/`)
