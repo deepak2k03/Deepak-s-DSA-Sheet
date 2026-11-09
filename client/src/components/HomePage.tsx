@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, BookOpen, Flame, Heart, Sparkles, Trophy } from 'lucide-react';
+import { ArrowRight, BarChart3, BookOpen, Flame, Heart, Layers, Sparkles, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiUrl } from '../config';
 import { defaultTopics } from '../data/topics';
@@ -7,6 +7,42 @@ import { fetchPublicTopics } from '../utils/topicApi';
 import AnimatedBackground from './AnimatedBackground';
 import DSAConquestAnimation from './DSAConquestAnimation';
 import Footer from './Footer';
+
+const TargetIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5 text-emerald-400' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="2" />
+    <path d="M19 5L15 9" />
+    <path d="M15 5h4v4" />
+  </svg>
+);
+
+const AscendingBarsIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5 text-emerald-400' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <line x1="6" y1="18" x2="6" y2="13" />
+    <line x1="12" y1="18" x2="12" y2="8.5" />
+    <line x1="18" y1="18" x2="18" y2="4" />
+  </svg>
+);
 
 const HomePage: React.FC = () => {
   const [stats, setStats] = useState({ totalProblems: 0, activeUsers: 0, topicsCount: 0, totalSolves: 0 });
@@ -42,7 +78,7 @@ const HomePage: React.FC = () => {
       <AnimatedBackground />
       <main>
         {/* HERO SECTION */}
-        <section className="page-wrap relative grid items-center gap-8 lg:gap-6 xl:gap-8 pt-2 sm:pt-4 lg:pt-3 pb-24 sm:pb-28 lg:pb-24 lg:grid-cols-[0.78fr_1.42fr] xl:grid-cols-[0.74fr_1.46fr] overflow-hidden lg:overflow-visible">
+        <section className="page-wrap relative grid items-center gap-8 lg:gap-6 xl:gap-8 pt-2 sm:pt-4 lg:pt-3 pb-20 sm:pb-24 lg:pb-16 lg:grid-cols-[0.78fr_1.42fr] xl:grid-cols-[0.74fr_1.46fr] overflow-hidden lg:overflow-visible">
           
           {/* Left Column (Content) */}
           <div className="relative z-20 flex flex-col items-center lg:items-start text-center lg:text-left pt-2 sm:pt-4 lg:pt-5 xl:pt-6 pl-0 sm:pl-2 lg:pl-6 xl:pl-8 2xl:pl-10 pointer-events-auto w-full max-w-full">
@@ -54,7 +90,7 @@ const HomePage: React.FC = () => {
             </h1>
             
             <p className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg text-[var(--text-secondary)] leading-relaxed text-justify lg:text-left">
-              A thoughtfully curated DSA roadmap that helps you recognize patterns, build momentum, and see every bit of progress. No busy dashboards, just code.
+              500+ hand-picked problems organized by patterns, difficulty, and topic. Stop jumping between random problems. Follow a structured path from fundamentals to interview-ready.
             </p>
             
             <div className="mt-6 sm:mt-8 lg:mt-10 grid grid-cols-2 gap-2.5 sm:gap-3 w-full max-w-md lg:max-w-none lg:flex lg:flex-nowrap lg:w-max mx-auto lg:mx-0">
@@ -87,19 +123,67 @@ const HomePage: React.FC = () => {
           </div>
           
           {/* Right Column (Visual) */}
-          <div className="relative z-10 w-full lg:translate-x-5 xl:translate-x-8 2xl:translate-x-10 mt-6 sm:mt-8 lg:mt-0">
+          <div className="relative z-10 w-full lg:translate-x-5 xl:translate-x-8 2xl:translate-x-10 mt-6 sm:mt-8 lg:mt-0 flex flex-col items-center">
              <div className="absolute inset-4 bg-gradient-to-tr from-emerald-500/15 to-teal-500/10 blur-2xl opacity-30 dark:opacity-15 rounded-[40px] z-0 pointer-events-none"></div>
              
              <div className="relative z-10 w-full flex items-center justify-center overflow-visible">
                 <DSAConquestAnimation />
              </div>
 
-             {/* Highlighted text below animation - absolute positioning keeps animation at original place */}
-             <div className="absolute left-1/2 -translate-x-1/2 top-full mt-3 sm:mt-5 lg:mt-6 z-20 flex items-center justify-center pointer-events-auto w-[calc(100%-1.5rem)] sm:w-auto max-w-full px-2">
-               <div className="inline-flex items-center justify-center gap-2 sm:gap-3 rounded-xl border border-emerald-500/50 dark:border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-950/60 px-3.5 py-2 sm:px-8 sm:py-3.5 backdrop-blur-md shadow-sm transition-all duration-300 hover:scale-105 hover:border-emerald-500/70 text-center max-w-full">
-                 <span className="text-[11px] sm:text-sm md:text-base font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-300 text-center leading-relaxed">
-                   Best DSA sheet WITH 500+ CURATED PROBLEMS
-                 </span>
+             {/* Feature highlight badges below animation */}
+             <div className="w-full flex items-center justify-center z-20 mt-3 sm:mt-4 lg:mt-5 px-2">
+               <div className="grid grid-cols-2 sm:flex sm:flex-row items-center justify-center gap-2.5 sm:gap-3.5 max-w-full">
+                 {/* Card 1: 500+ Problems */}
+                 <div className="flex items-center gap-3 sm:gap-3.5 px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl border border-[var(--border-subtle)] dark:border-emerald-500/20 bg-[var(--bg-surface)]/90 dark:bg-black/60 backdrop-blur-md shadow-sm hover:border-emerald-500/50 hover:bg-[var(--bg-surface-hover)] transition-all">
+                   <Layers size={24} className="text-emerald-400 shrink-0 stroke-[2.2]" />
+                   <div className="text-left min-w-0">
+                     <p className="font-extrabold text-sm sm:text-base text-[var(--text-primary)] leading-tight tracking-tight whitespace-nowrap">
+                       500+
+                     </p>
+                     <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-zinc-400 leading-tight mt-0.5 whitespace-nowrap">
+                       Problems
+                     </p>
+                   </div>
+                 </div>
+
+                 {/* Card 2: 20+ Topics */}
+                 <div className="flex items-center gap-3 sm:gap-3.5 px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl border border-[var(--border-subtle)] dark:border-emerald-500/20 bg-[var(--bg-surface)]/90 dark:bg-black/60 backdrop-blur-md shadow-sm hover:border-emerald-500/50 hover:bg-[var(--bg-surface-hover)] transition-all">
+                   <Layers size={24} className="text-emerald-400 shrink-0 stroke-[2.2]" />
+                   <div className="text-left min-w-0">
+                     <p className="font-extrabold text-sm sm:text-base text-[var(--text-primary)] leading-tight tracking-tight whitespace-nowrap">
+                       20+
+                     </p>
+                     <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-zinc-400 leading-tight mt-0.5 whitespace-nowrap">
+                       Topics
+                     </p>
+                   </div>
+                 </div>
+
+                 {/* Card 3: Pattern-based Learning */}
+                 <div className="flex items-center gap-3 sm:gap-3.5 px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl border border-[var(--border-subtle)] dark:border-emerald-500/20 bg-[var(--bg-surface)]/90 dark:bg-black/60 backdrop-blur-md shadow-sm hover:border-emerald-500/50 hover:bg-[var(--bg-surface-hover)] transition-all">
+                   <TargetIcon className="w-6 h-6 text-emerald-400 shrink-0 stroke-[2.2]" />
+                   <div className="text-left min-w-0">
+                     <p className="font-extrabold text-sm sm:text-base text-[var(--text-primary)] leading-tight tracking-tight whitespace-nowrap">
+                       Pattern-based
+                     </p>
+                     <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-zinc-400 leading-tight mt-0.5 whitespace-nowrap">
+                       Learning
+                     </p>
+                   </div>
+                 </div>
+
+                 {/* Card 4: Progress Tracking */}
+                 <div className="flex items-center gap-3 sm:gap-3.5 px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl border border-[var(--border-subtle)] dark:border-emerald-500/20 bg-[var(--bg-surface)]/90 dark:bg-black/60 backdrop-blur-md shadow-sm hover:border-emerald-500/50 hover:bg-[var(--bg-surface-hover)] transition-all">
+                   <AscendingBarsIcon className="w-6 h-6 text-emerald-400 shrink-0 stroke-[2.4]" />
+                   <div className="text-left min-w-0">
+                     <p className="font-extrabold text-sm sm:text-base text-[var(--text-primary)] leading-tight tracking-tight whitespace-nowrap">
+                       Progress
+                     </p>
+                     <p className="text-xs sm:text-sm text-[var(--text-secondary)] dark:text-zinc-400 leading-tight mt-0.5 whitespace-nowrap">
+                       Tracking
+                     </p>
+                   </div>
+                 </div>
                </div>
              </div>
           </div>

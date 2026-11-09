@@ -9,7 +9,8 @@ This document breaks down the major functional modules within the client and ser
   - Manages authenticated user session, JWT storage in `localStorage`, login, logout, profile updates, and real-time solved problems tracking.
   - Automatically calculates progressive level ($\text{Level} = \lfloor\sqrt{\text{totalSolved} \times 0.45}\rfloor + 1$) and exposes synchronization methods for solved problem IDs.
 
-### 1.2 Top-Level Route Pages (`pages/`)
+### 1.2 Top-Level Route Pages & Landing Components
+- **`HomePage.tsx`**: Landing page hero featuring the interactive `DSAConquestAnimation` visualizer, 4 feature highlight cards (500+ Problems, 20+ Topics, Pattern-based Learning, Progress Tracking), dynamic platform statistics, quick navigation, and feature overviews.
 - **`Topics.tsx`**: The main curriculum dashboard displaying topic cards grouped by category, showing completion progress, total problems count, and difficulty badges.
 - **`TopicPage.tsx`**: Detailed list of problems under a selected topic with search, difficulty filtering, completion checkboxes, personal notes drawer, and direct links to code/video tutorials and interactive visualizers.
 - **`POTDPage.tsx`**: Daily challenge interface showing the Problem of the Day, streak counters, historical participation, and solution submission status.
